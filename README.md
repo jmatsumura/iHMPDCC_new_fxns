@@ -9,6 +9,5 @@ With Docker installed, use this file like so:
 
 2) Run the following commands:
 
-	A) `docker build . -t gdc`
-
-	B) `docker run --name gdc_con -P 8080:80 gdc`
+	A) docker build . -t gdc
+	B) docker run --name gdc_con -P 8080:80 gdc
