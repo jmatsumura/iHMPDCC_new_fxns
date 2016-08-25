@@ -8,23 +8,29 @@ MAINTAINER James Matsumura (jmatsumura@som.umaryland.edu)
 # components of GDC code
 RUN sudo apt-get update && sudo apt-get install -y apache2 \
 					git \
-					nodejs \
+					nodejs-legacy \
 					npm \
 					python-pip \
 					libpq-dev \
 					python-dev \
-					python3
+					python3 \
+					libxml2-dev \
+					libxslt1-dev
 
 # Use pip to install avro and graphviz dependencies
 RUN pip install graphviz \
 		avro \
 		SQLAlchemy \
-		Psycopg2
+		Psycopg2 \
+		pyyaml \
+		lxml
 
 # Install each part of GDC separately. Note that the setups will 
 # need to be executed outside of this file.
 RUN mkdir -p /home/gdc/{dp,la,dtt,dd,dm,psqlg} 
 ENV TERM=xterm
+RUN npm install -g npm@latest
+RUN npm cache clean
 
 # Data Portal
 RUN git clone https://github.com/NCI-GDC/portal-ui.git /home/gdc/dp
