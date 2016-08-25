@@ -27,8 +27,7 @@ RUN pip install graphviz \
 		lxml
 
 # Install each part of GDC separately. 
-RUN mkdir -p /home/gdc/{dp,la,dtt,dd,dm,psqlg} && \
-		chmod 777 /home/gdc/{dp,la,dtt,dd,dm,psqlg}
+RUN mkdir -p /home/gdc/{dp,la,dtt,dd,dm,psqlg}
 
 # The environment requires xterm for what is output by the setup scripts
 # and NPM must be updated/cleaned to fix numerous errno34 alerts.
@@ -38,28 +37,28 @@ RUN npm install -g bower@latest && npm cache clean
 RUN npm install -g typings@latest && npm cache clean
 
 # Data Portal
-RUN git clone https://github.com/NCI-GDC/portal-ui.git /home/gdc/dp
+RUN git clone https://github.com/jmatsumura/portal-ui.git /home/gdc/dp
 RUN cd /home/gdc/dp && ./setup.sh
 
-# Legacy Archive
-RUN git clone https://github.com/NCI-GDC/portal-ui-legacy.git /home/gdc/la
-RUN cd /home/gdc/la && ./setup.sh
-
 # Data Transfer Tool
-RUN git clone https://github.com/NCI-GDC/gdc-client.git /home/gdc/dtt
-RUN cd /home/gdc/dtt && python ./setup.py install
+#RUN git clone https://github.com/NCI-GDC/gdc-client.git /home/gdc/dtt
+#RUN cd /home/gdc/dtt && python ./setup.py install
 
 # Data Dictionary
-RUN git clone https://github.com/NCI-GDC/gdcdictionary.git /home/gdc/dd
-RUN cd /home/gdc/dd && python ./setup.py install
+#RUN git clone https://github.com/NCI-GDC/gdcdictionary.git /home/gdc/dd
+#RUN cd /home/gdc/dd && python ./setup.py install
 
 # Data Model (layer between Data Dictionary and psqlgraph
-RUN git clone https://github.com/NCI-GDC/gdcdatamodel.git /home/gdc/dm
-RUN cd /home/gdc/dm && python ./setup.py install
+#RUN git clone https://github.com/NCI-GDC/gdcdatamodel.git /home/gdc/dm
+#RUN cd /home/gdc/dm && python ./setup.py install
 
 # psqlgraph
-RUN git clone https://github.com/NCI-GDC/psqlgraph.git /home/gdc/psqlg
-RUN cd /home/gdc/psqlg && python ./setup.py install
+#RUN git clone https://github.com/NCI-GDC/psqlgraph.git /home/gdc/psqlg
+#RUN cd /home/gdc/psqlg && python ./setup.py install
+
+# Legacy Archive
+#RUN git clone https://github.com/NCI-GDC/portal-ui-legacy.git /home/gdc/la
+#RUN cd /home/gdc/la && ./setup.sh
 
 # Expose ports and start the Apache server
 EXPOSE 80
