@@ -15,9 +15,10 @@ RUN sudo apt-get update && sudo apt-get install -y apache2 \
 					python-dev \
 					python3 \
 					libxml2-dev \
-					libxslt1-dev
+					libxslt1-dev \
+					libyaml-dev
 
-# Use pip to install avro and graphviz dependencies
+# Use pip to install various dependencies for DTT, DD, DM, and Psqlgraph.
 RUN pip install graphviz \
 		avro \
 		SQLAlchemy \
@@ -25,12 +26,16 @@ RUN pip install graphviz \
 		pyyaml \
 		lxml
 
-# Install each part of GDC separately. Note that the setups will 
-# need to be executed outside of this file.
-RUN mkdir -p /home/gdc/{dp,la,dtt,dd,dm,psqlg} 
+# Install each part of GDC separately. 
+RUN mkdir -p /home/gdc/{dp,la,dtt,dd,dm,psqlg} && \
+		chmod 777 /home/gdc/{dp,la,dtt,dd,dm,psqlg}
+
+# The environment requires xterm for what is output by the setup scripts
+# and NPM must be updated/cleaned to fix numerous errno34 alerts.
 ENV TERM=xterm
-RUN npm install -g npm@latest
-RUN npm cache clean
+RUN npm install -g npm@latest && npm cache clean
+RUN npm install -g bower@latest && npm cache clean
+RUN npm install -g typings@latest && npm cache clean
 
 # Data Portal
 RUN git clone https://github.com/NCI-GDC/portal-ui.git /home/gdc/dp
