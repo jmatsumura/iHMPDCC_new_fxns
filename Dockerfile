@@ -4,10 +4,8 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 MAINTAINER James Matsumura (jmatsumura@som.umaryland.edu)
 
-# Install Apache and all necessary dependencies for various
-# components of GDC code
-RUN sudo apt-get update && sudo apt-get install -y apache2 \
-					git \
+# Install all necessary dependencies for various components
+RUN sudo apt-get update && sudo apt-get install -y git \
 					nodejs-legacy \
 					npm \
 					python-pip \
@@ -60,6 +58,7 @@ RUN cd /home/gdc/psqlg && python ./setup.py install
 #RUN git clone https://github.com/NCI-GDC/portal-ui-legacy.git /home/gdc/la
 #RUN cd /home/gdc/la && ./setup.sh
 
-# Expose ports and start the Apache server
-EXPOSE 80
-CMD ["/usr/sbin/apache2ctl", "-DFOREGROUND"]
+# Expose ports and start nginx service
+# Ports are noted by: nginx conf, npm start, npm start, karma start
+EXPOSE 80 3000 3001 9676
+CMD [ "bash", "-c", "cd /home/gdc/dp; npm start"]

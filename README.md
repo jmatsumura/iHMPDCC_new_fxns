@@ -10,4 +10,4 @@ With Docker installed, use this file like so:
 2) Run the following commands:
 
 	A) docker build . -t gdc
-	B) docker run --name gdc_con -P 8080:80 gdc
+	B) docker run --name gdc_con -p 80:80 -p 3000:3000 -p 3001:3001 -p 9876:9876 gdc
