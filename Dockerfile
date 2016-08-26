@@ -38,23 +38,23 @@ RUN npm install -g typings@latest && npm cache clean
 
 # Data Portal
 RUN git clone https://github.com/jmatsumura/portal-ui.git /home/gdc/dp
-RUN cd /home/gdc/dp && ./setup.sh
+RUN cd /home/gdc/dp && ./setup.sh && typings install
 
 # Data Transfer Tool
-#RUN git clone https://github.com/NCI-GDC/gdc-client.git /home/gdc/dtt
-#RUN cd /home/gdc/dtt && python ./setup.py install
+RUN git clone https://github.com/NCI-GDC/gdc-client.git /home/gdc/dtt
+RUN cd /home/gdc/dtt && python ./setup.py install
 
 # Data Dictionary
-#RUN git clone https://github.com/NCI-GDC/gdcdictionary.git /home/gdc/dd
-#RUN cd /home/gdc/dd && python ./setup.py install
+RUN git clone https://github.com/NCI-GDC/gdcdictionary.git /home/gdc/dd
+RUN cd /home/gdc/dd && python ./setup.py install
 
 # Data Model (layer between Data Dictionary and psqlgraph
-#RUN git clone https://github.com/NCI-GDC/gdcdatamodel.git /home/gdc/dm
-#RUN cd /home/gdc/dm && python ./setup.py install
+RUN git clone https://github.com/NCI-GDC/gdcdatamodel.git /home/gdc/dm
+RUN cd /home/gdc/dm && python ./setup.py install
 
 # psqlgraph
-#RUN git clone https://github.com/NCI-GDC/psqlgraph.git /home/gdc/psqlg
-#RUN cd /home/gdc/psqlg && python ./setup.py install
+RUN git clone https://github.com/NCI-GDC/psqlgraph.git /home/gdc/psqlg
+RUN cd /home/gdc/psqlg && python ./setup.py install
 
 # Legacy Archive
 #RUN git clone https://github.com/NCI-GDC/portal-ui-legacy.git /home/gdc/la
