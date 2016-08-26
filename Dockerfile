@@ -33,6 +33,7 @@ ENV TERM=xterm
 RUN npm install -g npm@latest && npm cache clean
 RUN npm install -g bower@latest && npm cache clean
 RUN npm install -g typings@latest && npm cache clean
+RUN npm install -g gulp-cli@latest && npm cache clean
 
 # Data Portal
 RUN git clone https://github.com/jmatsumura/portal-ui.git /home/gdc/dp
@@ -60,5 +61,5 @@ RUN cd /home/gdc/psqlg && python ./setup.py install
 
 # Expose ports and start nginx service
 # Ports are noted by: nginx conf, npm start, npm start, karma start
-EXPOSE 80 3000 3001 9676
-CMD [ "bash", "-c", "cd /home/gdc/dp; npm start"]
+EXPOSE 80 3000 3001 9876
+CMD [ "bash", "-c", "cd /home/gdc/dp; GDC_API=https://gdc-portal.nci.nih.gov/auth/api/v0 GDC_FAKE_AUTH=true npm start"]
