@@ -14,7 +14,8 @@ RUN sudo apt-get update && sudo apt-get install -y git \
 					python3 \
 					libxml2-dev \
 					libxslt1-dev \
-					libyaml-dev
+					libyaml-dev \
+					libfontconfig
 
 # Use pip to install various dependencies for DTT, DD, DM, and Psqlgraph.
 RUN pip install graphviz \
@@ -62,4 +63,4 @@ RUN cd /home/gdc/psqlg && python ./setup.py install
 # Expose ports and start nginx service
 # Ports are noted by: nginx conf, npm start, npm start, karma start
 EXPOSE 80 3000 3001 9876
-CMD [ "bash", "-c", "cd /home/gdc/dp; GDC_API=https://gdc-portal.nci.nih.gov/auth/api/v0 GDC_FAKE_AUTH=true npm start"]
+CMD [ "bash", "-c", "cd /home/gdc/dp; GDC_API='http://gdc-portal.nci.nih.gov:5000' npm start"]
