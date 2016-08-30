@@ -4,10 +4,16 @@ RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
 MAINTAINER James Matsumura (jmatsumura@som.umaryland.edu)
 
+# Note that anything commented out within a RUN command is likely used
+# to install the other components of the GDC code that isn't the data portal.
+
 # Install all necessary dependencies for various components
 RUN apt-get update && apt-get install -y git \
-					nodejs-legacy \
-					npm 
+					build-essential \
+					libkrb5-dev \
+					nodejs \
+					npm \
+					nodejs-legacy
 #					python-pip \
 #					libpq-dev \
 #					python-dev \
@@ -33,7 +39,7 @@ RUN mkdir -p /home/gdc/{dp,la,dtt,dd,dm,psqlg}
 ENV TERM=xterm
 
 # Data Portal
-RUN git clone https://github.com/NCI-GDC/portal-ui.git /home/gdc/dp
+RUN git clone https://github.com/jmatsumura/portal-ui.git /home/gdc/dp
 RUN cd /home/gdc/dp && ./setup.sh
 
 # Data Transfer Tool
