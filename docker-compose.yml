@@ -1,0 +1,26 @@
+version: '2'
+
+services:
+
+ GDC:
+  build: ./GDC/.
+  image: gdc_code:latest
+  depends_on:
+   - ES
+  ports:
+   - 80:80
+   - 3000:3000
+   - 3001:3001
+   - 9876:9876
+  volumes_from:
+   - ES
+
+ ES:
+  image: elasticsearch:5.0
+  ports:
+   - 9200:9200
+   - 9300:9300
+  volumes:
+   - "/home/elasticsearch/config:/usr/share/elasticsearch/config"
+   - "/home/elasticsearch/log:/usr/share/elasticsearch/log"
+   - "/home/elasticsearch/data:/usr/share/elasticsearch/data"
