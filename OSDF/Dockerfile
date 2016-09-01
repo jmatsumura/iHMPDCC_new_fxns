@@ -17,7 +17,15 @@ RUN apt-get update && apt-get install -y git \
 #  Prepare the OSDF area for building and use ant/rpm to build
 RUN mkdir -p /home/osdf/api
 RUN git clone https://github.com/IGS/OSDF.git /home/osdf/api
-RUN cd /home/osdf/api && ant all && rpmbuild ./rpm/osdf.spec.template 
+RUN cd /home/osdf/api && ant prepare \
+						&& ant clean\
+						&& ant dist \
+						&& ant rpm_prep \
+						&& ant rpm \
+						&& ant can_debuild \
+						&& ant deb
+
+RUN rpmbuild ./rpm/osdf.spec.template 
 
 # Now install ES
 RUN wget https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/deb/elasticsearch/2.3.1/elasticsearch-2.3.1.deb && dpkg -i elasticsearch-2.3.1.deb
