@@ -4,6 +4,7 @@ This repository will contain a docker-compose.yml file that will build a set of 
 to run the GDC UI code along with the OSDF API. The code is based in an Ubuntu 16.04 environment.
 
 GDC: https://github.com/NCI-GDC/portal-ui
+
 OSDF: https://github.com/IGS/OSDF
 
 
