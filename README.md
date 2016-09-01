@@ -6,9 +6,9 @@ to run the GDC UI code along with the OSDF API. The code is based in an Ubuntu 1
 GDC: https://github.com/NCI-GDC/portal-ui
 OSDF: https://github.com/IGS/OSDF
 
+## Setup
 
 With Docker installed, build these containers using either:
-
 
 If you are in a Linux environment, docker-compose is readily supported:
 

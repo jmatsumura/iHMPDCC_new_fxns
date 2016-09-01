@@ -19,5 +19,6 @@ services:
   build: ./OSDF/.
   image: osdf_api:latest
   ports:
+   - "5984:5984"
    - "9200:9200"
    - "9300:9300"
