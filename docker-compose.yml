@@ -4,23 +4,20 @@ services:
 
  GDC:
   build: ./GDC/.
-  image: gdc_code:latest
+  image: gdc_ui:latest
   depends_on:
-   - ES
+   - OSDF
   ports:
-   - 80:80
-   - 3000:3000
-   - 3001:3001
-   - 9876:9876
+   - "8080:80"
+   - "3000:3000"
+   - "3001:3001"
+   - "9876:9876"
   volumes_from:
-   - ES
+   - OSDF
 
- ES:
-  image: elasticsearch:5.0
+ OSDF:
+  build: ./OSDF/.
+  image: osdf_api:latest
   ports:
-   - 9200:9200
-   - 9300:9300
-  volumes:
-   - "/home/elasticsearch/config:/usr/share/elasticsearch/config"
-   - "/home/elasticsearch/log:/usr/share/elasticsearch/log"
-   - "/home/elasticsearch/data:/usr/share/elasticsearch/data"
+   - "9200:9200"
+   - "9300:9300"

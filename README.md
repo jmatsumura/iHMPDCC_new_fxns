@@ -1,8 +1,11 @@
-# docker_GDC
+# docker_iHMPDCC
 
 This repository will contain a docker-compose.yml file that will build a set of Docker containers
-to run the GDC code along with ElasticSearch and their API. The code is based on an Ubuntu 16.04 
-environment and ElasticSearch will use version 5.0.
+to run the GDC UI code along with the OSDF API. The code is based in an Ubuntu 16.04 environment.
+
+GDC: https://github.com/NCI-GDC/portal-ui
+OSDF: https://github.com/IGS/OSDF
+
 
 With Docker installed, build these containers using either:
 
