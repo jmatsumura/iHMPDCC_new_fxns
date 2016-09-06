@@ -27,7 +27,7 @@ RUN add-apt-repository ppa:couchdb/stable && apt-get update && apt-get install -
 #  Prepare the OSDF area for building and use ant/rpm to build
 RUN su osdf -c "mkdir -p /home/osdf/api" && su osdf -c "git clone https://github.com/jmatsumura/OSDF.git /home/osdf/api"
 RUN cd /home/osdf/api && su osdf -c "ant rpm"
-RUN su osdf -c "rpm -b /home/osdf/api/dist/osdf*.rpm"
+RUN su osdf -c "rpmbuild /home/osdf/api/dist/osdf*.rpm"
 
 # Expose ports and start the daemon (final step in RPM build)
 EXPOSE 5984 9200 9300
