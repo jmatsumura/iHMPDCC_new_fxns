@@ -12,8 +12,6 @@ services:
    - "3000:3000"
    - "3001:3001"
    - "9876:9876"
-  volumes_from:
-   - OSDF
 
  OSDF:
   build: ./OSDF/.
