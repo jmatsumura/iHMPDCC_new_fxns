@@ -323,13 +323,38 @@ def get_sources():
 
     return res
 
-@app.route('/status', methods=['GET'])
+@app.route('/status', methods=['GET', ])
 def get_status():
     add_cors_headers
     return 'hi', 200
 
-@app.route('/status/user', methods=['GET'])
+@app.route('/status/user', methods=['GET', 'POST'])
 def get_user_status():
+    add_cors_headers
+    return 'hi', 200
+
+@app.route('/projects', methods=['GET', 'OPTIONS'])
+def get_projects():
+    add_cors_headers
+    return 'hi', 200
+
+@app.route('/ui/search/summary', methods=['GET', 'OPTIONS'])
+def get_ui_search_summary():
+    add_cors_headers
+    return 'hi', 200
+
+@app.route('/files', methods=['GET', 'OPTIONS'])
+def get_files():
+    add_cors_headers
+    return 'hi', 200
+
+@app.route('/cases', methods=['GET', 'OPTIONS'])
+def get_cases():
+    add_cors_headers
+    return 'hi', 200
+
+@app.route('/gql/_mapping', methods=['GET', 'OPTIONS'])
+def gql_mapping():
     add_cors_headers
     return 'hi', 200
 
