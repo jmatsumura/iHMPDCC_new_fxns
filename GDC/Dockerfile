@@ -65,4 +65,5 @@ RUN cd /home/gdc/dp && ./setup.sh
 # Expose ports and start nginx service
 # Ports are noted by: nginx conf, npm start, npm start, karma start
 EXPOSE 80 3000 3001 9876
-CMD [ "bash", "-c", "cd /home/gdc/dp; GDC_API='https://gdc-portal.nci.nih.gov/auth/api/v0' GDC_FAKE_AUTH=true npm start"]
+#CMD [ "bash", "-c", "cd /home/gdc/dp; GDC_API='https://gdc-portal.nci.nih.gov/auth/api/v0' GDC_FAKE_AUTH=true npm start"]
+CMD [ "bash", "-c", "cd /home/gdc/dp; GDC_API='http://localhost:5000' GDC_FAKE_AUTH=true npm start"]
