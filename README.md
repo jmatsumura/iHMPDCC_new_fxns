@@ -1,7 +1,12 @@
 # docker_iHMPDCC
 
-This repository will contain a docker-compose.yml file that will build a set of Docker containers
+This repository will contain various files that will serve to supplement the functionality of the
+iHMP site (http://ihmpdcc.org/resources/osdf.php).
+
+There is a docker-compose.yml file that will build a set of Docker containers
 to run the GDC UI code along with the OSDF API. The code is based in an Ubuntu 16.04 environment.
+Dockerizing OSDF and its new UI is still in development. All instructions below have not been tested
+and are not guaranteed to work.
 
 GDC: https://github.com/NCI-GDC/portal-ui
 
