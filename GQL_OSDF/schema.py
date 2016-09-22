@@ -2,7 +2,7 @@ import graphene
 
 # Import from cypher.py the various Cypher queries to hit Neo4j and essentially
 # return all the nodes present. 
-#from .cypher import get_project
+#from .query import get_project
 
 class Defaults(graphene.Interface):
    
