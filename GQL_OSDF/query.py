@@ -10,24 +10,26 @@ Visit = {}
 import pycurl, json
 from StringIO import StringIO
 
-es_site = "http://osdf-devel.igs.umaryland.edu:8123/nodes/query/ihmp"
-data = json.dumps()
+es_site = 
+data = json.dumps({"from": 0, "size": 1, "query":{"term":{"node_type":"study"}}})
 
 username = 
 password = 
 
-buffer = StringIO()
+storage = StringIO()
 c = pycurl.Curl()
-c.setopt(pycurl.URL, es_site)
-c.setopt(pycurl.POST, 1)
-c.setopt(pycurl.POSTFIELDS, data)
-c.setopt(pycurl.USERPWD, '%s:%s' % (username, password))
-c.setopt(pycurl.WRITEDATA, buffer)
+c.setopt(c.URL, es_site)
+c.setopt(c.POST, 1)
+c.setopt(c.POSTFIELDS, data)
+c.setopt(c.USERPWD, '%s:%s' % (username, password))
+#c.setopt(c.VERBOSE, True)
+c.setopt(c.WRITEFUNCTION, storage.write)
 c.perform()
 c.close()
 
-body = buffer.getValue()
-print(body)
+
+#body = buffer.getValue()
+#print(body)
 
 #def get_project(id):
 
