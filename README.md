@@ -1,4 +1,4 @@
-# docker_iHMPDCC
+# iHMPDCC_new_fxns
 
 This repository will contain various files that will serve to supplement the functionality of the
 iHMP site (http://ihmpdcc.org/resources/osdf.php).
