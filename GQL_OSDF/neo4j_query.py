@@ -9,19 +9,21 @@ Visit = {}
 
 # Using py2neo 3 not 2
 from py2neo import Graph
+from pandas import DataFrame
+import numpy
 graph = Graph("http://localhost:7474/db/data/")
 
 # Example ES query+result
-es_result = graph.run("CALL ga.es.queryNode('{\"query\":{\"match\":{\"name\":\"iHMP\"}}}') YIELD node, score return node, score").data()
-print(es_result)
+#es_result = graph.run("CALL ga.es.queryNode('{\"query\":{\"match\":{\"name\":\"iHMP\"}}}') YIELD node return node").data()
+#print(dumps(es_result))
 
 # Example normal Cypher query+result
-reg_result = graph.run("MATCH (n:Project) WHERE n.name = 'iHMP' RETURN n").data()
-print(reg_result)
+# The below returns an array where each element is a node+properties requested
+#reg_result = graph.data("MATCH (n:Project) RETURN n.name")
 
-
-#def get_project(id):
-
+def get_project():
+    result = graph.data("MATCH (n:Project) RETURN n")
+    return '123j'#(_id='123j', nodeType='project', aclRead='ihmp', aclWrite='ihmp', subtype='hmp', name='Human Microbiome Project(HMP)', description='asdlfj')
 
 #def get_dnaprep16s(character):
    
