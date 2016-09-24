@@ -1,6 +1,11 @@
 import graphene
 from graphene import relay
-from models import Project, Study, Sample, get_project, get_study, get_sample
+from models import Project, Study, Sample
+
+schema = graphene.Schema()
+
+# Graphene really lends itself to Schema+Django. For now, just
+# make smarter models as they should suffice for our purposes. 
 
 class Query(graphene.ObjectType): # grab everything at once
 
@@ -24,4 +29,4 @@ class Query(graphene.ObjectType): # grab everything at once
 
 # As noted above, going to hit Neo4j once and get everything then let GQL 
 # do its magic client side to return the values that the user wants. 
-schema = graphene.Schema(query=Query)
+schema.query = Query

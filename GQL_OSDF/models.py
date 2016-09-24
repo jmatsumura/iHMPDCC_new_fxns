@@ -103,32 +103,27 @@ attr = "node_type"
 val = "project"
 test = "CALL ga.es.queryNode('{\"query\":{\"match\":{\"%s\":\"%s\"}}}') YIELD node return node" % (attr, val)
 
-print(graph.data(test))
+#print(graph.data(test))
 
 def get_project(): # retrieve a single project (done once a project is decided upon)
     #from schema import Project # need to figure out circular dependency work around
     result = graph.data(test)
     print 'dummy'#(_id='123j', nodeType='project', aclRead='ihmp', aclWrite='ihmp', subtype='hmp', name='Human Microbiome Project(HMP)', description='asdlfj')
 
+def get_study():
+    print 'dummy'
+
+def get_sample():
+    print 'dummy'
+
 #def get_all_projects(): # retrieve all projects
 
+#def get_dnaprep16s():   
 
-#def get_dnaprep16s(character):
-   
-
-#def get_rawseqset16s(episode):
-
-
-#def get_sample(id):
+#def get_rawseqset16s():
     
-
-#def get_study(id):
+#def get_subject():
     
+#def get_trimmedseqset16s():
 
-#def get_subject(id):
-    
-
-#def get_trimmedseqset16s(id):
-
-
-#def get_visit(id):
+#def get_visit():
