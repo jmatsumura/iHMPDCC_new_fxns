@@ -26,8 +26,11 @@ from py2neo import Graph # Using py2neo v3 not v2
 class Defaults(graphene.Interface):
     ID = graphene.List(graphene.String)
     nodeType = graphene.List(graphene.String)
+
+    # These next two are mostly needed for authentication purposes (if needed). Read is really only
+    # relevant to the users while write is more of a backend thing. No need for write until proven otherwise
     aclRead = graphene.List(graphene.String)
-    aclWrite = graphene.List(graphene.String)
+    #aclWrite = graphene.List(graphene.String)
 
 class Project(graphene.ObjectType):
     class Meta:
@@ -44,13 +47,92 @@ class Study(graphene.ObjectType):
     contact = graphene.List(graphene.String)
     name = graphene.List(graphene.String)
     description = graphene.List(graphene.String)
-    partOf = graphene.List(graphene.String)
-    
+    partOf = graphene.List(graphene.String) # part of what project
+
+class Subject(graphene.ObjectType):
+    class Meta:
+        interfaces = (Defaults, )
+    race = graphene.List(graphene.String)
+    gender = graphene.List(graphene.String)
+    randSubjectId = graphene.List(graphene.String)
+    participatesIn = graphene.List(graphene.String) # participates in what study
+
+class Visit(graphene.ObjectType):
+    class Meta:
+        interfaces = (Defaults, )
+    date = graphene.List(graphene.String)
+    interval = graphene.List(graphene.String)
+    visitId = graphene.List(graphene.String)
+    clinicId = graphene.List(graphene.String)
+    visitNumber = graphene.List(graphene.String)
+    by = graphene.List(graphene.String) # by what subject
+
 class Sample(graphene.ObjectType):
     class Meta:
         interfaces = (Defaults, )
     fmaBodySite = graphene.List(graphene.String)
-    collectedDuring = graphene.List(graphene.String)
+    collectedDuring = graphene.List(graphene.String) # collected during what visit
+
+class DNAPrep16s(graphene.ObjectType):
+    class Meta:
+        interfaces = (Defaults, )
+    #sequencingContact = graphene.List(graphene.String) # not a useful search condition?
+    prepId = graphene.List(graphene.String)
+    mimarks = graphene.List(graphene.String)
+    libLayout = graphene.List(graphene.String)
+    storageDuration = graphene.List(graphene.String)
+    subtype = graphene.List(graphene.String)
+    ncbiTaxonId = graphene.List(graphene.String)
+    sequencingCenter = graphene.List(graphene.String)
+    comment = graphene.List(graphene.String)
+    libSelection = graphene.List(graphene.String)
+    preparedFrom = graphene.List(graphene.String) # prepared from what sample
+
+class RawSeqSet16s(graphene.ObjectType):
+    class Meta:
+        interfaces = (Defaults, )
+    #checksums = graphene.List(graphene.String) # not a useful search condition?
+    #urls = graphene.List(graphene.String) # not a useful search condition?
+    formatDoc = graphene.List(graphene.String)
+    study = graphene.List(graphene.String)
+    expLength = graphene.List(graphene.String)
+    format = graphene.List(graphene.String)
+    seqModel = graphene.List(graphene.String)
+    sequenceType = graphene.List(graphene.String)
+    size = graphene.List(graphene.String)
+    subtype = graphene.List(graphene.String)
+    sequencedFrom = graphene.List(graphene.String) # sequenced from what 16s prep
+
+class RawSeqSet16s(graphene.ObjectType):
+    class Meta:
+        interfaces = (Defaults, )
+    #checksums = graphene.List(graphene.String) # not a useful search condition?
+    #urls = graphene.List(graphene.String) # not a useful search condition?
+    formatDoc = graphene.List(graphene.String)
+    study = graphene.List(graphene.String)
+    expLength = graphene.List(graphene.String)
+    format = graphene.List(graphene.String)
+    seqModel = graphene.List(graphene.String)
+    sequenceType = graphene.List(graphene.String)
+    size = graphene.List(graphene.String)
+    subtype = graphene.List(graphene.String)
+    comment = graphene.List(graphene.String)
+    sequencedFrom = graphene.List(graphene.String) # sequenced from what 16s prep
+
+class TrimmedSeqSet16s(graphene.ObjectType):
+    class Meta:
+        interfaces = (Defaults, )
+    #checksums = graphene.List(graphene.String) # not a useful search condition?
+    #urls = graphene.List(graphene.String) # not a useful search condition?
+    formatDoc = graphene.List(graphene.String)
+    study = graphene.List(graphene.String)
+    format = graphene.List(graphene.String)
+    sequenceType = graphene.List(graphene.String)
+    size = graphene.List(graphene.String)
+    subtype = graphene.List(graphene.String)
+    comment = graphene.List(graphene.String)
+    computedFrom = graphene.List(graphene.String) # computed from what 16s raw seq set
+
 ##################
 # CYPHER QUERIES #
 ##################
