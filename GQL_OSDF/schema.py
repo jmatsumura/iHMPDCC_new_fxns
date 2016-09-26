@@ -1,6 +1,6 @@
 import graphene
 from graphene import relay
-from models import Project, Study, Sample, get_project
+from models import Project, Study, Sample, get_project, get_study
 
 # Graphene really lends itself to modifying schema via Django. Since Django+(ES+Neo4j) isn't 
 # all that comaptible, just make smarter models as they should suffice for our current needs.
@@ -15,11 +15,9 @@ class Query(graphene.ObjectType): # grab everything at once
     # Each resolver will return all the relevant nodes per model
     def resolve_project(self, args, context, info):
         return get_project()
-        #return Project(ID=['1','2'], nodeType=['project'], aclRead=['ihmp'], subtype=['1','2'], name=['test1','test2'], description=['asdlf'])
 
     def resolve_study(self, args, context, info):
-        #return get_study()
-        return Study(ID=['123j'], nodeType=['project'], aclRead=['ihmp'], subtype=['1'], center=['2'], contact=['yes'], name=['test1','test2'], description=['maybe'], partOf=['hi'])
+        return get_study()
         
     def resolve_sample(self, args, context, info):
         #return get_sample()
