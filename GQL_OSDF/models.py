@@ -14,11 +14,14 @@ from py2neo import Graph # Using py2neo v3 not v2
 
 class Defaults(graphene.Interface):
     ID = graphene.List(graphene.String)
-    nodeType = graphene.List(graphene.String)
+    #n odeType is also redundant due to how the GQL statements are named (e.g. project root of gql query
+    # will always have nodeType == 'project')
+    #nodeType = graphene.List(graphene.String)
 
     # These next two are mostly needed for authentication purposes (if needed). Read is really only
-    # relevant to the users while write is more of a backend thing. No need for write until proven otherwise
-    aclRead = graphene.List(graphene.String)
+    # relevant to the users while write is more of a backend thing. No need for write until proven otherwise.
+    # If we want security, should create two seperate GQL endpoints (one which only presents the aclRead=='read')
+    #aclRead = graphene.List(graphene.String) 
     #aclWrite = graphene.List(graphene.String)
 
 class Project(graphene.ObjectType):
@@ -157,41 +160,63 @@ def buildQuery(attr, val, links):
 
 def get_project(): # retrieve all project node related data
     
-    idl, nodeTypel, aclReadl, subtypel, namel, descriptionl = ([] for i in range(6)) # lists of each relevant query property
+    idl, subtypel, namel, descriptionl = ([] for i in range(4)) # lists of each relevant query property
     res = buildQuery("node_type", "project", False)
     for x in range(0,len(res)):
-        idl.append(res[x]['n']['id'])
-        nodeTypel.append(res[x]['n']['node_type'])
-        aclReadl.append(res[x]['n']['acl_read'])
+        idl.append(res[x]['n']['id']) # need to switch ALL to 'id' or '_id'
         subtypel.append(res[x]['n']['subtype'])
         namel.append(res[x]['n']['name'])
         descriptionl.append(res[x]['n']['description'])
-    return Project(ID=idl, nodeType=nodeTypel, aclRead=aclReadl, subtype=subtypel, name=namel, description=descriptionl)
+    return Project(ID=idl, subtype=subtypel, name=namel, description=descriptionl)
 
 def get_study():
-    idl, nodeTypel, aclReadl, subtypel, centerl, contactl, namel, descriptionl, partOfl = ([] for i in range(9))
+    idl, subtypel, centerl, contactl, namel, descriptionl, partOfl = ([] for i in range(7))
     res = buildQuery("null", "Study", ["Project","PART_OF"])
     for x in range(0,len(res)):
-        idl.append(res[x]['b']['id'])
-        nodeTypel.append(res[x]['b']['node_type'])
-        aclReadl.append(res[x]['b']['acl_read'])
-        subtypel.append(res[x]['b']['subtype'])
-        centerl.append(res[x]['b']['center'])
-        contactl.append(res[x]['b']['contact'])
+        idl.append(res[x]['b']['_id'])
+        if res[x]['b']['subtype'] not in subtypel:
+            if res[x]['b']['subtype'] is not None:
+                subtypel.append(res[x]['b']['subtype'])
+        if res[x]['b']['center'] not in centerl:
+            centerl.append(res[x]['b']['center'])
+        if res[x]['b']['contact'] not in contactl:
+            contactl.append(res[x]['b']['contact'])
         namel.append(res[x]['b']['name'])
         descriptionl.append(res[x]['b']['description'])
         if res[x]['link'] not in partOfl:
             partOfl.append(res[x]['link'])
-    return Study(ID=idl, nodeType=nodeTypel, aclRead=aclReadl, subtype=subtypel, center=centerl, contact=contactl, name=namel, description=descriptionl, partOf=partOfl)
+    return Study(ID=idl, subtype=subtypel, center=centerl, contact=contactl, name=namel, description=descriptionl, partOf=partOfl)
+
+def get_subject():
+    idl, racel, genderl, randSubjectIdl, participatesInl = ([] for i in range(5))
+    res = buildQuery("null", "Subject", ["Study","PARTICIPATES_IN"])
+    for x in range(0,len(res)):
+        idl.append(res[x]['b']['_id'])
+        if res[x]['b']['race'] not in racel:
+            if res[x]['b']['race'] is not None:
+                racel.append(res[x]['b']['race'])
+        if res[x]['b']['gender'] not in genderl:
+            genderl.append(res[x]['b']['gender'])
+        randSubjectIdl.append(res[x]['b']['rand_subject_id'])
+        if res[x]['link'] not in participatesInl:
+            participatesInl.append(res[x]['link'])
+    return Subject(ID=idl, race=racel, gender=genderl, randSubjectId=randSubjectIdl, participatesIn=participatesInl)
 
 def get_sample():
-    print 'dummy'
+    idl, fmaBodySitel, collectedDuringl = ([] for i in range(3))
+    res = buildQuery("null", "Sample", ["Visit","COLLECTED_DURING"])
+    for x in range(0,len(res)):
+        idl.append(res[x]['b']['_id'])
+        if res[x]['b']['fma_body_site'] not in fmaBodySitel:
+            if res[x]['b']['fma_body_site'] != "":
+                fmaBodySitel.append(res[x]['b']['fma_body_site'])
+        if res[x]['link'] not in collectedDuringl:
+            collectedDuringl.append(res[x]['link'])
+    return Sample(ID=idl, fmaBodySite=fmaBodySitel, collectedDuring=collectedDuringl)
 
 #def get_dnaprep16s():   
 
 #def get_rawseqset16s():
-    
-#def get_subject():
     
 #def get_trimmedseqset16s():
 
