@@ -177,14 +177,11 @@ def get_study():
         if res[x]['b']['subtype'] not in subtypel:
             if res[x]['b']['subtype'] is not None:
                 subtypel.append(res[x]['b']['subtype'])
-        if res[x]['b']['center'] not in centerl:
-            centerl.append(res[x]['b']['center'])
-        if res[x]['b']['contact'] not in contactl:
-            contactl.append(res[x]['b']['contact'])
+        if res[x]['b']['center'] not in centerl: centerl.append(res[x]['b']['center'])
+        if res[x]['b']['contact'] not in contactl: contactl.append(res[x]['b']['contact'])
         namel.append(res[x]['b']['name'])
         descriptionl.append(res[x]['b']['description'])
-        if res[x]['link'] not in partOfl:
-            partOfl.append(res[x]['link'])
+        if res[x]['link'] not in partOfl: partOfl.append(res[x]['link'])
     return Study(ID=idl, subtype=subtypel, center=centerl, contact=contactl, name=namel, description=descriptionl, partOf=partOfl)
 
 def get_subject():
@@ -195,12 +192,25 @@ def get_subject():
         if res[x]['b']['race'] not in racel:
             if res[x]['b']['race'] is not None:
                 racel.append(res[x]['b']['race'])
-        if res[x]['b']['gender'] not in genderl:
-            genderl.append(res[x]['b']['gender'])
+        if res[x]['b']['gender'] not in genderl: genderl.append(res[x]['b']['gender'])
         randSubjectIdl.append(res[x]['b']['rand_subject_id'])
-        if res[x]['link'] not in participatesInl:
-            participatesInl.append(res[x]['link'])
+        if res[x]['link'] not in participatesInl: participatesInl.append(res[x]['link'])
     return Subject(ID=idl, race=racel, gender=genderl, randSubjectId=randSubjectIdl, participatesIn=participatesInl)
+
+def get_visit():
+    idl, datel, intervall, visitIdl, clinicIdl, visitNumberl, byl = ([] for i in range(7))
+    res = buildQuery("null", "Visit", ["Subject","BY"])
+    for x in range(0,len(res)):
+        idl.append(res[x]['b']['_id'])
+        if res[x]['b']['date'] not in datel: 
+            if res[x]['b']['date'] is not None:
+                datel.append(res[x]['b']['date'])
+        if res[x]['b']['interval'] not in intervall: intervall.append(res[x]['b']['interval'])
+        visitIdl.append(res[x]['b']['visit_id'])
+        clinicIdl.append(res[x]['b']['clinic_id'])
+        if res[x]['b']['visit_number'] not in visitNumberl: visitNumberl.append(res[x]['b']['visit_number'])
+        if res[x]['link'] not in byl: byl.append(res[x]['link'])
+    return Visit(ID=idl, date=datel, interval=intervall, visitId=visitIdl, clinicId=clinicIdl, visitNumber=visitNumberl, by=byl)
 
 def get_sample():
     idl, fmaBodySitel, collectedDuringl = ([] for i in range(3))
@@ -210,8 +220,7 @@ def get_sample():
         if res[x]['b']['fma_body_site'] not in fmaBodySitel:
             if res[x]['b']['fma_body_site'] != "":
                 fmaBodySitel.append(res[x]['b']['fma_body_site'])
-        if res[x]['link'] not in collectedDuringl:
-            collectedDuringl.append(res[x]['link'])
+        if res[x]['link'] not in collectedDuringl: collectedDuringl.append(res[x]['link'])
     return Sample(ID=idl, fmaBodySite=fmaBodySitel, collectedDuring=collectedDuringl)
 
 #def get_dnaprep16s():   
@@ -219,5 +228,3 @@ def get_sample():
 #def get_rawseqset16s():
     
 #def get_trimmedseqset16s():
-
-#def get_visit():
