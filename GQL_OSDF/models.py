@@ -151,20 +151,36 @@ attr = "node_type"
 val = "project"
 test = "CALL ga.es.queryNode('{\"query\":{\"match\":{\"%s\":\"%s\"}}}') YIELD node return node" % (attr, val)
 
-#print(graph.data(test))
+# Function to build and run a Cypher (via ES) query. Accepts the following parameters:
+# attr = property to match against, val = desired value of the property of attr,
+# links = an array with two elements [name of node to hit, name of edge].
+# For example, for Study object you want to use the following parameters:
+# buildQuery("node_type", "study", ["project","part_of"])
+def buildQuery(attr, val, links):
+    if links:
+        return 'hi'
+    else:
+        cquery = "CALL ga.es.queryNode('{\"query\":{\"match\":{\"%s\":\"%s\"}}}') YIELD node return node" % (attr, val)
+        return graph.data(cquery)
 
-def get_project(): # retrieve a single project (done once a project is decided upon)
-    #from schema import Project # need to figure out circular dependency work around
-    result = graph.data(test)
-    print 'dummy'#(_id='123j', nodeType='project', aclRead='ihmp', aclWrite='ihmp', subtype='hmp', name='Human Microbiome Project(HMP)', description='asdlfj')
+def get_project(): # retrieve all project node related data
+    
+    idl, nodeTypel, aclReadl, subtypel, namel, descriptionl = ([] for i in range(6))
+    res = buildQuery("node_type", "project", False)
+    for x in range(0,len(res)):
+        idl.append(res[x]['node']['id'])
+        nodeTypel.append(res[x]['node']['node_type'])
+        aclReadl.append(res[x]['node']['acl_read'])
+        subtypel.append(res[x]['node']['subtype'])
+        namel.append(res[x]['node']['name'])
+        descriptionl.append(res[x]['node']['description'])
+    return Project(ID=idl, nodeType=nodeTypel, aclRead=aclReadl, subtype=subtypel, name=namel, description=descriptionl)
 
 def get_study():
     print 'dummy'
 
 def get_sample():
     print 'dummy'
-
-#def get_all_projects(): # retrieve all projects
 
 #def get_dnaprep16s():   
 
