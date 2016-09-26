@@ -1,10 +1,13 @@
 import graphene
 from graphene import relay
-from models import Project, Study, Subject, Visit, Sample, get_project, get_study, \
-    get_subject, get_visit, get_sample
+from models import Project, Study, Subject, Visit, Sample, DNAPrep16s, RawSeqSet16s, TrimmedSeqSet16s, \
+    get_project, get_study, get_subject, get_visit, get_sample, get_dnaprep16s, get_rawseqset16s, get_trimmedseqset16s
 
 # Graphene really lends itself to modifying schema via Django. Since Django+(ES+Neo4j) isn't 
 # all that comaptible, just make smarter models as they should suffice for our current needs.
+
+#x = get_project() # can load everything right off the bat (at server initialization) and speed up results
+#y = get_visit()
 
 class Query(graphene.ObjectType): # grab everything at once
 
@@ -13,6 +16,10 @@ class Query(graphene.ObjectType): # grab everything at once
     subject = graphene.Field(Subject)
     visit = graphene.Field(Visit)
     sample = graphene.Field(Sample)
+    prep16s = graphene.Field(DNAPrep16s)
+    raw16s = graphene.Field(RawSeqSet16s)
+    trimmed16s = graphene.Field(TrimmedSeqSet16s)
+
     node = relay.Node.Field() # get single Node if needed
 
     # Each resolver will return all the relevant nodes per model
@@ -29,7 +36,16 @@ class Query(graphene.ObjectType): # grab everything at once
         return get_visit()
 
     def resolve_sample(self, args, context, info):
-        return get_sample()     
+        return get_sample()
+    
+    def resolve_prep16s(self, args, context, info):
+        return get_dnaprep16s() 
+
+    def resolve_raw16s(self, args, context, info):
+        return get_rawseqset16s()
+
+    def resolve_trimmed16s(self, args, context, info):
+        return get_trimmedseqset16s() 
 
 # As noted above, going to hit Neo4j once and get everything then let GQL 
 # do its magic client side to return the values that the user wants. 

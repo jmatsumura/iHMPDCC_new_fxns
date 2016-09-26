@@ -70,7 +70,8 @@ class DNAPrep16s(graphene.ObjectType):
         interfaces = (Defaults, )
     #sequencingContact = graphene.List(graphene.String) # not a useful search condition?
     prepId = graphene.List(graphene.String)
-    mimarks = graphene.List(graphene.String)
+    #mimarks = graphene.List(graphene.String) # This seems like a gold mine of valuable/searchable
+    # metadata. However, can't really use it in its current state in Neo4j. Come back to it.
     libLayout = graphene.List(graphene.String)
     storageDuration = graphene.List(graphene.String)
     subtype = graphene.List(graphene.String)
@@ -90,22 +91,7 @@ class RawSeqSet16s(graphene.ObjectType):
     expLength = graphene.List(graphene.String)
     format = graphene.List(graphene.String)
     seqModel = graphene.List(graphene.String)
-    sequenceType = graphene.List(graphene.String)
-    size = graphene.List(graphene.String)
-    subtype = graphene.List(graphene.String)
-    sequencedFrom = graphene.List(graphene.String) # sequenced from what 16s prep
-
-class RawSeqSet16s(graphene.ObjectType):
-    class Meta:
-        interfaces = (Defaults, )
-    #checksums = graphene.List(graphene.String) # not a useful search condition?
-    #urls = graphene.List(graphene.String) # not a useful search condition?
-    formatDoc = graphene.List(graphene.String)
-    study = graphene.List(graphene.String)
-    expLength = graphene.List(graphene.String)
-    format = graphene.List(graphene.String)
-    seqModel = graphene.List(graphene.String)
-    sequenceType = graphene.List(graphene.String)
+    seqType = graphene.List(graphene.String)
     size = graphene.List(graphene.String)
     subtype = graphene.List(graphene.String)
     comment = graphene.List(graphene.String)
@@ -119,7 +105,7 @@ class TrimmedSeqSet16s(graphene.ObjectType):
     formatDoc = graphene.List(graphene.String)
     study = graphene.List(graphene.String)
     format = graphene.List(graphene.String)
-    sequenceType = graphene.List(graphene.String)
+    seqType = graphene.List(graphene.String)
     size = graphene.List(graphene.String)
     subtype = graphene.List(graphene.String)
     comment = graphene.List(graphene.String)
@@ -158,8 +144,12 @@ def buildQuery(attr, val, links):
         cquery = "MATCH (n {%s: '%s'}) RETURN n" % (attr, val)
         return graph.data(cquery)
 
+# Below are functions to extract all the data related to a particular node that might
+# be worth searching. Since this is meant to populate auto-complete text, the fields
+# where there are likely redundant (will only add to the clutter of options) values
+# are checked for in any of the 'if' statements.
+
 def get_project(): # retrieve all project node related data
-    
     idl, subtypel, namel, descriptionl = ([] for i in range(4)) # lists of each relevant query property
     res = buildQuery("node_type", "project", False)
     for x in range(0,len(res)):
@@ -174,8 +164,8 @@ def get_study():
     res = buildQuery("null", "Study", ["Project","PART_OF"])
     for x in range(0,len(res)):
         idl.append(res[x]['b']['_id'])
-        if res[x]['b']['subtype'] not in subtypel:
-            if res[x]['b']['subtype'] is not None:
+        if res[x]['b']['subtype'] is not None:
+            if res[x]['b']['subtype'] not in subtypel:
                 subtypel.append(res[x]['b']['subtype'])
         if res[x]['b']['center'] not in centerl: centerl.append(res[x]['b']['center'])
         if res[x]['b']['contact'] not in contactl: contactl.append(res[x]['b']['contact'])
@@ -189,8 +179,8 @@ def get_subject():
     res = buildQuery("null", "Subject", ["Study","PARTICIPATES_IN"])
     for x in range(0,len(res)):
         idl.append(res[x]['b']['_id'])
-        if res[x]['b']['race'] not in racel:
-            if res[x]['b']['race'] is not None:
+        if res[x]['b']['race'] is not None:
+            if res[x]['b']['race'] not in racel:
                 racel.append(res[x]['b']['race'])
         if res[x]['b']['gender'] not in genderl: genderl.append(res[x]['b']['gender'])
         randSubjectIdl.append(res[x]['b']['rand_subject_id'])
@@ -202,8 +192,8 @@ def get_visit():
     res = buildQuery("null", "Visit", ["Subject","BY"])
     for x in range(0,len(res)):
         idl.append(res[x]['b']['_id'])
-        if res[x]['b']['date'] not in datel: 
-            if res[x]['b']['date'] is not None:
+        if res[x]['b']['date'] is not None: 
+            if res[x]['b']['date'] not in datel:
                 datel.append(res[x]['b']['date'])
         if res[x]['b']['interval'] not in intervall: intervall.append(res[x]['b']['interval'])
         visitIdl.append(res[x]['b']['visit_id'])
@@ -223,8 +213,67 @@ def get_sample():
         if res[x]['link'] not in collectedDuringl: collectedDuringl.append(res[x]['link'])
     return Sample(ID=idl, fmaBodySite=fmaBodySitel, collectedDuring=collectedDuringl)
 
-#def get_dnaprep16s():   
+def get_dnaprep16s():
+    idl, prepIdl, libLayoutl, storageDurationl, subtypel, ncbiTaxonIdl, sequencingCenterl, commentl, libSelectionl, preparedFroml = ([] for i in range(10))
+    res = buildQuery("null", "DNAPrep16s", ["Sample","PREPARED_FROM"])
+    for x in range(0,len(res)):
+        idl.append(res[x]['b']['_id'])
+        prepIdl.append(res[x]['b']['prep_id'])
+        if res[x]['b']['lib_layout'] not in libLayoutl: libLayoutl.append(res[x]['b']['lib_layout'])
+        if res[x]['b']['storage_duration'] not in storageDurationl: storageDurationl.append(res[x]['b']['storage_duration'])
+        if res[x]['b']['subtype'] not in subtypel: subtypel.append(res[x]['b']['subtype'])
+        if res[x]['b']['ncbi_taxon_id'] not in ncbiTaxonIdl: ncbiTaxonIdl.append(res[x]['b']['ncbi_taxon_id'])
+        if res[x]['b']['sequencing_center'] not in sequencingCenterl: sequencingCenterl.append(res[x]['b']['sequencing_center'])
+        if res[x]['b']['lib_layout'] not in libLayoutl: libLayoutl.append(res[x]['b']['lib_layout'])
+        if res[x]['b']['comment'] is not None: 
+            if res[x]['b']['comment'] not in commentl:
+                commentl.append(res[x]['b']['comment'])
+        if res[x]['b']['lib_selection'] not in libSelectionl: libSelectionl.append(res[x]['b']['lib_selection'])
+        if res[x]['link'] not in preparedFroml: preparedFroml.append(res[x]['link'])
+    return DNAPrep16s(ID=idl, prepId=prepIdl, libLayout=libLayoutl, storageDuration=storageDurationl, subtype=subtypel, ncbiTaxonId=ncbiTaxonIdl, sequencingCenter=sequencingCenterl, comment=commentl, libSelection=libSelectionl, preparedFrom=preparedFroml)
 
-#def get_rawseqset16s():
-    
-#def get_trimmedseqset16s():
+def get_rawseqset16s():
+    idl, formatDocl, studyl, expLengthl, formatl, seqModell, seqTypel, sizel, subtypel, commentl, sequencedFroml = ([] for i in range(11))
+    res = buildQuery("null", "RawSeqSet16s", ["DNAPrep16s","SEQUENCED_FROM"])
+    for x in range(0,len(res)):
+        idl.append(res[x]['b']['_id'])
+        if res[x]['b']['format_doc'] is not None: 
+            if res[x]['b']['format_doc'] not in formatDocl:
+                formatDocl.append(res[x]['b']['format_doc'])
+        if res[x]['b']['study'] not in studyl: studyl.append(res[x]['b']['study'])
+        if res[x]['b']['exp_length'] not in expLengthl: expLengthl.append(res[x]['b']['exp_length'])
+        if res[x]['b']['format'] not in formatl: formatl.append(res[x]['b']['format'])
+        if res[x]['b']['seq_model'] is not None: 
+            if res[x]['b']['seq_model'] not in seqModell:
+                seqModell.append(res[x]['b']['seq_model'])
+        if res[x]['b']['sequence_type'] is not None:
+            if res[x]['b']['sequence_type'] not in seqTypel: 
+                seqTypel.append(res[x]['b']['sequence_type'])
+        if res[x]['b']['size'] not in sizel: sizel.append(res[x]['b']['size'])
+        if res[x]['b']['subtype'] not in subtypel: subtypel.append(res[x]['b']['subtype'])
+        if res[x]['b']['comment'] is not None: 
+            if res[x]['b']['comment'] not in commentl:
+                commentl.append(res[x]['b']['comment'])
+        if res[x]['link'] not in sequencedFroml: sequencedFroml.append(res[x]['link'])
+    return RawSeqSet16s(ID=idl, formatDoc=formatDocl, study=studyl, expLength=expLengthl, format=formatl, seqModel=seqModell, seqType=seqTypel, size=sizel, subtype=subtypel, comment=commentl, sequencedFrom=sequencedFroml)
+
+def get_trimmedseqset16s():
+    idl, formatDocl, studyl, formatl, seqTypel, sizel, subtypel, commentl, computedFroml = ([] for i in range(9))
+    res = buildQuery("null", "TrimmedSeqSet16s", ["RawSeqSet16s","COMPUTED_FROM"])
+    for x in range(0,len(res)):
+        idl.append(res[x]['b']['_id'])
+        if res[x]['b']['format_doc'] is not None: 
+            if res[x]['b']['format_doc'] not in formatDocl:
+                formatDocl.append(res[x]['b']['format_doc'])
+        if res[x]['b']['study'] not in studyl: studyl.append(res[x]['b']['study'])
+        if res[x]['b']['format'] not in formatl: formatl.append(res[x]['b']['format'])
+        if res[x]['b']['sequence_type'] is not None:
+            if res[x]['b']['sequence_type'] not in seqTypel: 
+                seqTypel.append(res[x]['b']['sequence_type'])
+        if res[x]['b']['size'] not in sizel: sizel.append(res[x]['b']['size'])
+        if res[x]['b']['subtype'] not in subtypel: subtypel.append(res[x]['b']['subtype'])
+        if res[x]['b']['comment'] is not None: 
+            if res[x]['b']['comment'] not in commentl:
+                commentl.append(res[x]['b']['comment'])
+        if res[x]['link'] not in computedFroml: computedFroml.append(res[x]['link'])
+    return TrimmedSeqSet16s(ID=idl, formatDoc=formatDocl, study=studyl, format=formatl, seqType=seqTypel, size=sizel, subtype=subtypel, comment=commentl, computedFrom=computedFroml)
