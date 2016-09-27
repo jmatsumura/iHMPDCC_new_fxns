@@ -34,6 +34,8 @@ class Project(graphene.ObjectType):
 class Study(graphene.ObjectType):
     class Meta:
         interfaces = (Defaults, )
+
+    project = graphene.List(Project)
     subtype = graphene.List(graphene.String)
     center = graphene.List(graphene.String)
     contact = graphene.List(graphene.String)
