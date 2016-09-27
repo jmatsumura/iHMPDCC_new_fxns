@@ -6,8 +6,14 @@ from models import Project, Study, Subject, Visit, Sample, DNAPrep16s, RawSeqSet
 # Graphene really lends itself to modifying schema via Django. Since Django+(ES+Neo4j) isn't 
 # all that comaptible, just make smarter models as they should suffice for our current needs.
 
-#x = get_project() # can load everything right off the bat (at server initialization) and speed up results
-#y = get_visit()
+pro = get_project() # can load everything right off the bat (at server initialization) and speed up results
+#stu = get_study()
+#sub = get_subject()
+#vis = get_visit()
+#sam = get_sample()
+#prep16s = get_dnaprep16s()
+#raw16s = get_rawseqset16s()
+#trimmed16s = get_trimmedseqset16s()
 
 class Query(graphene.ObjectType): # grab everything at once
 
@@ -24,28 +30,28 @@ class Query(graphene.ObjectType): # grab everything at once
 
     # Each resolver will return all the relevant nodes per model
     def resolve_project(self, args, context, info):
-        return get_project()
+        return pro #get_project()
 
     def resolve_study(self, args, context, info):
-        return get_study()
+        return stu #get_study()
 
     def resolve_subject(self, args, context, info):
-        return get_subject()
+        return sub #get_subject()
 
     def resolve_visit(self, args, context, info):
-        return get_visit()
+        return vis #get_visit()
 
     def resolve_sample(self, args, context, info):
-        return get_sample()
+        return sam #get_sample()
     
     def resolve_prep16s(self, args, context, info):
-        return get_dnaprep16s() 
+        return prep16s #get_dnaprep16s() 
 
     def resolve_raw16s(self, args, context, info):
-        return get_rawseqset16s()
+        return raw16s #get_rawseqset16s()
 
     def resolve_trimmed16s(self, args, context, info):
-        return get_trimmedseqset16s() 
+        return trimmed16s #get_trimmedseqset16s() 
 
 # As noted above, going to hit Neo4j once and get everything then let GQL 
 # do its magic client side to return the values that the user wants. 

@@ -232,6 +232,8 @@ field_16SDNAPrep_storage_duration = {"field": "16SDNAPrep_storage_duration", "ty
                                      "filter": [filter_contains]}
 annotations = []
 
+cases_case_id = {"description": "description", "doc_type": "cases", "field": "case_id", "full": "samples.case_id", "type": "id"}
+
 # Study fields
 annotations.append(field_study_center)
 annotations.append(field_study_name)
@@ -300,6 +302,10 @@ def get_providers():
     res = jsonify({"dataProviders": providers})
     return res
 
+@app.route('/gql/_mapping', methods=['GET'])
+def get_maps():
+    res = jsonify({"samples.case_id": cases_case_id})
+    return res
 
 # Function for displaying all data sources served by this provider
 @app.route('/dataSources', methods=['GET'])
