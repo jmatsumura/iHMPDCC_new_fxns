@@ -7,7 +7,7 @@ from models import Project, Study, Subject, Visit, Sample, DNAPrep16s, RawSeqSet
 # all that comaptible, just make smarter models as they should suffice for our current needs.
 
 pro = get_project() # can load everything right off the bat (at server initialization) and speed up results
-stu = get_study()
+#stu = get_study()
 #sub = get_subject()
 #vis = get_visit()
 #sam = get_sample()
@@ -18,7 +18,7 @@ stu = get_study()
 class Query(graphene.ObjectType): # grab everything at once
 
     project = graphene.Field(Project)
-    study = graphene.Field(Study, name=graphene.String(description='l'), test=graphene.String(description='j'))
+    study = graphene.Field(Study)
     subject = graphene.Field(Subject)
     visit = graphene.Field(Visit)
     sample = graphene.Field(Sample)
@@ -33,8 +33,7 @@ class Query(graphene.ObjectType): # grab everything at once
         return pro #get_project()
 
     def resolve_study(self, args, context, info):
-        if args['name'].lower() == 'hi':
-            return Study(ID=['hi'], subtype=['hi'], center=['hi'], contact=['hi'], name=['hi'], description=['hi'], partOf=['hi'])
+        return stu #get_study()
 
     def resolve_subject(self, args, context, info):
         return sub #get_subject()
