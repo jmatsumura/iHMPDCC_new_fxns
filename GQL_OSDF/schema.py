@@ -1,30 +1,12 @@
 import graphene
 from graphene import relay
-from models import Project, Study, Subject, Visit, Sample, DNAPrep16s, RawSeqSet16s, TrimmedSeqSet16s, \
-    get_project, get_study, get_subject, get_visit, get_sample, get_dnaprep16s, get_rawseqset16s, get_trimmedseqset16s
+from models import Study, get_study
 
-# Graphene really lends itself to modifying schema via Django. Since Django+(ES+Neo4j) isn't 
-# all that comaptible, just make smarter models as they should suffice for our current needs.
-
-pro = get_project() # can load everything right off the bat (at server initialization) and speed up results
 stu = get_study()
-#sub = get_subject()
-#vis = get_visit()
-#sam = get_sample()
-#prep16s = get_dnaprep16s()
-#raw16s = get_rawseqset16s()
-#trimmed16s = get_trimmedseqset16s()
 
 class Query(graphene.ObjectType): # grab everything at once
 
-    project = graphene.Field(Project)
-    study = graphene.Field(Study, name=graphene.String(description='l'), test=graphene.String(description='j'))
-    subject = graphene.Field(Subject)
-    visit = graphene.Field(Visit)
-    sample = graphene.Field(Sample)
-    prep16s = graphene.Field(DNAPrep16s)
-    raw16s = graphene.Field(RawSeqSet16s)
-    trimmed16s = graphene.Field(TrimmedSeqSet16s)
+    study = graphene.Field(Study, facets=graphene.List(graphene.String), fields=graphene.List(graphene.String), fr=graphene.Int(description='j'), size=graphene.Int(description='size'), sort=graphene.String(description='j'))#, from=graphene.Int(), size=graphene.Int(), sort=graphene.String())
 
     node = relay.Node.Field() # get single Node if needed
 
@@ -33,7 +15,7 @@ class Query(graphene.ObjectType): # grab everything at once
         return pro #get_project()
 
     def resolve_study(self, args, context, info):
-        if args['name'].lower() == 'hi':
+        if args['name'][1] == 'hi2':
             return Study(ID=['hi'], subtype=['hi'], center=['hi'], contact=['hi'], name=['hi'], description=['hi'], partOf=['hi'])
 
     def resolve_subject(self, args, context, info):
