@@ -113,6 +113,28 @@ class TrimmedSeqSet16s(graphene.ObjectType):
     comment = graphene.List(graphene.String)
     computedFrom = graphene.List(graphene.String) # computed from what 16s raw seq set
 
+class Pagination(graphene.ObjectType):
+    count = graphene.Int()
+    sort = graphene.String()
+    from_num = graphene.Int()
+    page = graphene.Int()
+    total = graphene.Int()
+    pages = graphene.Int()
+    size = graphene.Int()
+
+class Hits(graphene.ObjectType):
+    hits = graphene.List(graphene.String)
+
+class Buckets(graphene.ObjectType):
+    key = graphene.String()
+    doc_count = graphene.Int()
+
+class BucketCounter(graphene.ObjectType):
+    buckets = graphene.List(Buckets)
+
+class Aggregations(graphene.ObjectType):
+    aggregations = graphene.List(BucketCounter)
+
 ##################
 # CYPHER QUERIES #
 ##################

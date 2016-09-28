@@ -4,7 +4,9 @@ from flask import Flask, jsonify, request
 from flask_graphql import GraphQLView
 from flask.views import MethodView
 from schema import schema
+from ac_schema import ac_schema
 import graphene
+import urllib2
 
 app = Flask(__name__)
 app.debug = True
@@ -86,6 +88,15 @@ app.add_url_rule(
         'graphqlFiles',
         schema=schema,
         graphiql=False
+    )
+)
+
+app.add_url_rule(
+    '/ac_schema',
+    view_func=GraphQLView.as_view(
+        'ac_graphql',
+        schema=ac_schema,
+        graphiql=True
     )
 )
 

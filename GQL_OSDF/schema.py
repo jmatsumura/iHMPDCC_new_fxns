@@ -7,7 +7,6 @@ stu = get_study()
 class Query(graphene.ObjectType): # grab everything at once
 
     study = graphene.Field(Study, facets=graphene.List(graphene.String), fields=graphene.List(graphene.String), fr=graphene.Int(description='j'), size=graphene.Int(description='size'), sort=graphene.String(description='j'))#, from=graphene.Int(), size=graphene.Int(), sort=graphene.String())
-
     node = relay.Node.Field() # get single Node if needed
 
     # Each resolver will return all the relevant nodes per model
