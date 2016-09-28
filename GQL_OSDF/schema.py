@@ -15,7 +15,7 @@ class Query(graphene.ObjectType): # grab everything at once
         return pro #get_project()
 
     def resolve_study(self, args, context, info):
-        if args['name'][1] == 'hi2':
+        if args['facets'][1] == 'hi2':
             return Study(ID=['hi'], subtype=['hi'], center=['hi'], contact=['hi'], name=['hi'], description=['hi'], partOf=['hi'])
 
     def resolve_subject(self, args, context, info):

@@ -22,8 +22,8 @@ def add_cors_headers(response):
 
 app.after_request(add_cors_headers)
 
-sample_fma_body_site = {"description": "sfbs", "doc_type": "cases", "field": "fma_body_site", "full": "sample.fma_body_site", "type": "string"}
-project_name = {"description": "pn", "doc_type": "cases", "field": "name", "full": "project.name", "type": "string"}
+sample_fma_body_site = {"description": "The FMA body site related to the sample", "doc_type": "cases", "field": "samples.fma_body_site", "full": "cases.fma_body_site", "type": "string"}
+project_name = {"description": "The Project Name", "doc_type": "cases", "field": "project.name", "full": "cases.project.name", "type": "string"}
 
 @app.route('/gql/_mapping', methods=['GET'])
 def get_maps():
@@ -76,7 +76,7 @@ app.add_url_rule(
     view_func=GraphQLView.as_view(
         'graphqlCases',
         schema=schema,
-        graphiql=False
+        graphiql=True
     )
 )
 
