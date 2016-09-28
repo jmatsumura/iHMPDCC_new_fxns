@@ -4,6 +4,7 @@ from flask import Flask, jsonify, request
 from flask_graphql import GraphQLView
 from flask.views import MethodView
 from schema import schema
+import graphene
 
 app = Flask(__name__)
 app.debug = True
@@ -30,38 +31,61 @@ def get_maps():
     res = jsonify({"sample.fma_body_site": sample_fma_body_site, "project.name": project_name})
     return res
 
-# Files
-class FilesAPI(MethodView):
+@app.route('/cases', methods=['GET','OPTIONS'])
+def get_cases():
+    
+    filters = request.args.get('filters')
+    from_num = request.args.get('from')
+    size = request.args.get('size')
+    sort = request.args.get('sort')
 
-    def get(self):
-        res = jsonify({"project.name": project_name, "sample.fma_body_site": sample_fma_body_site})
-        return res
+    if(request.args.get('expand')):
+        facets = request.args.get('expand')
 
-    def options(self):
-        res = jsonify({"project.name": project_name, "sample.fma_body_site": sample_fma_body_site})
-        return res
+    if(request.args.get('facets')):
+        facets = request.args.get('facets')
 
-app.add_url_rule('/files', view_func=FilesAPI.as_view('files'), methods=['GET','OPTIONS'])
+    return jsonify({"filters": filters})
 
-# Cases
-class CasesAPI(MethodView):
+@app.route('/status', methods=['GET','OPTIONS'])
+def get_status():
+    return 'hi'
 
-    def get(self):
-        res = jsonify({"project.name": project_name, "sample.fma_body_site": sample_fma_body_site})
-        return res
+@app.route('/status/user', methods=['GET','OPTIONS','POST'])
+def get_status_user():
+    return 'hi'
 
-    def options(self):
-        res = jsonify({"project.name": project_name, "sample.fma_body_site": sample_fma_body_site})
-        return res
+@app.route('/files', methods=['GET','OPTIONS'])
+def get_files():
+    return 'hi'
 
-app.add_url_rule('/cases', view_func=FilesAPI.as_view('cases'), methods=['GET','OPTIONS'])
+@app.route('/projects', methods=['GET','POST'])
+def get_project():
+    return 'hi'
+
+@app.route('/annotations', methods=['GET','OPTIONS'])
+def get_annotation():
+    return 'hi'
+
+@app.route('/ui/search/summary', methods=['GET','OPTIONS','POST'])
+def get_ui_search_summary():
+    return 'hi'
 
 app.add_url_rule(
-    '/graphql',
+    '/casesGQL',
     view_func=GraphQLView.as_view(
-        'graphql',
+        'graphqlCases',
         schema=schema,
-        graphiql=True
+        graphiql=False
+    )
+)
+
+app.add_url_rule(
+    '/filesGQL',
+    view_func=GraphQLView.as_view(
+        'graphqlFiles',
+        schema=schema,
+        graphiql=False
     )
 )
 
