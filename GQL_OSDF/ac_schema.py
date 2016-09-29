@@ -2,7 +2,9 @@ import graphene
 from graphene import relay
 from models import Pagination, Hits, Aggregations, BucketCounter, Bucket, get_buckets
 
-x = get_buckets()
+# Can preload counts
+proName = get_buckets("Project.name")
+samFMA = get_buckets("Sample.fma_body_site")
 
 class Query(graphene.ObjectType):
 
@@ -18,6 +20,6 @@ class Query(graphene.ObjectType):
         return el
 
     def resolve_aggregations(self, args, context, info):
-        return Aggregations(subjectProjectName=[get_buckets("project.name")])
+        return Aggregations(subjectProjectName=[proName], sampleFmaBodySite=[samFMA])
         
 ac_schema = graphene.Schema(query=Query)

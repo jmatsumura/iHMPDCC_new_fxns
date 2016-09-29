@@ -134,6 +134,7 @@ class BucketCounter(graphene.ObjectType):
 
 class Aggregations(graphene.ObjectType):
     subjectProjectName = graphene.List(BucketCounter)
+    sampleFmaBodySite = graphene.List(BucketCounter)
 
 ##################
 # CYPHER QUERIES #
@@ -154,7 +155,7 @@ graph = Graph("http://localhost:7474/db/data/")
 # links = an array with two elements [name of node to hit, name of edge].
 # For example, for Study object you want to use the following parameters:
 # buildQuery("node_type", "study", ["Project","PART_OF"])
-def buildQuery(attr, val, links):
+def build_query(attr, val, links):
     if links:
         node = links[0] # parse links array as described earlier, don't need attr
         edge = links[1]
@@ -168,6 +169,10 @@ def buildQuery(attr, val, links):
         cquery = "MATCH (n {%s: '%s'}) RETURN n" % (attr, val)
         return graph.data(cquery)
 
+def count_props(node, prop):
+    cquery = "MATCH (n:%s) RETURN n.%s as prop, count(n.%s) as counts" % (node, prop, prop)
+    return graph.data(cquery)
+
 # Below are functions to extract all the data related to a particular node that might
 # be worth searching. Since this is meant to populate auto-complete text, the fields
 # where there are likely redundant (will only add to the clutter of options) values
@@ -175,7 +180,7 @@ def buildQuery(attr, val, links):
 
 def get_project(): # retrieve all project node related data
     idl, subtypel, namel, descriptionl = ([] for i in range(4)) # lists of each relevant query property
-    res = buildQuery("node_type", "project", False)
+    res = build_query("node_type", "project", False)
     for x in range(0,len(res)):
         idl.append(res[x]['n']['id']) # need to switch ALL to 'id' or '_id'
         subtypel.append(res[x]['n']['subtype'])
@@ -185,7 +190,7 @@ def get_project(): # retrieve all project node related data
 
 def get_study():
     idl, subtypel, centerl, contactl, namel, descriptionl, partOfl = ([] for i in range(7))
-    res = buildQuery("null", "Study", ["Project","PART_OF"])
+    res = build_query("null", "Study", ["Project","PART_OF"])
     for x in range(0,len(res)):
         idl.append(res[x]['b']['_id'])
         if res[x]['b']['subtype'] is not None:
@@ -200,7 +205,7 @@ def get_study():
 
 def get_subject():
     idl, racel, genderl, randSubjectIdl, participatesInl = ([] for i in range(5))
-    res = buildQuery("null", "Subject", ["Study","PARTICIPATES_IN"])
+    res = build_query("null", "Subject", ["Study","PARTICIPATES_IN"])
     for x in range(0,len(res)):
         idl.append(res[x]['b']['_id'])
         if res[x]['b']['race'] is not None:
@@ -213,7 +218,7 @@ def get_subject():
 
 def get_visit():
     idl, datel, intervall, visitIdl, clinicIdl, visitNumberl, byl = ([] for i in range(7))
-    res = buildQuery("null", "Visit", ["Subject","BY"])
+    res = build_query("null", "Visit", ["Subject","BY"])
     for x in range(0,len(res)):
         idl.append(res[x]['b']['_id'])
         if res[x]['b']['date'] is not None: 
@@ -228,7 +233,7 @@ def get_visit():
 
 def get_sample():
     idl, fmaBodySitel, collectedDuringl = ([] for i in range(3))
-    res = buildQuery("null", "Sample", ["Visit","COLLECTED_DURING"])
+    res = build_query("null", "Sample", ["Visit","COLLECTED_DURING"])
     for x in range(0,len(res)):
         idl.append(res[x]['b']['_id'])
         if res[x]['b']['fma_body_site'] not in fmaBodySitel:
@@ -239,7 +244,7 @@ def get_sample():
 
 def get_dnaprep16s():
     idl, prepIdl, libLayoutl, storageDurationl, subtypel, ncbiTaxonIdl, sequencingCenterl, commentl, libSelectionl, preparedFroml = ([] for i in range(10))
-    res = buildQuery("null", "DNAPrep16s", ["Sample","PREPARED_FROM"])
+    res = build_query("null", "DNAPrep16s", ["Sample","PREPARED_FROM"])
     for x in range(0,len(res)):
         idl.append(res[x]['b']['_id'])
         prepIdl.append(res[x]['b']['prep_id'])
@@ -258,7 +263,7 @@ def get_dnaprep16s():
 
 def get_rawseqset16s():
     idl, formatDocl, studyl, expLengthl, formatl, seqModell, seqTypel, sizel, subtypel, commentl, sequencedFroml = ([] for i in range(11))
-    res = buildQuery("null", "RawSeqSet16s", ["DNAPrep16s","SEQUENCED_FROM"])
+    res = build_query("null", "RawSeqSet16s", ["DNAPrep16s","SEQUENCED_FROM"])
     for x in range(0,len(res)):
         idl.append(res[x]['b']['_id'])
         if res[x]['b']['format_doc'] is not None: 
@@ -283,7 +288,7 @@ def get_rawseqset16s():
 
 def get_trimmedseqset16s():
     idl, formatDocl, studyl, formatl, seqTypel, sizel, subtypel, commentl, computedFroml = ([] for i in range(9))
-    res = buildQuery("null", "TrimmedSeqSet16s", ["RawSeqSet16s","COMPUTED_FROM"])
+    res = build_query("null", "TrimmedSeqSet16s", ["RawSeqSet16s","COMPUTED_FROM"])
     for x in range(0,len(res)):
         idl.append(res[x]['b']['_id'])
         if res[x]['b']['format_doc'] is not None: 
@@ -302,10 +307,17 @@ def get_trimmedseqset16s():
         if res[x]['link'] not in computedFroml: computedFroml.append(res[x]['link'])
     return TrimmedSeqSet16s(ID=idl, formatDoc=formatDocl, study=studyl, format=formatl, seqType=seqTypel, size=sizel, subtype=subtypel, comment=commentl, computedFrom=computedFroml)
 
-def get_buckets():
-    ihmp = Bucket(key="ihmp", docCount=5)
-    hmp = Bucket(key="hmp", docCount=5)
-    bucketl =[]
-    bucketl.append(ihmp)
-    bucketl.append(hmp)
+def get_buckets(inp):
+    splits = inp.split('.') # parse for node/prop values to be counted by
+    node = splits[0]
+    prop = splits[1]
+
+    bucketl = []
+
+    res = count_props(node, prop)
+    for x in range(0,len(res)):
+        if res[x]['prop'] != "":
+            cur = Bucket(key=res[x]['prop'], docCount=res[x]['counts'])
+            bucketl.append(cur)
+
     return BucketCounter(buckets=bucketl)

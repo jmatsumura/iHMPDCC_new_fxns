@@ -43,11 +43,16 @@ def get_cases():
 
     if(request.args.get('expand')):
         facets = request.args.get('expand')
+        return jsonify({"expand": filters})
 
+    # Processing autocomplete here as well as finding counts for the set category
     if(request.args.get('facets')):
         facets = request.args.get('facets')
+        response = urllib2.urlopen('http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%7D%7D')
+        return response.read()
 
-    return jsonify({"filters": filters})
+    else:
+        return jsonify({"filters": filters})
 
 @app.route('/status', methods=['GET','OPTIONS'])
 def get_status():
@@ -101,4 +106,4 @@ app.add_url_rule(
 )
 
 if __name__ == '__main__':
-    app.run()
+    app.run(threaded=True)
