@@ -133,8 +133,9 @@ class BucketCounter(graphene.ObjectType):
     buckets = graphene.List(Bucket)
 
 class Aggregations(graphene.ObjectType):
-    subjectProjectName = graphene.List(BucketCounter)
-    sampleFmaBodySite = graphene.List(BucketCounter)
+    ProjectName = graphene.Field(BucketCounter)
+    SampleFmabodysite = graphene.Field(BucketCounter)
+    hits = graphene.Field(Hits)
 
 ##################
 # CYPHER QUERIES #

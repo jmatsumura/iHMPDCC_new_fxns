@@ -47,8 +47,17 @@ def get_cases():
 
     # Processing autocomplete here as well as finding counts for the set category
     if(request.args.get('facets')):
-        facets = request.args.get('facets')
-        response = urllib2.urlopen('http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%7D%7D')
+        acProp = request.args.get('facets').split('.') # expects something like... sample.fma_body_site
+        n = acProp[0].capitalize() # change to... Sample
+        p = acProp[1].capitalize() # change to... Fma_body_site
+        p.replace("_","") # change to... Fmabodysite
+        acs = '%s%s' % (n,p) # build... SampleFmabodysite
+        # Construct the query that finds and returns GQL
+        beg = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2CfromNum%2Cpage%2Ctotal%2Cpages%2Csize%7Daggregations%7B"
+        mid = acs
+        end = "%7Bbuckets%7Bkey%2CdocCount%7D%7D%7D%7D"
+        url = '%s%s%s' % (beg,mid,end)
+        response = urllib2.urlopen(url)
         return response.read()
 
     else:
@@ -101,7 +110,7 @@ app.add_url_rule(
     view_func=GraphQLView.as_view(
         'ac_graphql',
         schema=ac_schema,
-        graphiql=False
+        graphiql=True
     )
 )
 
