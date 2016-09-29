@@ -96,7 +96,7 @@ app.add_url_rule(
     view_func=GraphQLView.as_view(
         'ac_graphql',
         schema=ac_schema,
-        graphiql=True
+        graphiql=False
     )
 )
 

@@ -116,7 +116,7 @@ class TrimmedSeqSet16s(graphene.ObjectType):
 class Pagination(graphene.ObjectType):
     count = graphene.Int()
     sort = graphene.String()
-    from_num = graphene.Int()
+    fromNum = graphene.Int()
     page = graphene.Int()
     total = graphene.Int()
     pages = graphene.Int()
@@ -125,15 +125,15 @@ class Pagination(graphene.ObjectType):
 class Hits(graphene.ObjectType):
     hits = graphene.List(graphene.String)
 
-class Buckets(graphene.ObjectType):
+class Bucket(graphene.ObjectType):
     key = graphene.String()
-    doc_count = graphene.Int()
+    docCount = graphene.Int()
 
 class BucketCounter(graphene.ObjectType):
-    buckets = graphene.List(Buckets)
+    buckets = graphene.List(Bucket)
 
 class Aggregations(graphene.ObjectType):
-    aggregations = graphene.List(BucketCounter)
+    subjectProjectName = graphene.List(BucketCounter)
 
 ##################
 # CYPHER QUERIES #
@@ -301,3 +301,11 @@ def get_trimmedseqset16s():
                 commentl.append(res[x]['b']['comment'])
         if res[x]['link'] not in computedFroml: computedFroml.append(res[x]['link'])
     return TrimmedSeqSet16s(ID=idl, formatDoc=formatDocl, study=studyl, format=formatl, seqType=seqTypel, size=sizel, subtype=subtypel, comment=commentl, computedFrom=computedFroml)
+
+def get_buckets():
+    ihmp = Bucket(key="ihmp", docCount=5)
+    hmp = Bucket(key="hmp", docCount=5)
+    bucketl =[]
+    bucketl.append(ihmp)
+    bucketl.append(hmp)
+    return BucketCounter(buckets=bucketl)
