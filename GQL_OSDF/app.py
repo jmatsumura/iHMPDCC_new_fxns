@@ -24,8 +24,8 @@ def add_cors_headers(response):
 
 app.after_request(add_cors_headers)
 
-sample_fma_body_site = {"description": "The FMA body site related to the sample", "doc_type": "cases", "field": "samples.fma_body_site", "full": "cases.fma_body_site", "type": "string"}
-project_name = {"description": "The Project Name", "doc_type": "cases", "field": "project.name", "full": "cases.project.name", "type": "string"}
+sample_fma_body_site = {"description": "The FMA body site related to the sample", "doc_type": "cases", "field": "SampleFmabodysite", "full": "cases.sample.fma_body_site", "type": "string"}
+project_name = {"description": "The Project Name", "doc_type": "cases", "field": "ProjectName", "full": "cases.ProjectName", "type": "string"}
 
 @app.route('/gql/_mapping', methods=['GET'])
 def get_maps():
@@ -47,18 +47,22 @@ def get_cases():
 
     # Processing autocomplete here as well as finding counts for the set category
     if(request.args.get('facets')):
-        acProp = request.args.get('facets').split('.') # expects something like... sample.fma_body_site
-        n = acProp[0].capitalize() # change to... Sample
-        p = acProp[1].capitalize() # change to... Fma_body_site
-        p.replace("_","") # change to... Fmabodysite
-        acs = '%s%s' % (n,p) # build... SampleFmabodysite
-        # Construct the query that finds and returns GQL
-        beg = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2CfromNum%2Cpage%2Ctotal%2Cpages%2Csize%7Daggregations%7B"
-        mid = acs
-        end = "%7Bbuckets%7Bkey%2CdocCount%7D%7D%7D%7D"
+        
+        #np = request.args.get('facets').split('.') # takes project.name
+        #n = np[0].capitalize() # extract project
+        #if "_" in np[1]:
+        #    np[1].replace("_","")
+        #p = np[1].capitalize() # extract name
+        #acs = "%s%s" % (n,p)
+
+        beg = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7Dhits%2Caggregations%7B"
+        mid = "ProjectName"
+        #mid = acs
+        end = "%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         url = '%s%s%s' % (beg,mid,end)
         response = urllib2.urlopen(url)
-        return response.read()
+        r = response.read()
+        return ('%s, "warnings": {}}' % r[:-1])
 
     else:
         return jsonify({"filters": filters})

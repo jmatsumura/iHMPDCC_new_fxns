@@ -116,7 +116,7 @@ class TrimmedSeqSet16s(graphene.ObjectType):
 class Pagination(graphene.ObjectType):
     count = graphene.Int()
     sort = graphene.String()
-    fromNum = graphene.Int()
+    fromNum = graphene.Int(name="from")
     page = graphene.Int()
     total = graphene.Int()
     pages = graphene.Int()
@@ -127,15 +127,17 @@ class Hits(graphene.ObjectType):
 
 class Bucket(graphene.ObjectType):
     key = graphene.String()
-    docCount = graphene.Int()
+    docCount = graphene.Int(name="doc_count")
 
 class BucketCounter(graphene.ObjectType):
     buckets = graphene.List(Bucket)
 
 class Aggregations(graphene.ObjectType):
-    ProjectName = graphene.Field(BucketCounter)
-    SampleFmabodysite = graphene.Field(BucketCounter)
-    hits = graphene.Field(Hits)
+    Project_name = graphene.Field(BucketCounter)
+    Sample_fmabodysite = graphene.Field(BucketCounter)
+
+class Warnings(graphene.ObjectType):
+    warnings = graphene.String()
 
 ##################
 # CYPHER QUERIES #
