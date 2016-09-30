@@ -1,10 +1,10 @@
 import graphene
 from graphene import relay
-from models import Pagination, Hits, Aggregations, BucketCounter, Bucket, Warnings, get_buckets, get_hits, Project2
+from models import Pagination, Hits, Aggregations, BucketCounter, Bucket, get_buckets, get_hits, Project2
 
 # Can preload counts
-proName = get_buckets("Project.name")
-samFMA = get_buckets("Sample.fma_body_site")
+proName = get_buckets("Project.name","no")
+samFMA = get_buckets("Sample.fma_body_site","no")
 
 class Query(graphene.ObjectType):
 

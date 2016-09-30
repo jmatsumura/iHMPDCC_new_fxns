@@ -68,12 +68,21 @@ class Bucket(graphene.ObjectType):
 class BucketCounter(graphene.ObjectType):
     buckets = graphene.List(Bucket)
 
+class SBucket(graphene.ObjectType):
+    key = graphene.String()
+    docCount = graphene.Int(name="doc_count")
+    caseCount = graphene.Int(name="case_count")
+    fileSize = graphene.Int(name="file_size")
+
+class SBucketCounter(graphene.ObjectType):
+    buckets = graphene.List(SBucket)
+
 class Aggregations(graphene.ObjectType):
     Project_name = graphene.Field(BucketCounter)
     Sample_fmabodysite = graphene.Field(BucketCounter)
 
-class Warnings(graphene.ObjectType):
-    warnings = graphene.String()
+class FileSize(graphene.ObjectType):
+    value = graphene.Int()
 
 ##################
 # CYPHER QUERIES #
@@ -246,20 +255,30 @@ def get_trimmedseqset16s():
         if res[x]['link'] not in computedFroml: computedFroml.append(res[x]['link'])
     return TrimmedSeqSet16s(ID=idl, formatDoc=formatDocl, study=studyl, format=formatl, seqType=seqTypel, size=sizel, subtype=subtypel, comment=commentl, computedFrom=computedFroml)
 
-def get_buckets(inp):
+def get_buckets(inp,sum):
+
     splits = inp.split('.') # parse for node/prop values to be counted by
     node = splits[0]
     prop = splits[1]
-
     bucketl = []
 
-    res = count_props(node, prop)
-    for x in range(0,len(res)):
-        if res[x]['prop'] != "":
-            cur = Bucket(key=res[x]['prop'], docCount=res[x]['counts'])
-            bucketl.append(cur)
+    if sum == "no": # not a full summary, just key and doc count need to be returned
+        res = count_props(node, prop)
+        for x in range(0,len(res)):
+            if res[x]['prop'] != "":
+                cur = Bucket(key=res[x]['prop'], docCount=res[x]['counts'])
+                bucketl.append(cur)
 
-    return BucketCounter(buckets=bucketl)
+        return BucketCounter(buckets=bucketl)
+
+    else: # return full summary including case_count, doc_count, file_size, and key
+        res = count_props(node, prop)
+        for x in range(0,len(res)):
+            if res[x]['prop'] != "":
+                cur = SBucket(key=res[x]['prop'], docCount=res[x]['counts'], fileSize=res[x]['counts'], caseCount=res[x]['counts'])
+                bucketl.append(cur)
+
+        return SBucketCounter(buckets=bucketl)
 
 def get_hits():
     hits = []

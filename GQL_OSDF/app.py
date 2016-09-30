@@ -3,7 +3,7 @@
 from flask import Flask, jsonify, request
 from flask_graphql import GraphQLView
 from flask.views import MethodView
-from schema import schema
+from sum_schema import sum_schema
 from ac_schema import ac_schema
 import graphene
 import urllib2
@@ -86,23 +86,19 @@ def get_annotation():
 
 @app.route('/ui/search/summary', methods=['GET','OPTIONS','POST'])
 def get_ui_search_summary():
-    return 'hi'
+    url = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs%7Bvalue%7D%7D"
+    response = urllib2.urlopen(url)
+    # another hack, remove "data" root from GQL results
+    r1 = response.read()[8:]
+    r2 = r1[:-1]
+    return r2
 
 app.add_url_rule(
-    '/casesGQL',
+    '/sum_schema',
     view_func=GraphQLView.as_view(
-        'graphqlCases',
-        schema=schema,
+        'sum_graphql',
+        schema=sum_schema,
         graphiql=True
-    )
-)
-
-app.add_url_rule(
-    '/filesGQL',
-    view_func=GraphQLView.as_view(
-        'graphqlFiles',
-        schema=schema,
-        graphiql=False
     )
 )
 
