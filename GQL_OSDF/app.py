@@ -30,7 +30,7 @@ project_name = {"description": "The Project Name", "doc_type": "cases", "field":
 @app.route('/gql/_mapping', methods=['GET'])
 def get_maps():
     add_cors_headers
-    res = jsonify({"sample.fma_body_site": sample_fma_body_site, "project.name": project_name})
+    res = jsonify({"cases.SampleFmabodysite": sample_fma_body_site, "cases.ProjectName": project_name})
     return res
 
 @app.route('/cases', methods=['GET','OPTIONS'])
@@ -71,7 +71,10 @@ def get_status_user():
 
 @app.route('/files', methods=['GET','OPTIONS'])
 def get_files():
-    return 'hi'
+    url = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+    response = urllib2.urlopen(url)
+    r = response.read()
+    return ('%s, "warnings": {}}' % r[:-1])
 
 @app.route('/projects', methods=['GET','POST'])
 def get_project():
