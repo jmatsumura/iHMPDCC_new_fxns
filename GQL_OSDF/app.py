@@ -86,7 +86,7 @@ def get_annotation():
 
 @app.route('/ui/search/summary', methods=['GET','OPTIONS','POST'])
 def get_ui_search_summary():
-    url = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs%7Bvalue%7D%7D"
+    url = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DProjectName%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs%7Bvalue%7D%7D"
     response = urllib2.urlopen(url)
     # another hack, remove "data" root from GQL results
     r1 = response.read()[8:]
