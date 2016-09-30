@@ -43,75 +43,11 @@ class Study(graphene.ObjectType):
     description = graphene.List(graphene.String)
     partOf = graphene.List(graphene.String) # part of what project
 
-class Subject(graphene.ObjectType):
-    class Meta:
-        interfaces = (Defaults, )
-    race = graphene.List(graphene.String)
-    gender = graphene.List(graphene.String)
-    randSubjectId = graphene.List(graphene.String)
-    participatesIn = graphene.List(graphene.String) # participates in what study
-
-class Visit(graphene.ObjectType):
-    class Meta:
-        interfaces = (Defaults, )
-    date = graphene.List(graphene.String)
-    interval = graphene.List(graphene.String)
-    visitId = graphene.List(graphene.String)
-    clinicId = graphene.List(graphene.String)
-    visitNumber = graphene.List(graphene.String)
-    by = graphene.List(graphene.String) # by what subject
-
-class Sample(graphene.ObjectType):
-    class Meta:
-        interfaces = (Defaults, )
-    fmaBodySite = graphene.List(graphene.String)
-    collectedDuring = graphene.List(graphene.String) # collected during what visit
-
-class DNAPrep16s(graphene.ObjectType):
-    class Meta:
-        interfaces = (Defaults, )
-    #sequencingContact = graphene.List(graphene.String) # not a useful search condition?
-    prepId = graphene.List(graphene.String)
-    #mimarks = graphene.List(graphene.String) # This seems like a gold mine of valuable/searchable
-    # metadata. However, can't really use it in its current state in Neo4j. Come back to it.
-    libLayout = graphene.List(graphene.String)
-    storageDuration = graphene.List(graphene.String)
-    subtype = graphene.List(graphene.String)
-    ncbiTaxonId = graphene.List(graphene.String)
-    sequencingCenter = graphene.List(graphene.String)
-    comment = graphene.List(graphene.String)
-    libSelection = graphene.List(graphene.String)
-    preparedFrom = graphene.List(graphene.String) # prepared from what sample
-
-class RawSeqSet16s(graphene.ObjectType):
-    class Meta:
-        interfaces = (Defaults, )
-    #checksums = graphene.List(graphene.String) # not a useful search condition?
-    #urls = graphene.List(graphene.String) # not a useful search condition?
-    formatDoc = graphene.List(graphene.String)
-    study = graphene.List(graphene.String)
-    expLength = graphene.List(graphene.String)
-    format = graphene.List(graphene.String)
-    seqModel = graphene.List(graphene.String)
-    seqType = graphene.List(graphene.String)
-    size = graphene.List(graphene.String)
-    subtype = graphene.List(graphene.String)
-    comment = graphene.List(graphene.String)
-    sequencedFrom = graphene.List(graphene.String) # sequenced from what 16s prep
-
-class TrimmedSeqSet16s(graphene.ObjectType):
-    class Meta:
-        interfaces = (Defaults, )
-    #checksums = graphene.List(graphene.String) # not a useful search condition?
-    #urls = graphene.List(graphene.String) # not a useful search condition?
-    formatDoc = graphene.List(graphene.String)
-    study = graphene.List(graphene.String)
-    format = graphene.List(graphene.String)
-    seqType = graphene.List(graphene.String)
-    size = graphene.List(graphene.String)
-    subtype = graphene.List(graphene.String)
-    comment = graphene.List(graphene.String)
-    computedFrom = graphene.List(graphene.String) # computed from what 16s raw seq set
+class Project2(graphene.ObjectType):
+    projectId = graphene.String(name="project_id")
+    primarySite = graphene.String(name="primary_site")
+    name = graphene.String()
+    diseaseType = graphene.String(name="disease_type")
 
 class Pagination(graphene.ObjectType):
     count = graphene.Int()
@@ -123,7 +59,7 @@ class Pagination(graphene.ObjectType):
     size = graphene.Int()
 
 class Hits(graphene.ObjectType):
-    hits = graphene.List(graphene.String)
+    project = graphene.Field(Project2)
 
 class Bucket(graphene.ObjectType):
     key = graphene.String()
@@ -324,3 +260,13 @@ def get_buckets(inp):
             bucketl.append(cur)
 
     return BucketCounter(buckets=bucketl)
+
+def get_hits():
+    hits = []
+    s1 = Hits(project=Project2(projectId="123", primarySite="head", name="1", diseaseType="RA"))
+    s2 = Hits(project=Project2(projectId="456", primarySite="shoulders", name="12", diseaseType="RB"))
+    s3 = Hits(project=Project2(projectId="789", primarySite="knees", name="13", diseaseType="RC"))
+    hits.append(s1)
+    hits.append(s2)
+    hits.append(s3)
+    return hits

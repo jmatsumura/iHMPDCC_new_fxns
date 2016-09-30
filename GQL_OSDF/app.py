@@ -42,7 +42,7 @@ def get_cases():
     sort = request.args.get('sort')
 
     if(request.args.get('expand')):
-        url = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%2Caggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%2CSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+        url = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         response = urllib2.urlopen(url)
         r = response.read()
         return ('%s, "warnings": {}}' % r[:-1])
@@ -50,19 +50,8 @@ def get_cases():
     # Processing autocomplete here as well as finding counts for the set category
     if(request.args.get('facets')):
 
-        #np = request.args.get('facets').split('.') # takes project.name
-        #n = np[0].capitalize() # extract project
-        #if "_" in np[1]:
-        #    np[1].replace("_","")
-        #p = np[1].capitalize() # extract name
-        #acs = "%s%s" % (n,p)
-
-        beg = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7Dhits%2Caggregations%7B"
-        if "Project" in request.args.get('facets'):
-            mid = "ProjectName"
-        else:
-            mid = "SampleFmabodysite"
-        #mid = acs
+        beg = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7B"
+        mid = request.args.get('facets')
         end = "%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         url = '%s%s%s' % (beg,mid,end)
         response = urllib2.urlopen(url)
