@@ -60,6 +60,7 @@ class Pagination(graphene.ObjectType):
 
 class Hits(graphene.ObjectType):
     project = graphene.Field(Project2)
+    caseId = graphene.String(name="case_id")
 
 class Bucket(graphene.ObjectType):
     key = graphene.String()
@@ -282,9 +283,9 @@ def get_buckets(inp,sum):
 
 def get_hits():
     hits = []
-    s1 = Hits(project=Project2(projectId="123", primarySite="head", name="1", diseaseType="RA"))
-    s2 = Hits(project=Project2(projectId="456", primarySite="shoulders", name="12", diseaseType="RB"))
-    s3 = Hits(project=Project2(projectId="789", primarySite="knees", name="13", diseaseType="RC"))
+    s1 = Hits(project=Project2(projectId="123", primarySite="head", name="1", diseaseType="RA"),caseId="test123")
+    s2 = Hits(project=Project2(projectId="456", primarySite="shoulders", name="12", diseaseType="RB"),caseId="test456")
+    s3 = Hits(project=Project2(projectId="789", primarySite="knees", name="13", diseaseType="RC"),caseId="test789")
     hits.append(s1)
     hits.append(s2)
     hits.append(s3)
