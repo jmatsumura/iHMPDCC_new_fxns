@@ -1,0 +1,11 @@
+Quick notes for what everything is in this directory
+
+app.py ~ Flask app, main endpoint that navigates to the various GQL schema
+
+models.py ~ Contains various functions for querying Neo4j and establishes all necessary GQL data types
+
+ac_schema.py ~ GQL schema used for populuating auto-complete in advanced query page
+
+files_schema.py ~ GQL schema used for extracting all file data tied to a given sample ID
+
+sum_schema.py ~ GQL schema used for populating count/summation data for aspects like file charts
