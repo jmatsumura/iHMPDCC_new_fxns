@@ -1,3 +1,4 @@
+import re
 import graphene
 from graphene import relay
 from py2neo import Graph # Using py2neo v3 not v2
@@ -85,6 +86,19 @@ class Aggregations(graphene.ObjectType):
 class FileSize(graphene.ObjectType):
     value = graphene.Int()
 
+# Some attributes like access don't really matter to us, but keep for
+# consistency with GDC API until we rewrite those components
+class IndivFiles(graphene.ObjectType):
+    dataType = graphene.String(name="data_type")
+    fileName = graphene.String(name="file_name")
+    dataFormat = graphene.String(name="data_format")
+    access = graphene.String()
+    fileId = graphene.String(name="file_id")
+    fileSize = graphene.Int(name="file_size")
+
+class Files(graphene.ObjectType):
+    files = graphene.List(IndivFiles)
+
 ##################
 # CYPHER QUERIES #
 ##################
@@ -103,7 +117,7 @@ graph = Graph("http://localhost:7474/db/data/")
 # attr = property to match against, val = desired value of the property of attr,
 # links = an array with two elements [name of node to hit, name of edge].
 # For example, for Study object you want to use the following parameters:
-# buildQuery("node_type", "study", ["Project","PART_OF"])
+# buildQuery("node_type", "Study", ["Project","PART_OF"])
 def build_query(attr, val, links):
     if links:
         node = links[0] # parse links array as described earlier, don't need attr
@@ -121,6 +135,61 @@ def build_query(attr, val, links):
 def count_props(node, prop):
     cquery = "MATCH (n:%s) RETURN n.%s as prop, count(n.%s) as counts" % (node, prop, prop)
     return graph.data(cquery)
+
+# Retrieve ALL files associated with a given sample_id. Note the generic node names p, s, and c.
+# Overall this means start at the (b)eginning (b:Sample), get all associated (p)repared from nodes,
+# then all (s)equenced from nodes, and finally all (c)omputed from nodes. The attributes to find and
+# return are the URL, name, size, format, and type. 
+def get_files(sample_id):
+    fl = []
+    dt, fn, df, ac, fi = ("" for i in range(5))
+    fs = 0
+    regex_for_http_urls = '\,\su(http.*data/(.*))\,'
+    
+    cquery = "MATCH (b:Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE b._id=\"%s\" RETURN s, c" % (sample_id)
+    res = graph.data(cquery)
+
+    for x in range(0,len(res)): # iterate over each unique path
+        for key in res[0].keys(): # iterate over each unique node in the path
+            dt = res[0][key]['subtype']
+            df = res[0][key]['format']
+            ac = "open" # again, default to accommodate current GDC format
+            fs = res[0][key]['size']
+            name_and_url = re.search(regex_for_http_urls, res[0][key]['urls'])
+            fn = name_and_url.group(2).replace("/",".") # making the file name and some of its path pretty
+            fi = name_and_url.group(1) # File ID can just be our URL
+            fl.append(IndivFiles(dataType=dt,fileName=fn,dataFormat=df,access=ac,fileId=fi,fileSize=fs))
+            
+    return Files(files=fl)
+
+def get_buckets(inp,sum):
+
+    splits = inp.split('.') # parse for node/prop values to be counted by
+    node = splits[0]
+    prop = splits[1]
+    bucketl = []
+
+    if sum == "no": # not a full summary, just key and doc count need to be returned
+        res = count_props(node, prop)
+        for x in range(0,len(res)):
+            if res[x]['prop'] != "":
+                cur = Bucket(key=res[x]['prop'], docCount=res[x]['counts'])
+                bucketl.append(cur)
+
+        return BucketCounter(buckets=bucketl)
+
+    else: # return full summary including case_count, doc_count, file_size, and key
+        res = count_props(node, prop)
+        for x in range(0,len(res)):
+            if res[x]['prop'] != "":
+                cur = SBucket(key=res[x]['prop'], docCount=res[x]['counts'], fileSize=res[x]['counts'], caseCount=res[x]['counts'])
+                bucketl.append(cur)
+
+        return SBucketCounter(buckets=bucketl)
+
+##############
+# DEPRECATED #
+##############
 
 # Below are functions to extract all the data related to a particular node that might
 # be worth searching. Since this is meant to populate auto-complete text, the fields
@@ -256,36 +325,11 @@ def get_trimmedseqset16s():
         if res[x]['link'] not in computedFroml: computedFroml.append(res[x]['link'])
     return TrimmedSeqSet16s(ID=idl, formatDoc=formatDocl, study=studyl, format=formatl, seqType=seqTypel, size=sizel, subtype=subtypel, comment=commentl, computedFrom=computedFroml)
 
-def get_buckets(inp,sum):
-
-    splits = inp.split('.') # parse for node/prop values to be counted by
-    node = splits[0]
-    prop = splits[1]
-    bucketl = []
-
-    if sum == "no": # not a full summary, just key and doc count need to be returned
-        res = count_props(node, prop)
-        for x in range(0,len(res)):
-            if res[x]['prop'] != "":
-                cur = Bucket(key=res[x]['prop'], docCount=res[x]['counts'])
-                bucketl.append(cur)
-
-        return BucketCounter(buckets=bucketl)
-
-    else: # return full summary including case_count, doc_count, file_size, and key
-        res = count_props(node, prop)
-        for x in range(0,len(res)):
-            if res[x]['prop'] != "":
-                cur = SBucket(key=res[x]['prop'], docCount=res[x]['counts'], fileSize=res[x]['counts'], caseCount=res[x]['counts'])
-                bucketl.append(cur)
-
-        return SBucketCounter(buckets=bucketl)
-
 def get_hits():
     hits = []
-    s1 = Hits(project=Project2(projectId="123", primarySite="head", name="1", diseaseType="RA"),caseId="test123")
-    s2 = Hits(project=Project2(projectId="456", primarySite="shoulders", name="12", diseaseType="RB"),caseId="test456")
-    s3 = Hits(project=Project2(projectId="789", primarySite="knees", name="13", diseaseType="RC"),caseId="test789")
+    s1 = Hits(project=Project2(projectId="123", primarySite="head", name="1", diseaseType="RA"),caseId="3674d95cd0d27e1de94ddf4d2eccecc3")
+    s2 = Hits(project=Project2(projectId="456", primarySite="shoulders", name="12", diseaseType="RB"),caseId="e2559e04fcd73935a7d7b9179041782f")
+    s3 = Hits(project=Project2(projectId="789", primarySite="knees", name="13", diseaseType="RC"),caseId="e2559e04fcd73935a7d7b9179073a82e")
     hits.append(s1)
     hits.append(s2)
     hits.append(s3)
