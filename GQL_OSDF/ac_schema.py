@@ -1,6 +1,6 @@
 import graphene
 from graphene import relay
-from models import Pagination, CaseHits, Aggregations, get_buckets, get_hits
+from models import Pagination, CaseHits, Aggregations, get_buckets, get_case_hits
 
 # Can preload counts
 proName = get_buckets("Project.name","no")
@@ -13,10 +13,10 @@ class Query(graphene.ObjectType):
     aggregations = graphene.Field(Aggregations)
 
     def resolve_pagination(self, args, context, info):
-        return Pagination(count=0, sort="case_id.raw:asc", fromNum=1, page=1, total=3, pages=1, size=0)
+        return Pagination(count=25, sort="case_id.raw:asc", fromNum=1, page=1, total=25, pages=1, size=25)
 
     def resolve_hits(self, args, context, info):
-        return get_hits()
+        return get_case_hits()
 
     def resolve_aggregations(self, args, context, info):
         return Aggregations(Project_name=proName, Sample_fmabodysite=samFMA)

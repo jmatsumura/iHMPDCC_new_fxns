@@ -116,6 +116,7 @@ def get_files(sample_id):
     dt, fn, df, ac, fi = ("" for i in range(5))
     fs = 0
     regex_for_http_urls = '\,\su(http.*data/(.*))\,'
+    pattern = re.compile(regex_for_http_urls)
     
     cquery = "MATCH (b:Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE b._id=\"%s\" RETURN s, c" % (sample_id)
     res = graph.data(cquery)
@@ -126,9 +127,13 @@ def get_files(sample_id):
             df = res[0][key]['format']
             ac = "open" # again, default to accommodate current GDC format
             fs = res[0][key]['size']
-            name_and_url = re.search(regex_for_http_urls, res[0][key]['urls'])
-            fn = name_and_url.group(2).replace("/",".") # making the file name and some of its path pretty
-            fi = name_and_url.group(1) # File ID can just be our URL
+            if pattern.match(res[0][key]['urls']):
+                name_and_url = re.search(regex_for_http_urls, res[0][key]['urls'])
+                fn = name_and_url.group(2).replace("/",".") # making the file name and some of its path pretty
+                fi = name_and_url.group(1) # File ID can just be our URL
+            else:
+                fn = "none"
+                fi = "none"
             fl.append(IndivFiles(dataType=dt,fileName=fn,dataFormat=df,access=ac,fileId=fi,fileSize=fs))
 
     return fl
@@ -173,6 +178,11 @@ def get_buckets(inp,sum):
 # Function to return case values to populate the table, note that this will just return first 25 values arbitrarily for the moment
 def get_case_hits():
     hits = []
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(st:Study)<-[:PARTICIPATES_IN]-(su:Subject)<-[:BY]-(v:Visit)<-[:COLLECTED_DURING]-(sa:Sample) WHERE NOT sa.fma_body_site=\"\" RETURN p.name,p.subtype,sa.fma_body_site,st.name,sa._id LIMIT 25"
+    res = graph.data(cquery)
+    for x in range(0,len(res)):
+        cur = CaseHits(project=Project(projectId=res[x]['p.subtype'],primarySite=res[x]['sa.fma_body_site'],name=res[x]['p.name'],diseaseType="demo"),caseId=res[x]['sa._id'])
+        hits.append(cur)
     return hits
 
 # Function to return file values to populate the table, note that this will just return first 25 values arbitrarily for the moment
