@@ -73,19 +73,29 @@ class IndivFiles(graphene.ObjectType): # individual files to populate all files 
     fileId = graphene.String(name="file_id")
     fileSize = graphene.Int(name="file_size")
 
-##################
-# CYPHER QUERIES #
-##################
+####################################
+# FUNCTIONS FOR GETTING NEO4J DATA #
+####################################
 
 # This section will have all the logic for populating the actual data in the schema (data from Neo4j)
 
 graph = Graph("http://localhost:7474/db/data/")
 
-# Example ES query+result. Not really needed in this scenario, more important when doing custom queries.
-#print(graph.run("CALL ga.es.queryNode('{\"query\":{\"match\":{\"name\":\"iHMP\"}}}') YIELD node return node").data())
-
-# Example normal Cypher query+result
-#print(graph.data("MATCH (n:Project) RETURN n.name"))
+# Function to extract a file name and an HTTP URL given values from a urls property from an OSDF node
+def extract_url_info(urls_node):
+    regex_for_http_urls = '(http.*data/(\S+))[,\]]'
+    res = []
+    fn,fi = ("" for i in range(2))
+    if re.match('.*http.*', urls_node):
+        name_and_url = re.search(regex_for_http_urls, urls_node)
+        fn = name_and_url.group(2).replace("/",".") # making the file name and some of its path pretty
+        fi = name_and_url.group(1) # File ID can just be our URL
+    else:
+        fn = "none"
+        fi = "none"
+    res.append(fn)
+    res.append(fi)
+    return res
 
 # Function to build and run a basic Cypher query. Accepts the following parameters:
 # attr = property to match against, val = desired value of the property of attr,
@@ -127,13 +137,9 @@ def get_files(sample_id):
             df = res[0][key]['format']
             ac = "open" # again, default to accommodate current GDC format
             fs = res[0][key]['size']
-            if pattern.match(res[0][key]['urls']):
-                name_and_url = re.search(regex_for_http_urls, res[0][key]['urls'])
-                fn = name_and_url.group(2).replace("/",".") # making the file name and some of its path pretty
-                fi = name_and_url.group(1) # File ID can just be our URL
-            else:
-                fn = "none"
-                fi = "none"
+            data = extract_url_info(res[0][key]['urls'])
+            fn = data[0] # file name (pretty version of URL)
+            fi = data[1] # file ID is the URL for DL
             fl.append(IndivFiles(dataType=dt,fileName=fn,dataFormat=df,access=ac,fileId=fi,fileSize=fs))
 
     return fl
@@ -185,9 +191,26 @@ def get_case_hits():
         hits.append(cur)
     return hits
 
-# Function to return file values to populate the table, note that this will just return first 25 values arbitrarily for the moment
+# Function to return file values to populate the table, note that this will just return first 30 values arbitrarily for the moment
+# Note that the way this is performed, guaranteed a trimmed set from a raw set so pulling 15 and pulling one file from each node (=30)
 def get_file_hits():
     hits = []
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) RETURN p,s,c,b._id LIMIT 15"
+    res = graph.data(cquery)
+    for x in range(0,len(res)):
+        case_hits = [] # reinit each iteration
+        cur_case = CaseHits(project=Project(projectId=res[x]['p']['subtype'],name=res[x]['p']['name']),caseId=res[x]['b._id'])
+        case_hits.append(cur_case)
+        data_s = extract_url_info(res[0]['s']['urls'])
+        data_c = extract_url_info(res[0]['s']['urls'])
+        fn1 = data_s[0] # file name (pretty version of URL)
+        fi1 = data_s[1] # file ID is the URL for DL
+        fn2 = data_c[0]
+        fi2 = data_c[1]
+        cur_file1 = FileHits(dataType=res[x]['s']['subtype'],fileName=fn1,dataFormat=res[x]['s']['format'],submitterId="null",state="submitted",fileId=fi1,dataCategory=res[x]['s']['node_type'],experimentalStrategy=res[x]['s']['subtype'],fileSize=res[x]['s']['size'],cases=case_hits)
+        cur_file2 = FileHits(dataType=res[x]['c']['subtype'],fileName=fn2,dataFormat=res[x]['c']['format'],submitterId="null",state="submitted",fileId=fi2,dataCategory=res[x]['c']['node_type'],experimentalStrategy=res[x]['c']['subtype'],fileSize=res[x]['c']['size'],cases=case_hits) 
+        hits.append(cur_file1)
+        hits.append(cur_file2)       
     return hits
 
 
