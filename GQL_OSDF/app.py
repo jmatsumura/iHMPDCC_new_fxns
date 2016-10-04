@@ -60,7 +60,8 @@ def get_cases():
         return ('%s, "warnings": {}}' % r[:-1])
 
     else:
-        return jsonify({"filters": filters})
+        return jsonify({"data": {"hits": [], "pagination": {"count": 0, "sort": "case_id.raw:asc", "from": 1, "page": 1, "total": 166, "pages": 166, "size": 0}}, "warnings": {}, "filters": filters})
+
 
 # Route for specific cases endpoints that associates with various files
 @app.route('/cases/<case_id>', methods=['GET','OPTIONS'])
