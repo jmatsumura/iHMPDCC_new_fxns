@@ -1,6 +1,6 @@
 # simple app to allow GraphiQL interaction with the schema and verify it is
 # structured how it ought to be. 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort
 from flask_graphql import GraphQLView
 from flask.views import MethodView
 from sum_schema import sum_schema
@@ -76,9 +76,13 @@ def get_case_files(case_id):
 def get_status():
     return 'hi'
 
-@app.route('/status/user', methods=['GET','OPTIONS','POST'])
+@app.route('/status/user', methods=['OPTIONS'])
 def get_status_user():
     return 'hi'
+
+@app.route('/status/user', methods=['GET','OPTIONS','POST'])
+def get_status_user_unauthorized():
+    abort(401)
 
 @app.route('/files', methods=['GET','OPTIONS'])
 def get_files():
