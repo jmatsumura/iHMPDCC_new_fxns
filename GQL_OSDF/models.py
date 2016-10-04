@@ -59,12 +59,6 @@ class IndivFiles(graphene.ObjectType): # individual files to populate all files 
     fileId = graphene.String(name="file_id")
     fileSize = graphene.Int(name="file_size")
 
-class AllFiles(graphene.ObjectType): # all files to be used by the cart functionality
-    files = graphene.List(IndivFiles)
-    project = graphene.Field(Project)
-    caseId = graphene.String(name="case_id")
-    submitterId = graphene.String(name="submitter_id")
-
 ##################
 # CYPHER QUERIES #
 ##################

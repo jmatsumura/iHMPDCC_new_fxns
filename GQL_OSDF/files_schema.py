@@ -1,13 +1,13 @@
 import graphene
 from graphene import relay
-from models import Project, AllFiles, get_proj_data, get_files
+from models import Project, IndivFiles, get_proj_data, get_files
 
 # Unlike the others, don't want to preload here. Load on call from each unique sample ID
 
 class Query(graphene.ObjectType):
 
     project = graphene.Field(Project, id=graphene.String(description='Sample ID to query on'))
-    files = graphene.Field(AllFiles, id=graphene.String(description='Sample ID to query on'))
+    files = graphene.List(IndivFiles, id=graphene.String(description='Sample ID to query on'))
     caseId = graphene.String(name="case_id", id=graphene.String(description='Sample ID to query on'))
     submitterId = graphene.String(name="submitter_id") # dummy value returned, accommodate GDC
 
