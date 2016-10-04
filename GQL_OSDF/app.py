@@ -6,6 +6,7 @@ from flask.views import MethodView
 from sum_schema import sum_schema
 from ac_schema import ac_schema
 from files_schema import files_schema
+from table_schema import table_schema
 import graphene
 import urllib2
 
@@ -64,10 +65,12 @@ def get_cases():
 # Route for specific cases endpoints that associates with various files
 @app.route('/cases/<case_id>', methods=['GET','OPTIONS'])
 def get_case_files(case_id):
-    beg = "tbd"
-    mid = request.args.get('facets')
-    end = "tbd"
-    url = '%s%s%s' % (beg,mid,end)
+    id = '"%s"' % case_id
+    p1 = 'http://localhost:5000/files_schema?query=%7Bproject(id%3A'
+    p2 = ')%7Bproject_id%2Cname%7D%2Cfiles(id%3A'
+    p3 = ')%7Bdata_type%2Cfile_name%2Cdata_format%2Caccess%2Cfile_id%2Cfile_size%7D%2Ccase_id(id%3A'
+    p4 = ')%2Csubmitter_id%7D'
+    url = '%s%s%s%s%s%s%s' % (p1,id,p2,id,p3,id,p4) # inject ID into query
     response = urllib2.urlopen(url)
     r = response.read()
     return ('%s, "warnings": {}}' % r[:-1])
@@ -84,7 +87,7 @@ def get_status_user():
 def get_status_user_unauthorized():
     abort(401)
 
-@app.route('/files', methods=['GET','OPTIONS'])
+@app.route('/files', methods=['GET','OPTIONS','POST'])
 def get_files():
     url = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
     response = urllib2.urlopen(url)
@@ -133,6 +136,15 @@ app.add_url_rule(
     view_func=GraphQLView.as_view(
         'files_graphql',
         schema=files_schema,
+        graphiql=True
+    )
+)
+
+app.add_url_rule(
+    '/table_schema',
+    view_func=GraphQLView.as_view(
+        'table_graphql',
+        schema=table_schema,
         graphiql=True
     )
 )
