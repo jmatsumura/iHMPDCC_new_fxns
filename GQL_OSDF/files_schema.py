@@ -12,7 +12,7 @@ class Query(graphene.ObjectType):
     submitterId = graphene.String(name="submitter_id") # dummy value returned, accommodate GDC
 
     def resolve_project(self, args, context, info):
-        return Project(name="123",projectId="testing")#get_proj_data(args['id'])
+        return get_proj_data(args['id'])
 
     def resolve_files(self, args, context, info):
         return get_files(args['id'])

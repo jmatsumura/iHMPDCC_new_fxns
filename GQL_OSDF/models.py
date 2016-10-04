@@ -127,7 +127,7 @@ def get_files(sample_id):
 
 # Query to traverse top half of OSDF model (Project<-....-Sample). 
 def get_proj_data(sample_id):
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(SUBJECT)<-[:BY]-(VISIT)<-[:COLLECTED_DURING]-(Sample) WHERE Sample._id=\"%\" RETURN p.name, p.subtype" % (sample_id)
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(SUBJECT)<-[:BY]-(VISIT)<-[:COLLECTED_DURING]-(Sample) WHERE Sample._id=\"%s\" RETURN p" % (sample_id)
     res = graph.data(cquery)
     return Project(name=res[0]['p']['name'],projectId=res[0]['p']['subtype'])
 
