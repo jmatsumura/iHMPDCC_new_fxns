@@ -1,6 +1,6 @@
 import graphene
 from graphene import relay
-from models import Pagination, Hits, Aggregations, BucketCounter, Bucket, get_buckets, get_hits, Project2
+from models import Pagination, Hits, Aggregations, get_buckets, get_hits
 
 # Can preload counts
 proName = get_buckets("Project.name","no")

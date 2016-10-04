@@ -1,6 +1,6 @@
 import graphene
 from graphene import relay
-from models import SBucketCounter, SBucket, FileSize, get_buckets
+from models import SBucketCounter, FileSize, get_buckets
 
 # Can preload counts
 proName = get_buckets("Project.name","yes")

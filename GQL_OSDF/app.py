@@ -5,6 +5,7 @@ from flask_graphql import GraphQLView
 from flask.views import MethodView
 from sum_schema import sum_schema
 from ac_schema import ac_schema
+from files_schema import files_schema
 import graphene
 import urllib2
 
@@ -49,7 +50,6 @@ def get_cases():
 
     # Processing autocomplete here as well as finding counts for the set category
     if(request.args.get('facets')):
-
         beg = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7B"
         mid = request.args.get('facets')
         end = "%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
@@ -64,8 +64,13 @@ def get_cases():
 # Route for specific cases endpoints that associates with various files
 @app.route('/cases/<case_id>', methods=['GET','OPTIONS'])
 def get_case_files(case_id):
-    fields = request.args.get('fields')
-    return case_id
+    beg = "tbd"
+    mid = request.args.get('facets')
+    end = "tbd"
+    url = '%s%s%s' % (beg,mid,end)
+    response = urllib2.urlopen(url)
+    r = response.read()
+    return ('%s, "warnings": {}}' % r[:-1])
 
 @app.route('/status', methods=['GET','OPTIONS'])
 def get_status():
@@ -94,6 +99,8 @@ def get_project():
 def get_annotation():
     return 'hi'
 
+# Calls sum_schema endpoint/GQL instance in order to return the necessary data
+# to populate the pie charts
 @app.route('/ui/search/summary', methods=['GET','OPTIONS','POST'])
 def get_ui_search_summary():
     url = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DProjectName%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs%7Bvalue%7D%7D"
@@ -117,6 +124,15 @@ app.add_url_rule(
     view_func=GraphQLView.as_view(
         'ac_graphql',
         schema=ac_schema,
+        graphiql=True
+    )
+)
+
+app.add_url_rule(
+    '/files_schema',
+    view_func=GraphQLView.as_view(
+        'files_graphql',
+        schema=files_schema,
         graphiql=True
     )
 )
