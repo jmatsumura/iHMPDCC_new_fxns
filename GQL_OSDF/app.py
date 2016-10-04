@@ -93,7 +93,19 @@ def get_files():
 
 @app.route('/projects', methods=['GET','POST'])
 def get_project():
-    return 'hi'
+    return """
+  {"data" :
+   {"hits" :
+    [
+      {"dbgap_accession_number": "N/A", "disease_type": "N/A", "released": true, "state": "legacy", "primary_site": "N/A", "project_id": "DEMO", "name": "HMP Demonstration Project"},
+      {"dbgap_accession_number": "N/A", "disease_type": "N/A", "released": true, "state": "legacy", "primary_site": "N/A", "project_id": "HHS", "name": "HMP Healthy Human Subjects (HHS)"},
+      {"dbgap_accession_number": "N/A", "disease_type": "Crohn's Disease", "released": true, "state": "legacy", "primary_site": "GI tract", "project_id": "CD", "name": "Crohn's Disease"},
+      {"dbgap_accession_number": "N/A", "disease_type": "Type 2 Diabetes", "released": true, "state": "legacy", "primary_site": "Endocrine pancreas", "project_id": "T2D", "name": "Type 2 Diabetes"},
+      {"dbgap_accession_number": "N/A", "disease_type": "Pre-Term Birth", "released": true, "state": "legacy", "primary_site": "N/A", "project_id": "PTB", "name": "Pre-Term Birth"}
+    ],
+  "pagination": {"count": 5, "sort": "summary.case_count:desc", "from": 1, "page": 1, "total": 5, "pages": 1, "size": 100}},
+  "warnings": {}}
+"""
 
 @app.route('/annotations', methods=['GET','OPTIONS'])
 def get_annotation():
