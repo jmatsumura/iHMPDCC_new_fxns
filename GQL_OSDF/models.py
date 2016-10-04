@@ -24,9 +24,21 @@ class Pagination(graphene.ObjectType): # GDC expects pagination data for populat
     pages = graphene.Int()
     size = graphene.Int()
 
-class Hits(graphene.ObjectType): # GDC defines hits as matching Project node + Case ID (in our case sample ID)
+class CaseHits(graphene.ObjectType): # GDC defines hits as matching Project node + Case ID (in our case sample ID)
     project = graphene.Field(Project)
     caseId = graphene.String(name="case_id")
+
+class FileHits(graphene.ObjectType): # GDC defined file hits for data type, file name, data format, and more
+    dataType = graphene.String(name="data_type")
+    fileName = graphene.String(name="file_name")
+    dataFormat = graphene.String(name="data_format")
+    submitterId = graphene.String(name="submitter_id")
+    state = graphene.String()
+    fileId = graphene.String(name="file_id")
+    dataCategory = graphene.String(name="data_category")
+    experimentalStrategy = graphene.String(name="experimental_strategy")
+    fileSize = graphene.Int(name="file_size")
+    cases = graphene.List(CaseHits)
 
 class Bucket(graphene.ObjectType): # Each bucket is a distinct property in the node group
     key = graphene.String()
@@ -38,6 +50,8 @@ class BucketCounter(graphene.ObjectType): # List of Buckets
 class Aggregations(graphene.ObjectType): # Collecting lists of buckets (BucketCounter)
     Project_name = graphene.Field(BucketCounter)
     Sample_fmabodysite = graphene.Field(BucketCounter)
+    dataType = graphene.Field(BucketCounter, name="data_type")
+    dataFormat = graphene.Field(BucketCounter, name="data_format")
 
 class SBucket(graphene.ObjectType): # Same idea as early bucket but used for summation (pie charts)
     key = graphene.String()
@@ -156,6 +170,15 @@ def get_buckets(inp,sum):
 
         return SBucketCounter(buckets=bucketl)
 
+# Function to return case values to populate the table, note that this will just return first 25 values arbitrarily for the moment
+def get_case_hits():
+    hits = []
+    return hits
+
+# Function to return file values to populate the table, note that this will just return first 25 values arbitrarily for the moment
+def get_file_hits():
+    hits = []
+    return hits
 
 
 ###########
@@ -200,7 +223,6 @@ class Project_old(graphene.ObjectType): # used to be named Project and accommoda
 class Study(graphene.ObjectType):
     class Meta:
         interfaces = (Defaults, )
-
     project = graphene.List(Project)
     subtype = graphene.List(graphene.String)
     center = graphene.List(graphene.String)
