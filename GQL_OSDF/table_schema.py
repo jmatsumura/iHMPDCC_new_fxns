@@ -16,7 +16,7 @@ class Query(graphene.ObjectType):
     aggregations = graphene.Field(Aggregations)
 
     def resolve_pagination(self, args, context, info):
-        return Pagination(count=30, sort="case_id.raw:asc", fromNum=1, page=1, total=30, pages=1, size=30)
+        return Pagination(count=30, sort="file_name.raw:asc", fromNum=1, page=1, total=30, pages=1, size=30)
 
     def resolve_hits(self, args, context, info):
         return get_file_hits()

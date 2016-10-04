@@ -34,6 +34,7 @@ class FileHits(graphene.ObjectType): # GDC defined file hits for data type, file
     dataFormat = graphene.String(name="data_format")
     submitterId = graphene.String(name="submitter_id")
     state = graphene.String()
+    access = graphene.String()
     fileId = graphene.String(name="file_id")
     dataCategory = graphene.String(name="data_category")
     experimentalStrategy = graphene.String(name="experimental_strategy")
@@ -202,13 +203,13 @@ def get_file_hits():
         cur_case = CaseHits(project=Project(projectId=res[x]['p']['subtype'],name=res[x]['p']['name']),caseId=res[x]['b._id'])
         case_hits.append(cur_case)
         data_s = extract_url_info(res[0]['s']['urls'])
-        data_c = extract_url_info(res[0]['s']['urls'])
+        data_c = extract_url_info(res[0]['c']['urls'])
         fn1 = data_s[0] # file name (pretty version of URL)
         fi1 = data_s[1] # file ID is the URL for DL
         fn2 = data_c[0]
         fi2 = data_c[1]
-        cur_file1 = FileHits(dataType=res[x]['s']['subtype'],fileName=fn1,dataFormat=res[x]['s']['format'],submitterId="null",state="submitted",fileId=fi1,dataCategory=res[x]['s']['node_type'],experimentalStrategy=res[x]['s']['subtype'],fileSize=res[x]['s']['size'],cases=case_hits)
-        cur_file2 = FileHits(dataType=res[x]['c']['subtype'],fileName=fn2,dataFormat=res[x]['c']['format'],submitterId="null",state="submitted",fileId=fi2,dataCategory=res[x]['c']['node_type'],experimentalStrategy=res[x]['c']['subtype'],fileSize=res[x]['c']['size'],cases=case_hits) 
+        cur_file1 = FileHits(dataType=res[x]['s']['subtype'],fileName=fn1,dataFormat=res[x]['s']['format'],submitterId="null",access="open",state="submitted",fileId=fi1,dataCategory=res[x]['s']['node_type'],experimentalStrategy=res[x]['s']['subtype'],fileSize=res[x]['s']['size'],cases=case_hits)
+        cur_file2 = FileHits(dataType=res[x]['c']['subtype'],fileName=fn2,dataFormat=res[x]['c']['format'],submitterId="null",access="open",state="submitted",fileId=fi2,dataCategory=res[x]['c']['node_type'],experimentalStrategy=res[x]['c']['subtype'],fileSize=res[x]['c']['size'],cases=case_hits) 
         hits.append(cur_file1)
         hits.append(cur_file2)       
     return hits
