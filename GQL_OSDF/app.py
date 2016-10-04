@@ -9,6 +9,7 @@ from files_schema import files_schema
 from table_schema import table_schema
 import graphene
 import urllib2
+import sys
 
 app = Flask(__name__)
 app.debug = True
@@ -97,7 +98,12 @@ def get_files():
 
 @app.route('/projects', methods=['GET','POST'])
 def get_project():
-    return """
+    facets = request.args.get('facets')
+
+    # HACK - hard-code a couple of syntactically-correct return values so the UI runs error-free
+    # request without facets parameter
+    if facets is None:
+        return """
   {"data" :
    {"hits" :
     [
@@ -109,6 +115,27 @@ def get_project():
     ],
   "pagination": {"count": 5, "sort": "summary.case_count:desc", "from": 1, "page": 1, "total": 5, "pages": 1, "size": 100}},
   "warnings": {}}
+"""
+
+    # request with facets parameter
+    return """
+  {"data" :
+   { 
+   "aggregations": { "primary_site": { "buckets": [ 
+      { "key": "N/A", "doc_count": 3 } ,
+      { "key": "GI tract", "doc_count": 1 } ,
+      { "key": "Endocrine pancreas", "doc_count": 1 } 
+     ] }},
+   "hits" :
+    [
+      {"primary_site": "N/A", "project_id": "DEMO", "summary": { "case_count": 50, "file_count": 100 }},
+      {"primary_site": "N/A", "project_id": "HHS", "summary": { "case_count": 150, "file_count": 300 }},
+      {"primary_site": "GI tract", "project_id": "CD", "summary": { "case_count": 25, "file_count": 50 }},
+      {"primary_site": "Endocrine pancreas", "project_id": "T2D", "summary": { "case_count": 75, "file_count": 175 }},
+      {"primary_site": "N/A", "project_id": "PTB", "summary": { "case_count": 60, "file_count": 120 }}
+    ],
+  "pagination": {"count": 5, "sort": "summary.case_count:desc", "from": 1, "page": 1, "total": 5, "pages": 1, "size": 100},
+  "warnings": {}}}
 """
 
 @app.route('/annotations', methods=['GET','OPTIONS'])
