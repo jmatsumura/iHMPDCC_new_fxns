@@ -128,13 +128,13 @@ def get_files(sample_id):
     res = graph.data(cquery)
 
     for x in range(0,len(res)): # iterate over each unique path
-        for key in res[0].keys(): # iterate over each unique node in the path
-            dt = res[0][key]['subtype']
-            df = res[0][key]['format']
+        for key in res[x].keys(): # iterate over each unique node in the path
+            dt = res[x][key]['subtype']
+            df = res[x][key]['format']
             ac = "open" # again, default to accommodate current GDC format
-            fs = res[0][key]['size']
-            fi = res[0][key]['_id']
-            fn = extract_url(res[0][key]['urls'])
+            fs = res[x][key]['size']
+            fi = res[x][key]['_id']
+            fn = extract_url(res[x][key]['urls'])
             fl.append(IndivFiles(dataType=dt,fileName=fn,dataFormat=df,access=ac,fileId=fi,fileSize=fs))
 
     return fl
@@ -196,8 +196,8 @@ def get_file_hits():
         case_hits = [] # reinit each iteration
         cur_case = CaseHits(project=Project(projectId=res[x]['p']['subtype'],name=res[x]['p']['name']),caseId=res[x]['b._id'])
         case_hits.append(cur_case)
-        fn_s = extract_url(res[0]['s']['urls']) # File name is our URL
-        fn_c= extract_url(res[0]['c']['urls'])
+        fn_s = extract_url(res[x]['s']['urls']) # File name is our URL
+        fn_c= extract_url(res[x]['c']['urls'])
         cur_file1 = FileHits(dataType=res[x]['s']['subtype'],fileName=fn_s,dataFormat=res[x]['s']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['s']['_id'],dataCategory=res[x]['s']['node_type'],experimentalStrategy=res[x]['s']['subtype'],fileSize=res[x]['s']['size'],cases=case_hits)
         cur_file2 = FileHits(dataType=res[x]['c']['subtype'],fileName=fn_c,dataFormat=res[x]['c']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['c']['_id'],dataCategory=res[x]['c']['node_type'],experimentalStrategy=res[x]['c']['subtype'],fileSize=res[x]['c']['size'],cases=case_hits) 
         hits.append(cur_file1)
