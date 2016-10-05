@@ -83,20 +83,15 @@ class IndivFiles(graphene.ObjectType): # individual files to populate all files 
 graph = Graph("http://localhost:7474/db/data/")
 
 # Function to extract a file name and an HTTP URL given values from a urls property from an OSDF node
-def extract_url_info(urls_node):
-    regex_for_http_urls = '(http.*data/(\S+))[,\]]'
-    res = []
-    fn,fi = ("" for i in range(2))
+def extract_url(urls_node):
+    regex_for_http_urls = '(http.*data/\S+)[,\]]'
+    fn = ""
     if re.match('.*http.*', urls_node):
         name_and_url = re.search(regex_for_http_urls, urls_node)
-        fn = name_and_url.group(2).replace("/",".") # making the file name and some of its path pretty
-        fi = name_and_url.group(1) # File ID can just be our URL
+        fn = name_and_url.group(1) # File name is our URL
     else:
         fn = "none"
-        fi = "none"
-    res.append(fn)
-    res.append(fi)
-    return res
+    return fn
 
 # Function to build and run a basic Cypher query. Accepts the following parameters:
 # attr = property to match against, val = desired value of the property of attr,
@@ -138,9 +133,8 @@ def get_files(sample_id):
             df = res[0][key]['format']
             ac = "open" # again, default to accommodate current GDC format
             fs = res[0][key]['size']
-            data = extract_url_info(res[0][key]['urls'])
-            fn = data[0] # file name (pretty version of URL)
-            fi = data[1] # file ID is the URL for DL
+            fi = res[0][key]['_id']
+            fn = extract_url(res[0][key]['urls'])
             fl.append(IndivFiles(dataType=dt,fileName=fn,dataFormat=df,access=ac,fileId=fi,fileSize=fs))
 
     return fl
@@ -202,14 +196,10 @@ def get_file_hits():
         case_hits = [] # reinit each iteration
         cur_case = CaseHits(project=Project(projectId=res[x]['p']['subtype'],name=res[x]['p']['name']),caseId=res[x]['b._id'])
         case_hits.append(cur_case)
-        data_s = extract_url_info(res[0]['s']['urls'])
-        data_c = extract_url_info(res[0]['c']['urls'])
-        fn1 = data_s[0] # file name (pretty version of URL)
-        fi1 = data_s[1] # file ID is the URL for DL
-        fn2 = data_c[0]
-        fi2 = data_c[1]
-        cur_file1 = FileHits(dataType=res[x]['s']['subtype'],fileName=fn1,dataFormat=res[x]['s']['format'],submitterId="null",access="open",state="submitted",fileId=fi1,dataCategory=res[x]['s']['node_type'],experimentalStrategy=res[x]['s']['subtype'],fileSize=res[x]['s']['size'],cases=case_hits)
-        cur_file2 = FileHits(dataType=res[x]['c']['subtype'],fileName=fn2,dataFormat=res[x]['c']['format'],submitterId="null",access="open",state="submitted",fileId=fi2,dataCategory=res[x]['c']['node_type'],experimentalStrategy=res[x]['c']['subtype'],fileSize=res[x]['c']['size'],cases=case_hits) 
+        fn_s = extract_url(res[0]['s']['urls']) # File name is our URL
+        fn_c= extract_url(res[0]['c']['urls'])
+        cur_file1 = FileHits(dataType=res[x]['s']['subtype'],fileName=fn_s,dataFormat=res[x]['s']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['s']['_id'],dataCategory=res[x]['s']['node_type'],experimentalStrategy=res[x]['s']['subtype'],fileSize=res[x]['s']['size'],cases=case_hits)
+        cur_file2 = FileHits(dataType=res[x]['c']['subtype'],fileName=fn_c,dataFormat=res[x]['c']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['c']['_id'],dataCategory=res[x]['c']['node_type'],experimentalStrategy=res[x]['c']['subtype'],fileSize=res[x]['c']['size'],cases=case_hits) 
         hits.append(cur_file1)
         hits.append(cur_file2)       
     return hits
