@@ -77,6 +77,18 @@ def get_case_files(case_id):
     r = response.read()
     return ('%s, "warnings": {}}' % r[:-1])
 
+@app.route('/files/<file_id>', methods=['GET','OPTIONS'])
+def get_file_metadata(file_id):
+    id = '"%s"' % file_id
+    p1 = 'http://localhost:5000/files_schema?query=%7Bproject(id%3A'
+    p2 = ')%7Bproject_id%2Cname%7D%2Cfiles(id%3A'
+    p3 = ')%7Bdata_type%2Cfile_name%2Cdata_format%2Caccess%2Cfile_id%2Cfile_size%7D%2Ccase_id(id%3A'
+    p4 = ')%2Csubmitter_id%7D'
+    url = '%s%s%s%s%s%s%s' % (p1,id,p2,id,p3,id,p4) # inject ID into query
+    response = urllib2.urlopen(url)
+    r = response.read()
+    return ('%s, "warnings": {}}' % r[:-1])
+
 @app.route('/status', methods=['GET','OPTIONS'])
 def get_status():
     return 'hi'

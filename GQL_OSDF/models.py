@@ -28,9 +28,29 @@ class CaseHits(graphene.ObjectType): # GDC defines hits as matching Project node
     project = graphene.Field(Project)
     caseId = graphene.String(name="case_id")
 
+class IndivFiles(graphene.ObjectType): # individual files to populate all files list
+    dataType = graphene.String(name="data_type")
+    fileName = graphene.String(name="file_name")
+    dataFormat = graphene.String(name="data_format")
+    access = graphene.String() # only exists for consistency with GDC
+    fileId = graphene.String(name="file_id")
+    fileSize = graphene.Int(name="file_size")
+
+class Analysis(graphene.ObjectType):
+    updatedDatetime = graphene.String(name="updated_datetime")
+    workflowType = graphene.String(name="workflow_type")
+    analysisId = graphene.String(name="analysis_id")
+    inputFiles = graphene.List(IndivFiles, name="input_files")
+
+class AssociatedEntities(graphene.ObjectType):
+    entityId = graphene.String(name="entity_id")
+    caseId = graphene.String(name="case_id")
+    entityType = graphene.String(name="entity_type")
+
 class FileHits(graphene.ObjectType): # GDC defined file hits for data type, file name, data format, and more
     dataType = graphene.String(name="data_type")
     fileName = graphene.String(name="file_name")
+    md5sum = graphene.String()
     dataFormat = graphene.String(name="data_format")
     submitterId = graphene.String(name="submitter_id")
     state = graphene.String()
@@ -40,6 +60,8 @@ class FileHits(graphene.ObjectType): # GDC defined file hits for data type, file
     experimentalStrategy = graphene.String(name="experimental_strategy")
     fileSize = graphene.Int(name="file_size")
     cases = graphene.List(CaseHits)
+    associatedEntities = graphene.List(AssociatedEntities, name="associated_entities")
+    analysis = graphene.Field(Analysis)
 
 class Bucket(graphene.ObjectType): # Each bucket is a distinct property in the node group
     key = graphene.String()
@@ -66,13 +88,6 @@ class SBucketCounter(graphene.ObjectType): # List of SBuckets
 class FileSize(graphene.ObjectType): # total aggregate file size of current set of chosen data
     value = graphene.Float()
 
-class IndivFiles(graphene.ObjectType): # individual files to populate all files list
-    dataType = graphene.String(name="data_type")
-    fileName = graphene.String(name="file_name")
-    dataFormat = graphene.String(name="data_format")
-    access = graphene.String() # only exists for consistency with GDC
-    fileId = graphene.String(name="file_id")
-    fileSize = graphene.Int(name="file_size")
 
 ####################################
 # FUNCTIONS FOR GETTING NEO4J DATA #
@@ -211,21 +226,6 @@ def get_file_hits():
         cur_file2 = FileHits(dataType=res[x]['c']['subtype'],fileName=fn_c,dataFormat=res[x]['c']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['c']['_id'],dataCategory=res[x]['c']['node_type'],experimentalStrategy=res[x]['c']['subtype'],fileSize=res[x]['c']['size'],cases=case_hits) 
         hits.append(cur_file1)
         hits.append(cur_file2)       
-    return hits
-
-
-###########
-# DEV/TMP #
-###########
-
-def get_hits():
-    hits = []
-    s1 = Hits(project=Project(projectId="123", primarySite="head", name="1", diseaseType="RA"),caseId="3674d95cd0d27e1de94ddf4d2eccecc3")
-    s2 = Hits(project=Project(projectId="456", primarySite="shoulders", name="12", diseaseType="RB"),caseId="e2559e04fcd73935a7d7b9179041782f")
-    s3 = Hits(project=Project(projectId="789", primarySite="knees", name="13", diseaseType="RC"),caseId="e2559e04fcd73935a7d7b9179073a82e")
-    hits.append(s1)
-    hits.append(s2)
-    hits.append(s3)
     return hits
 
 
