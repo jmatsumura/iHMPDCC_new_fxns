@@ -64,7 +64,7 @@ class SBucketCounter(graphene.ObjectType): # List of SBuckets
     buckets = graphene.List(SBucket)
 
 class FileSize(graphene.ObjectType): # total aggregate file size of current set of chosen data
-    value = graphene.Int()
+    value = graphene.Float()
 
 class IndivFiles(graphene.ObjectType): # individual files to populate all files list
     dataType = graphene.String(name="data_type")
@@ -92,6 +92,15 @@ def extract_url(urls_node):
     else:
         fn = "none"
     return fn
+
+# Function to get file size from Neo4j. 
+# This current iteration should catch all the file data types EXCEPT for the *omes and the multi-step/repeat
+# edges like the two "computed_from" edges between abundance matrix and 16s_raw_seq_set. Should be
+# rather easy to accommodate these oddities once they're loaded and I can test.
+def get_total_file_size():
+    cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) RETURN (SUM(toInt(s.size))+SUM(toInt(c.size))) as tot"
+    res = graph.data(cquery)
+    return res[0]['tot']
 
 # Function to build and run a basic Cypher query. Accepts the following parameters:
 # attr = property to match against, val = desired value of the property of attr,
