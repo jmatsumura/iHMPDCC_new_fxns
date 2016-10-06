@@ -236,25 +236,30 @@ def get_file_hits():
 # next line is placeholder graphene object that will be reused
 #return FileHits(dataType=,fileName=fn,md5sum=,dataFormat=,submitterId="",state="submitted",access="open",fileId=,dataCategory=,experimentalStrategy=,fileSize=,cases=,associatedEntities=,analysis=)
 def get_16s_raw_seq_set(id):
-    cl, al = ([] for i in range(2))
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE s._id=\"%s\" RETURN p,s,c,b" % (id)
+    cl, al, fl = ([] for i in range(3))
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE s._id=\"%s\" RETURN p,prep,s,c,b" % (id)
     res = graph.data(cquery)
     fn = extract_url(res[0]['s']['urls'])
-    #return FileHits(dataType=,fileName=fn,md5sum=,dataFormat=,submitterId="",state="submitted",access="open",fileId=,dataCategory="16S",experimentalStrategy=,fileSize=,cases=,associatedEntities=,analysis=)
-    return 'hi'
+    wf = "%s -> %s" % (res[0]['prep']['subtype'],res[0]['s']['subtype']) # this WF could be quite revealing, decide a more complete definition later
+    cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['_id']))
+    al.append(AssociatedEntities(entityId=res[0]['prep']['_id'],caseId=res[0]['b']['_id'],entityType="prep"))
+    al.append(AssociatedEntities(entityId=res[0]['c']['_id'],caseId=res[0]['b']['_id'],entityType="trimmed set")) 
+    fl.append(IndivFiles(fileId="null"))
+    a = Analysis(updatedDatetime="null",workflowType=wf,analysisId="null",inputFiles=fl)
+    return FileHits(dataType=res[0]['s']['subtype'],fileName=fn,md5sum=res[0]['s']['checksums'],dataFormat=res[0]['s']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['s']['_id'],dataCategory="16S",experimentalStrategy=res[0]['s']['study'],fileSize=res[0]['s']['size'],cases=cl,associatedEntities=al,analysis=a)
 
 def get_16s_trimmed_seq_set(id):
     cl, al, fl = ([] for i in range(3)) # case, associated entity, and input file lists
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE c._id=\"%s\" RETURN p,s,c,b" % (id)
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE c._id=\"%s\" RETURN p,prep,s,c,b" % (id)
     res = graph.data(cquery)
-    fn_s = extract_url(res[0]['s']['urls'])
-    fn_c = extract_url(res[0]['c']['urls'])
-    wf = "%s -> %s" % (res[0]['s']['subtype'],res[0]['c']['subtype']) # this WF could be quite revealing, decide a more complete definition later
+    fn = extract_url(res[0]['c']['urls'])
+    wf = "%s -> %s -> %s" % (res[0]['prep']['subtype'],res[0]['s']['subtype'],res[0]['c']['subtype']) # this WF could be quite revealing, decide a more complete definition later
     cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['_id']))
-    al.append(AssociatedEntities(entityId=res[0]['b']['_id'],caseId=res[0]['b']['_id'],entityType="sample")) # we don't annotate to the same level, probably need to reduce entity column here
-    fl.append(IndivFiles(fileId=fn_s))
+    al.append(AssociatedEntities(entityId=res[0]['prep']['_id'],caseId=res[0]['b']['_id'],entityType="prep"))
+    al.append(AssociatedEntities(entityId=res[0]['s']['_id'],caseId=res[0]['b']['_id'],entityType="raw set"))
+    fl.append(IndivFiles(fileId=res[0]['s']['_id']))
     a = Analysis(updatedDatetime="null",workflowType=wf,analysisId="null",inputFiles=fl) # can add analysis ID once node is present or remove if deemed unnecessary
-    return FileHits(dataType=res[0]['c']['subtype'],fileName=fn_c,md5sum=res[0]['c']['checksums'],dataFormat=res[0]['c']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['c']['_id'],dataCategory="16S",experimentalStrategy=res[0]['c']['study'],fileSize=res[0]['c']['size'],cases=cl,associatedEntities=al,analysis=a)
+    return FileHits(dataType=res[0]['c']['subtype'],fileName=fn,md5sum=res[0]['c']['checksums'],dataFormat=res[0]['c']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['c']['_id'],dataCategory="16S",experimentalStrategy=res[0]['c']['study'],fileSize=res[0]['c']['size'],cases=cl,associatedEntities=al,analysis=a)
 
 options = {'16s_raw_seq_set': get_16s_raw_seq_set,
     '16s_trimmed_seq_set': get_16s_trimmed_seq_set,

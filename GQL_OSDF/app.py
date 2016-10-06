@@ -80,8 +80,9 @@ def get_case_files(case_id):
 
 @app.route('/files/<file_id>', methods=['GET','OPTIONS'])
 def get_file_metadata(file_id):
-    id = '"%s"' % file_id
-    url = "http://localhost:5000/indiv_files_schema?query=%7BfileHit(id%3A%20%228f44efd89174f146688784a27d76d6cc%22)%7Bdata_type%2Cfile_name%2Cdata_format%2Canalysis%7Bupdated_datetime%2Cworkflow_type%2Canalysis_id%2Cinput_files%7Bfile_id%7D%7D%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cassociated_entities%7Bentity_id%2Ccase_id%2Centity_type%7D%2Ccases%7Bproject%7Bproject_id%7D%2Ccase_id%7D%2Cexperimental_strategy%7D%7D"
+    beg = "http://localhost:5000/indiv_files_schema?query=%7BfileHit(id%3A%22"
+    end = "%22)%7Bdata_type%2Cfile_name%2Cdata_format%2Canalysis%7Bupdated_datetime%2Cworkflow_type%2Canalysis_id%2Cinput_files%7Bfile_id%7D%7D%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cassociated_entities%7Bentity_id%2Ccase_id%2Centity_type%7D%2Ccases%7Bproject%7Bproject_id%7D%2Ccase_id%7D%2Cexperimental_strategy%7D%7D"
+    url = "%s%s%s" % (beg,file_id,end)
     response = urllib2.urlopen(url)
     r = response.read()
     trimmed_r = r.replace(':{"fileHit"',"") # HACK for formatting
