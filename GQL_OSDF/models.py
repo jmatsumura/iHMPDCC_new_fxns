@@ -221,7 +221,7 @@ def get_file_hits():
         cur_case = CaseHits(project=Project(projectId=res[x]['p']['subtype'],name=res[x]['p']['name']),caseId=res[x]['b._id'])
         case_hits.append(cur_case)
         fn_s = extract_url(res[x]['s']['urls']) # File name is our URL
-        fn_c= extract_url(res[x]['c']['urls'])
+        fn_c = extract_url(res[x]['c']['urls'])
         cur_file1 = FileHits(dataType=res[x]['s']['subtype'],fileName=fn_s,dataFormat=res[x]['s']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['s']['_id'],dataCategory=res[x]['s']['node_type'],experimentalStrategy=res[x]['s']['subtype'],fileSize=res[x]['s']['size'],cases=case_hits)
         cur_file2 = FileHits(dataType=res[x]['c']['subtype'],fileName=fn_c,dataFormat=res[x]['c']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['c']['_id'],dataCategory=res[x]['c']['node_type'],experimentalStrategy=res[x]['c']['subtype'],fileSize=res[x]['c']['size'],cases=case_hits) 
         hits.append(cur_file1)
@@ -233,11 +233,28 @@ def get_file_hits():
 # this knowledge to build a smarter Cypher query that will return the relevant data.
 # The logic here will be much easier to follow then writing one huge catch-all Neo4j
 # query and then parsing it afterwards.
+# next line is placeholder graphene object that will be reused
+#return FileHits(dataType=,fileName=fn,md5sum=,dataFormat=,submitterId="",state="submitted",access="open",fileId=,dataCategory=,experimentalStrategy=,fileSize=,cases=,associatedEntities=,analysis=)
 def get_16s_raw_seq_set(id):
-    return id
+    cl, al = ([] for i in range(2))
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE s._id=\"%s\" RETURN p,s,c,b" % (id)
+    res = graph.data(cquery)
+    fn = extract_url(res[0]['s']['urls'])
+    #return FileHits(dataType=,fileName=fn,md5sum=,dataFormat=,submitterId="",state="submitted",access="open",fileId=,dataCategory="16S",experimentalStrategy=,fileSize=,cases=,associatedEntities=,analysis=)
+    return 'hi'
 
 def get_16s_trimmed_seq_set(id):
-    return id
+    cl, al, fl = ([] for i in range(3)) # case, associated entity, and input file lists
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE c._id=\"%s\" RETURN p,s,c,b" % (id)
+    res = graph.data(cquery)
+    fn_s = extract_url(res[0]['s']['urls'])
+    fn_c = extract_url(res[0]['c']['urls'])
+    wf = "%s -> %s" % (res[0]['s']['subtype'],res[0]['c']['subtype']) # this WF could be quite revealing, decide a more complete definition later
+    cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['_id']))
+    al.append(AssociatedEntities(entityId=res[0]['b']['_id'],caseId=res[0]['b']['_id'],entityType="sample")) # we don't annotate to the same level, probably need to reduce entity column here
+    fl.append(IndivFiles(fileId=fn_s))
+    a = Analysis(updatedDatetime="null",workflowType=wf,analysisId="null",inputFiles=fl) # can add analysis ID once node is present or remove if deemed unnecessary
+    return FileHits(dataType=res[0]['c']['subtype'],fileName=fn_c,md5sum=res[0]['c']['checksums'],dataFormat=res[0]['c']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['c']['_id'],dataCategory="16S",experimentalStrategy=res[0]['c']['study'],fileSize=res[0]['c']['size'],cases=cl,associatedEntities=al,analysis=a)
 
 options = {'16s_raw_seq_set': get_16s_raw_seq_set,
     '16s_trimmed_seq_set': get_16s_trimmed_seq_set,
