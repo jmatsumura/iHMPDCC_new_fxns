@@ -1,6 +1,6 @@
 # simple app to allow GraphiQL interaction with the schema and verify it is
 # structured how it ought to be. 
-from flask import Flask, jsonify, request, abort
+from flask import Flask, jsonify, request, abort, redirect
 from flask_graphql import GraphQLView
 from flask.views import MethodView
 from sum_schema import sum_schema
@@ -8,6 +8,7 @@ from ac_schema import ac_schema
 from files_schema import files_schema
 from table_schema import table_schema
 from indiv_files_schema import indiv_files_schema
+from models import get_url_for_download
 import graphene
 import urllib2
 import sys
@@ -45,14 +46,20 @@ def get_cases():
     size = request.args.get('size')
     sort = request.args.get('sort')
 
-    if(request.args.get('expand')):
-        url = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
-        response = urllib2.urlopen(url)
-        r = response.read()
-        return ('%s, "warnings": {}}' % r[:-1])
+    if(request.args.get('expand')): # Here need to process simple/advanced queries
+        if("op" in filters):
+            url = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+            response = urllib2.urlopen(url)
+            r = response.read()
+            return ('%s, "warnings": {}}' % r[:-1])
+        else:
+            url = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+            response = urllib2.urlopen(url)
+            r = response.read()
+            return ('%s, "warnings": {}}' % r[:-1])
 
     # Processing autocomplete here as well as finding counts for the set category
-    if(request.args.get('facets')):
+    elif(request.args.get('facets')):
         beg = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7B"
         mid = request.args.get('facets')
         end = "%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
@@ -81,7 +88,7 @@ def get_case_files(case_id):
 @app.route('/files/<file_id>', methods=['GET','OPTIONS'])
 def get_file_metadata(file_id):
     beg = "http://localhost:5000/indiv_files_schema?query=%7BfileHit(id%3A%22"
-    end = "%22)%7Bdata_type%2Cfile_name%2Cdata_format%2Canalysis%7Bupdated_datetime%2Cworkflow_type%2Canalysis_id%2Cinput_files%7Bfile_id%7D%7D%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cassociated_entities%7Bentity_id%2Ccase_id%2Centity_type%7D%2Ccases%7Bproject%7Bproject_id%7D%2Ccase_id%7D%2Cexperimental_strategy%7D%7D"
+    end = "%22)%7Bdata_type%2Cfile_name%2Cfile_size%2Cdata_format%2Canalysis%7Bupdated_datetime%2Cworkflow_type%2Canalysis_id%2Cinput_files%7Bfile_id%7D%7D%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cassociated_entities%7Bentity_id%2Ccase_id%2Centity_type%7D%2Ccases%7Bproject%7Bproject_id%7D%2Ccase_id%7D%2Cexperimental_strategy%7D%7D"
     url = "%s%s%s" % (beg,file_id,end)
     response = urllib2.urlopen(url)
     r = response.read()
@@ -100,6 +107,11 @@ def get_status_user():
 @app.route('/status/user', methods=['GET','OPTIONS','POST'])
 def get_status_user_unauthorized():
     abort(401)
+
+@app.route('/status/api/data', methods=['GET','OPTIONS','POST'])
+def get_status_api_data():
+    id = request.form.get('ids')
+    return redirect(get_url_for_download(id))
 
 @app.route('/files', methods=['GET','OPTIONS','POST'])
 def get_files():

@@ -58,7 +58,7 @@ class FileHits(graphene.ObjectType): # GDC defined file hits for data type, file
     fileId = graphene.String(name="file_id")
     dataCategory = graphene.String(name="data_category")
     experimentalStrategy = graphene.String(name="experimental_strategy")
-    fileSize = graphene.Int(name="file_size")
+    fileSize = graphene.Float(name="file_size")
     cases = graphene.List(CaseHits)
     associatedEntities = graphene.List(AssociatedEntities, name="associated_entities")
     analysis = graphene.Field(Analysis)
@@ -271,3 +271,9 @@ def get_file_data(file_id):
     node = res[0]['type']
     final_res = options[node](file_id)
     return final_res
+
+def get_url_for_download(id):
+    cquery = "MATCH (n) WHERE n._id=\"%s\" RETURN n.urls AS urls" % (id)
+    res = graph.data(cquery)
+    return extract_url(res[0]['urls'])
+    
