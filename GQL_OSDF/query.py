@@ -1,5 +1,6 @@
 import urllib2, re, json
-from py2neo import Graph
+from multiprocessing import Process
+#from py2neo import Graph
 
 # The match var is the base query to prepend all queries. The idea is to traverse
 # the graph entirely and use filters to return a subset of the total traversal. 
@@ -122,3 +123,12 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
     print "%s %s %s %s" % (match,where,retval1,retval2)
 
 build_cypher(match,tstr,"Sample._id:asc",1,20,"cases")
+
+def parallel_exe(fxns):
+    proc = []
+    for fn in fxns:
+        p = Process(target=fn) # assign each function a thread
+        p.start() # initiate each thread as it goes
+        proc.append(p)
+    for p in proc:
+        p.join() # wait for all to finish
