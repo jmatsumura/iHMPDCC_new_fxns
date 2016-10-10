@@ -1,9 +1,9 @@
 import urllib2, re, json
 from py2neo import Graph
 
-# The base_query is the query to prepend all queries. The idea is to traverse
+# The match var is the base query to prepend all queries. The idea is to traverse
 # the graph entirely and use filters to return a subset of the total traversal. 
-base_query = "MATCH (pro:Project)<-[:PART_OF]-(stu:Study)<-[:PARTICIPATES_IN]-(sub:Subject)<-[:BY]-(vis:Visit)<-[:COLLECTED_DURING]-(sam:Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) WHERE "
+match = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) WHERE"
 
 # test strings with roughly increasing complexity
 tstr = '{"op":"and","content":[{"op":"in","content":{"field":"cases.Project.name","value":["Human Microbiome Project (HMP)"]}}]}'
@@ -43,7 +43,8 @@ def get_depth(x, arr):
         return max(get_depth(a, arr) for a in x)
     return arr # give the array back after traversal is complete
 
-def build_facet_where(inp): # fxn to build Cypher based on facet search, accepts output from get_depth
+# Fxn to build Cypher based on facet search, accepts output from get_depth
+def build_facet_where(inp): 
     facets = [] # going to build an array of all the facets params present
     lstr, rstr = ("" for i in range(2))
     for x in reversed(range(0,len(inp))):
@@ -55,7 +56,8 @@ def build_facet_where(inp): # fxn to build Cypher based on facet search, accepts
             facets.append("%s in %s" % (lstr, rstr))
     return " AND ".join(facets) # send back Cypher-ready WHERE clause
 
-def build_advanced_where(inp): # fxn to build Cypher based on advanced search, accepts output from get_depth
+# Fxn to build Cypher based on advanced search, accepts output from get_depth
+def build_advanced_where(inp): 
     skip_me = set()
     lstr, rstr = ("" for i in range(2)) # right/left strings to combine
     # Makes more sense to build up than it is to build down.
@@ -77,7 +79,8 @@ def build_advanced_where(inp): # fxn to build Cypher based on advanced search, a
                 lstr = "" # reset, rstr will be built upon
     return rstr # send back Cypher-ready WHERE clause
 
-def build_where(filters): # builds the Cypher WHERE clause, accepts output from GDC-portal filters argument
+# Builds the Cypher WHERE clause, accepts output from GDC-portal filters argument
+def build_where(filters): 
     arr = [] # need an empty array for depth recursion
     qtype = "facet" # by default, set as facet search
     q = json.loads(filters) # parse filters input into JSON (yields hashes of arrays)
@@ -91,9 +94,31 @@ def build_where(filters): # builds the Cypher WHERE clause, accepts output from 
 
     if qtype == "facet": # decide between which WHERE builder to use
         w2 = build_facet_where(w1)
-    elif qtype == "advanced": # written out for clarity
+    elif qtype == "advanced": # written for clarity
         w2 = build_advanced_where(w1)
+    return w2
 
-build_where(tstr)
+# Final function needed to build the entirety of the Cypher query. Accepts the following:
+# match = base MATCH query for Cypher
+# whereFilters = filters string passed from GDC portal
+# order = parameters to order results by (needed for pagination)
+# start = index of sort to start at
+# size = number of results to return
+# rtype = return type, want to be able to hit this for both cases and files.
+def build_cypher(match,whereFilters,order,start,size,rtype):
+    where = build_where(whereFilters) # build WHERE portion of Cypher
+    where = where.replace("cases.","") # trim the GDC syntax, hack until we refactor cases/files syntax
+    where = where.replace("files.","")
+    order = order.replace("cases.","")
+    order = order.replace("files.","")
+    retval1 = "" # actual RETURN portion of statement
+    if rtype == "cases":
+        retval1 = "RETURN Project.name"
+    elif rtype == "files":
+        retval1 = "RETURN Files.name"
+    order = order.split(":")
+    retval2 = "ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),start-1,size) # handle pagination for RETURN
 
-# Need a function for building the RETURN clause and then put together the final query
+    print "%s %s %s %s" % (match,where,retval1,retval2)
+
+build_cypher(match,tstr,"Sample._id:asc",1,20,"cases")
