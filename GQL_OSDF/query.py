@@ -22,6 +22,7 @@ comps2 = set(comp_ops2)
 # This is a recursive function originally used to traverse and find the depth 
 # of nested JSON. Now used to traverse the op/filters query from GDC and 
 # ultimately aims to provide input to build the WHERE clause of a Cypher query. 
+# Accepts input of json.loads parsed GDC portal query input and an empty array.
 def get_depth(x, arr):
     if type(x) is dict and x:
         if 'op' in x:
@@ -42,10 +43,19 @@ def get_depth(x, arr):
         return max(get_depth(a, arr) for a in x)
     return arr # give the array back after traversal is complete
 
-def build_facet_where(inp): # fxn to build Cypher based on facet search
-    return 'hi'
+def build_facet_where(inp): # fxn to build Cypher based on facet search, accepts output from get_depth
+    facets = [] # going to build an array of all the facets params present
+    lstr, rstr = ("" for i in range(2))
+    for x in reversed(range(0,len(inp))):
+        if "'" in inp[x]: # found the values to search for
+            rstr = "[%s]" % (inp[x]) # add brackets for Cypher
+        elif "." in inp[x]: # found the fields to search on
+            lstr = inp[x]
+        elif "in" == inp[x]: # found the comparison op, build the full string
+            facets.append("%s in %s" % (lstr, rstr))
+    return " AND ".join(facets) # send back Cypher-ready WHERE clause
 
-def build_advanced_where(inp): # fxn to build Cypher based on advanced search
+def build_advanced_where(inp): # fxn to build Cypher based on advanced search, accepts output from get_depth
     skip_me = set()
     lstr, rstr = ("" for i in range(2)) # right/left strings to combine
     # Makes more sense to build up than it is to build down.
@@ -65,18 +75,25 @@ def build_advanced_where(inp): # fxn to build Cypher based on advanced search
             if inp[x] in comps2: # check for clarity
                 rstr = "%s %s %s" % (lstr,inp[x],rstr)
                 lstr = "" # reset, rstr will be built upon
-    return rstr
+    return rstr # send back Cypher-ready WHERE clause
 
-arr = []    
-fs = json.loads(tstr4) # from string to json
-where = get_depth(fs, arr)
-x = build_advanced_where(where)
-print(x)
+def build_where(filters): # builds the Cypher WHERE clause, accepts output from GDC-portal filters argument
+    arr = [] # need an empty array for depth recursion
+    qtype = "facet" # by default, set as facet search
+    q = json.loads(filters) # parse filters input into JSON (yields hashes of arrays)
+    w1 = get_depth(q, arr) # first step of building where clause is the array of individual comparison elements
+    w2 = "" # final where clause entity
+
+    for x in reversed(range(1,len(w1))): # search for AND/OR which are unique syntax for advanced query
+        if w1[x] in comps2:
+            qtype = "advanced"
+            break
+
+    if qtype == "facet": # decide between which WHERE builder to use
+        w2 = build_facet_where(w1)
+    elif qtype == "advanced": # written out for clarity
+        w2 = build_advanced_where(w1)
+
+build_where(tstr)
 
 # Need a function for building the RETURN clause and then put together the final query
-
-#print fs['content'][0]['content'][0]
-#print fs['content'][0]['content'][1]
-#print fs['content'][0]['content'][1]['content'][0]['content']['field']
-#print fs['content'][0]['content'][1]['content'][0]['op']
-#print fs['content'][0]['content'][1]['content'][0]['content']['value']
