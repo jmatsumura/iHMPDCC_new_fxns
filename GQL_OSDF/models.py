@@ -203,10 +203,10 @@ def get_buckets(inp,sum):
 # Function to return case values to populate the table, note that this will just return first 25 values arbitrarily for the moment
 def get_case_hits():
     hits = []
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(st:Study)<-[:PARTICIPATES_IN]-(su:Subject)<-[:BY]-(v:Visit)<-[:COLLECTED_DURING]-(sa:Sample) WHERE NOT sa.fma_body_site=\"\" RETURN p.name,p.subtype,sa.fma_body_site,st.name,sa._id LIMIT 25"
+    cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample) WHERE NOT Sample.fma_body_site=\"\" RETURN Project.name,Project.subtype,Sample.fma_body_site,Sample._id LIMIT 25"
     res = graph.data(cquery)
     for x in range(0,len(res)):
-        cur = CaseHits(project=Project(projectId=res[x]['p.subtype'],primarySite=res[x]['sa.fma_body_site'],name=res[x]['p.name'],diseaseType="demo"),caseId=res[x]['sa._id'])
+        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.fma_body_site'],name=res[x]['Project.name'],diseaseType="demo"),caseId=res[x]['Sample._id'])
         hits.append(cur)
     return hits
 
@@ -214,16 +214,16 @@ def get_case_hits():
 # Note that the way this is performed, guaranteed a trimmed set from a raw set so pulling 15 and pulling one file from each node (=30)
 def get_file_hits():
     hits = []
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) RETURN p,s,c,b._id LIMIT 15"
+    cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project,sf,cf,Sample._id LIMIT 15"
     res = graph.data(cquery)
     for x in range(0,len(res)):
         case_hits = [] # reinit each iteration
-        cur_case = CaseHits(project=Project(projectId=res[x]['p']['subtype'],name=res[x]['p']['name']),caseId=res[x]['b._id'])
+        cur_case = CaseHits(project=Project(projectId=res[x]['Project']['subtype'],name=res[x]['Project']['name']),caseId=res[x]['Sample._id'])
         case_hits.append(cur_case)
-        fn_s = extract_url(res[x]['s']['urls']) # File name is our URL
-        fn_c = extract_url(res[x]['c']['urls'])
-        cur_file1 = FileHits(dataType=res[x]['s']['subtype'],fileName=fn_s,dataFormat=res[x]['s']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['s']['_id'],dataCategory=res[x]['s']['node_type'],experimentalStrategy=res[x]['s']['subtype'],fileSize=res[x]['s']['size'],cases=case_hits)
-        cur_file2 = FileHits(dataType=res[x]['c']['subtype'],fileName=fn_c,dataFormat=res[x]['c']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['c']['_id'],dataCategory=res[x]['c']['node_type'],experimentalStrategy=res[x]['c']['subtype'],fileSize=res[x]['c']['size'],cases=case_hits) 
+        fn_s = extract_url(res[x]['sf']['urls']) # File name is our URL
+        fn_c = extract_url(res[x]['cf']['urls'])
+        cur_file1 = FileHits(dataType=res[x]['sf']['subtype'],fileName=fn_s,dataFormat=res[x]['sf']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['sf']['_id'],dataCategory=res[x]['sf']['node_type'],experimentalStrategy=res[x]['sf']['subtype'],fileSize=res[x]['sf']['size'],cases=case_hits)
+        cur_file2 = FileHits(dataType=res[x]['cf']['subtype'],fileName=fn_c,dataFormat=res[x]['cf']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['cf']['_id'],dataCategory=res[x]['cf']['node_type'],experimentalStrategy=res[x]['cf']['subtype'],fileSize=res[x]['cf']['size'],cases=case_hits) 
         hits.append(cur_file1)
         hits.append(cur_file2)       
     return hits

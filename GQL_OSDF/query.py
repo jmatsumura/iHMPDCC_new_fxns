@@ -1,5 +1,6 @@
 import urllib2, re, json
-from multiprocessing import Process
+from multiprocessing import Process, Queue, Pool
+import models
 #from py2neo import Graph
 
 # The match var is the base query to prepend all queries. The idea is to traverse
@@ -99,24 +100,32 @@ def build_where(filters):
         w2 = build_advanced_where(w1)
     return w2
 
+returns = {
+    'cases': "RETURN Project.name, Project.subtype, Sample.fma_body_site, Sample._id, Study.name",
+    'files': "RETURN Project, sf, cf, Sample._id",
+    'project': "RETURN Project.name as prop, count(Project.name) as counts",
+    'bodysite': "RETURN Sample.fma_body_site as prop, count(Sample.fma_body_site) as counts",
+    'study': "RETURN Study.name as prop, count(Study.name) as counts",
+    'gender': "RETURN Subject.gender as prop, count(Subject.gender) as counts",
+    'race': "RETURN Subject.race as prop, count(Subject.race) as counts",
+    'format': "RETURN sf.format as prop, count(sf.format) as counts",
+    'size': "RETURN (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot"
+}
+
 # Final function needed to build the entirety of the Cypher query. Accepts the following:
 # match = base MATCH query for Cypher
 # whereFilters = filters string passed from GDC portal
 # order = parameters to order results by (needed for pagination)
 # start = index of sort to start at
 # size = number of results to return
-# rtype = return type, want to be able to hit this for both cases and files.
+# rtype = return type, want to be able to hit this for both cases, files, and aggregation counts.
 def build_cypher(match,whereFilters,order,start,size,rtype):
     where = build_where(whereFilters) # build WHERE portion of Cypher
     where = where.replace("cases.","") # trim the GDC syntax, hack until we refactor cases/files syntax
     where = where.replace("files.","")
     order = order.replace("cases.","")
     order = order.replace("files.","")
-    retval1 = "" # actual RETURN portion of statement
-    if rtype == "cases":
-        retval1 = "RETURN Project.name"
-    elif rtype == "files":
-        retval1 = "RETURN Files.name"
+    retval1 = returns[rtype] # actual RETURN portion of statement
     order = order.split(":")
     retval2 = "ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),start-1,size) # handle pagination for RETURN
 
