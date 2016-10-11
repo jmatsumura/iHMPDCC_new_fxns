@@ -1,7 +1,5 @@
 import urllib2, re, json
 from multiprocessing import Process, Queue, Pool
-import models
-#from py2neo import Graph
 
 # The match var is the base query to prepend all queries. The idea is to traverse
 # the graph entirely and use filters to return a subset of the total traversal. 
@@ -126,12 +124,16 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
     order = order.replace("cases.","")
     order = order.replace("files.","")
     retval1 = returns[rtype] # actual RETURN portion of statement
-    order = order.split(":")
-    retval2 = "ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),start-1,size) # handle pagination for RETURN
-
-    print "%s %s %s %s" % (match,where,retval1,retval2)
-
-build_cypher(match,tstr,"Sample._id:asc",1,20,"cases")
+    print where
+    print where
+    print where
+    print where
+    if rtype in ["cases","files"]: # pagination handling needed for these returns
+        order = order.split(":")
+        retval2 = "ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),start-1,size) 
+        return "%s %s %s %s" % (match,where,retval1,retval2)
+    else:
+        return "%s %s %s" % (match,where,retval1)
 
 def parallel_exe(fxns):
     proc = []

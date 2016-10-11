@@ -4,7 +4,7 @@ from models import Pagination, CaseHits, Aggregations, get_buckets, get_case_hit
 
 # Can preload counts
 proName = get_buckets("Project.name","no")
-samFMA = get_buckets("Sample.fma_body_site","no")
+samFMA = get_buckets("Sample.body_site","no")
 
 class Query(graphene.ObjectType):
 
@@ -19,6 +19,6 @@ class Query(graphene.ObjectType):
         return get_case_hits()
 
     def resolve_aggregations(self, args, context, info):
-        return Aggregations(Project_name=proName, Sample_fmabodysite=samFMA)
+        return Aggregations(ProjectName=proName, Sample_fmabodysite=samFMA)
         
 ac_schema = graphene.Schema(query=Query)

@@ -2,6 +2,7 @@ import re
 import graphene
 from graphene import relay
 from py2neo import Graph # Using py2neo v3 not v2
+from query import match, build_cypher
 
 ###################
 # DEFINING MODELS #
@@ -71,7 +72,7 @@ class BucketCounter(graphene.ObjectType): # List of Buckets
     buckets = graphene.List(Bucket)
 
 class Aggregations(graphene.ObjectType): # Collecting lists of buckets (BucketCounter)
-    Project_name = graphene.Field(BucketCounter)
+    ProjectName = graphene.Field(BucketCounter)
     Sample_fmabodysite = graphene.Field(BucketCounter)
     dataType = graphene.Field(BucketCounter, name="data_type")
     dataFormat = graphene.Field(BucketCounter, name="data_format")
@@ -112,8 +113,12 @@ def extract_url(urls_node):
 # This current iteration should catch all the file data types EXCEPT for the *omes and the multi-step/repeat
 # edges like the two "computed_from" edges between abundance matrix and 16s_raw_seq_set. Should be
 # rather easy to accommodate these oddities once they're loaded and I can test.
-def get_total_file_size():
-    cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) RETURN (SUM(toInt(s.size))+SUM(toInt(c.size))) as tot"
+def get_total_file_size(cy):
+    cquery = ""
+    if cy == "":
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) RETURN (SUM(toInt(s.size))+SUM(toInt(c.size))) as tot"
+    else:
+        cquery = build_cypher(match,cy,"null","null","null","size")
     res = graph.data(cquery)
     return res[0]['tot']
 
