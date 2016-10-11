@@ -9,7 +9,6 @@ from files_schema import files_schema
 from table_schema import table_schema
 from indiv_files_schema import indiv_files_schema
 from models import get_url_for_download
-from query import build_cypher
 import graphene
 import urllib2
 import sys
@@ -31,12 +30,12 @@ def add_cors_headers(response):
 app.after_request(add_cors_headers)
 
 sample_fma_body_site = {"description": "The FMA body site related to the sample", "doc_type": "cases", "field": "SampleFmabodysite", "full": "cases.SampleFmabodysite", "type": "string"}
-project_name = {"description": "The Project Name", "doc_type": "cases", "field": "Project Name", "full": "cases.Project.name", "type": "string"}
+project_name = {"description": "The Project Name", "doc_type": "cases", "field": "ProjectName", "full": "cases.ProjectName", "type": "string"}
 
 @app.route('/gql/_mapping', methods=['GET'])
 def get_maps():
     add_cors_headers
-    res = jsonify({"cases.SampleFmabodysite": sample_fma_body_site, "cases.Project.name": project_name})
+    res = jsonify({"cases.SampleFmabodysite": sample_fma_body_site, "cases.ProjectName": project_name})
     return res
 
 @app.route('/cases', methods=['GET','OPTIONS'])
@@ -175,12 +174,13 @@ def get_ui_search_summary():
     if filters: # only modify call if filters arg is present
         filters = filters[:-1] # hack to get rid of "filters" root of JSON data
         filters = filters[11:]
-        filters = filters.replace('\"','BIGHACK') # guarantee literal double quotes for GQL
+        # Next two lines guarantee URL encoding (seeing errors with urllib and hacking for demo)
+        filters = filters.replace('"','|')
+        filters = filters.replace(" ","%20")
+        # Errors in Graphene mapping prevent the syntax I want, so ProjectName is converted to 
+        # Cypher ready Project.name here (as are the other possible query parameters).
         filters = filters.replace("cases.ProjectName","Project.name")
         filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
-        print filters
-        print filters
-        print filters
         if len(filters) > 2: # need actual content in the JSON, not empty
             url = "%s%s%s" % (beg,filters,end) 
         else:

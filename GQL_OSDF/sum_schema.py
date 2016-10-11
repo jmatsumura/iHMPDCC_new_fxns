@@ -19,12 +19,8 @@ class Query(graphene.ObjectType):
         return proName
 
     def resolve_fs(self, args, context, info):
-        cy = args['cy'].replace("BIGHACK",'\"')
-        print
-        print cy
-        print cy
-        print cy
-        print
+        # accept the pipes and convert to quotes again now that it's been passed across the URL
+        cy = args['cy'].replace("|",'"') 
         return FileSize(value=get_total_file_size(cy))
 
 # As noted above, going to hit Neo4j once and get everything then let GQL 

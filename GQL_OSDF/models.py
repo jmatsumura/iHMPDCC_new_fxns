@@ -72,7 +72,7 @@ class BucketCounter(graphene.ObjectType): # List of Buckets
     buckets = graphene.List(Bucket)
 
 class Aggregations(graphene.ObjectType): # Collecting lists of buckets (BucketCounter)
-    ProjectName = graphene.Field(BucketCounter)
+    Project_name = graphene.Field(BucketCounter)
     Sample_fmabodysite = graphene.Field(BucketCounter)
     dataType = graphene.Field(BucketCounter, name="data_type")
     dataFormat = graphene.Field(BucketCounter, name="data_format")

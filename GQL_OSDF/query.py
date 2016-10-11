@@ -124,10 +124,6 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
     order = order.replace("cases.","")
     order = order.replace("files.","")
     retval1 = returns[rtype] # actual RETURN portion of statement
-    print where
-    print where
-    print where
-    print where
     if rtype in ["cases","files"]: # pagination handling needed for these returns
         order = order.split(":")
         retval2 = "ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),start-1,size) 

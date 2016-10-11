@@ -19,6 +19,6 @@ class Query(graphene.ObjectType):
         return get_case_hits()
 
     def resolve_aggregations(self, args, context, info):
-        return Aggregations(ProjectName=proName, Sample_fmabodysite=samFMA)
+        return Aggregations(Project_name=proName, Sample_fmabodysite=samFMA)
         
 ac_schema = graphene.Schema(query=Query)
