@@ -15,7 +15,7 @@ tstr6 = '{"op":"and","content":[{"op":"in","content":{"field":"cases.project.pri
 tstr7 = '{"op":"and","content":[{"op":"AND","content":[{"op":"in","content":{"field":"cases.ProjectName","value":["Human Microbiome Project (HMP)","iHMP"]}},{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"Vagina [FMA:19949]"}}]}]}'
 
 comp_ops = ["=",">",">=","<","<=","!=","EXCLUDE","IN","in","IS","NOT"] # only found in advanced search
-comp_ops2 = ["AND","OR"] # separate group to delineate when to combine left/right halves of string
+comp_ops2 = ["AND","OR","=",">",">=","<","<=","!=","EXCLUDE","IN","IS","NOT"] # separate group to delineate when to combine left/right halves of string
 comps = set(comp_ops)
 comps2 = set(comp_ops2)
 
@@ -61,7 +61,7 @@ def build_advanced_where(inp):
     skip_me = set()
     lstr, rstr = ("" for i in range(2)) # right/left strings to combine
     # Makes more sense to build up than it is to build down.
-    for x in reversed(range(1,len(inp))):  
+    for x in reversed(range(1,len(inp))):
         if x in skip_me: # pass over elements we know are already consumed
             pass
         elif inp[x-2] in comps: # case to build comparison statement
@@ -77,7 +77,10 @@ def build_advanced_where(inp):
             if inp[x] in comps2: # check for clarity
                 rstr = "%s %s %s" % (lstr,inp[x],rstr)
                 lstr = "" # reset, rstr will be built upon
-    return rstr # send back Cypher-ready WHERE clause
+    if rstr != "":
+        return rstr # send back Cypher-ready WHERE clause
+    else:
+        return lstr
 
 # Builds the Cypher WHERE clause, accepts output from GDC-portal filters argument
 def build_where(filters): 
