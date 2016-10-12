@@ -14,7 +14,7 @@ tstr5 = '{"op":"and","content":[{"op":"in","content":{"field":"cases.project.pri
 tstr6 = '{"op":"and","content":[{"op":"in","content":{"field":"cases.project.primary_site","value":["Kidney","Brain","Nervous System"]}},{"op":"in","content":{"field":"cases.project.program.name","value":["TCGA"]}}]}'
 tstr7 = '{"op":"and","content":[{"op":"AND","content":[{"op":"in","content":{"field":"cases.ProjectName","value":["Human Microbiome Project (HMP)","iHMP"]}},{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"Vagina [FMA:19949]"}}]}]}'
 
-comp_ops = ["=",">",">=","<","<=","!=","EXCLUDE","IN","in","IS","NOT"] # only found in advanced search
+comp_ops = ["=",">",">=","<","<=","!=","EXCLUDE","IN","in","IS","NOT"] # distinguishing factor from the next is "in" which is utilized in facet
 comp_ops2 = ["AND","OR","=",">",">=","<","<=","!=","EXCLUDE","IN","IS","NOT"] # separate group to delineate when to combine left/right halves of string
 comps = set(comp_ops)
 comps2 = set(comp_ops2)
@@ -105,7 +105,7 @@ def build_where(filters):
 # following return ends in "counts", then it is for a pie chart. The first two are for
 # cases/files tabs and the last is for the total size. 
 returns = {
-    'cases': "RETURN Project.name, Project.subtype, Sample.fma_body_site, Sample._id, Study.name",
+    'cases': "RETURN Project.name, Project.subtype, Sample.body_site, Sample._id, Study.name",
     'files': "RETURN Project, sf, cf, Sample._id",
     'name': "RETURN Project.name as prop, count(Project.name) as counts",
     'body_site': "RETURN Sample.body_site as prop, count(Sample.body_site) as counts",

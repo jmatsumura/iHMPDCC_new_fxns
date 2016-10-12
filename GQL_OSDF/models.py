@@ -210,12 +210,20 @@ def get_buckets(inp,sum, cy):
         return SBucketCounter(buckets=bucketl)
 
 # Function to return case values to populate the table, note that this will just return first 25 values arbitrarily for the moment
-def get_case_hits():
+# size = number of hits to return
+# order = what to ORDER BY in Cypher clause
+# fro = position to star the return from based on the ordering (python prevents using that word)
+# cy = filters/op sent from GDC portal
+def get_case_hits(size,order,fro,cy):
     hits = []
-    cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample) WHERE NOT Sample.fma_body_site=\"\" RETURN Project.name,Project.subtype,Sample.fma_body_site,Sample._id LIMIT 25"
+    cquery = ""
+    if cy == "":
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample) WHERE NOT Sample.body_site=\"\" RETURN Project.name,Project.subtype,Sample.body_site,Sample._id LIMIT 25"
+    else:
+        cquery = build_cypher(match,cy,order,fro,size,"cases")
     res = graph.data(cquery)
     for x in range(0,len(res)):
-        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.fma_body_site'],name=res[x]['Project.name'],diseaseType="demo"),caseId=res[x]['Sample._id'])
+        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.body_site'],name=res[x]['Project.name'],diseaseType="demo"),caseId=res[x]['Sample._id'])
         hits.append(cur)
     return hits
 
