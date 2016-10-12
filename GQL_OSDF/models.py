@@ -122,6 +122,34 @@ def get_total_file_size(cy):
     res = graph.data(cquery)
     return res[0]['tot']
 
+# Function for pagination calculations. Find the page, number of pages, and number of entries on a single page.
+def pagination_calcs(total,start,size):
+    pgs = int(total / size) + (total % size > 0)
+    pg = int(start / size) + (start % size > 0)
+    cnt = 0
+    if (start+size) < total: # less than full page, count must be page size
+        cnt = size
+    else: # if less than a full page (only possible on last page), find the difference
+        cnt = total-start 
+    pagcalcs = []
+    pagcalcs.append(pgs)
+    pagcalcs.append(pg)
+    pagcalcs.append(cnt)
+    return pagcalcs
+
+# Function to determine how pagination is to work for the cases/files tabs. This will 
+# take a Cypher query and a given table size and determine how many pages are needed
+# to display all this data. 
+# cy = Cypher filters/ops
+# size = size of each page
+# f = from/start position
+def get_pagination(cy,size,f):
+    if cy == "":
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN (count(sf)+count(cf)) AS tot"
+        res = graph.data(cquery)
+        calcs = pagination_calcs(res[0]['tot'],f,size)
+        return Pagination(count=calcs[2], sort="case_id.raw:asc", fromNum=f, page=calcs[1], total=res[0]['tot'], pages=calcs[0], size=size)
+
 # Function to build and run a basic Cypher query. Accepts the following parameters:
 # attr = property to match against, val = desired value of the property of attr,
 # links = an array with two elements [name of node to hit, name of edge].
@@ -212,13 +240,14 @@ def get_buckets(inp,sum, cy):
 # Function to return case values to populate the table, note that this will just return first 25 values arbitrarily for the moment
 # size = number of hits to return
 # order = what to ORDER BY in Cypher clause
-# fro = position to star the return from based on the ordering (python prevents using that word)
+# f = position to star the return 'f'rom based on the ordering (python prevents using that word)
 # cy = filters/op sent from GDC portal
-def get_case_hits(size,order,fro,cy):
+def get_case_hits(size,order,f,cy):
     hits = []
     cquery = ""
     if cy == "":
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample) WHERE NOT Sample.body_site=\"\" RETURN Project.name,Project.subtype,Sample.body_site,Sample._id LIMIT 25"
+        order = order.split(":")
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project.name,Project.subtype,Sample.body_site,Sample._id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1],f-1,size)
     else:
         cquery = build_cypher(match,cy,order,fro,size,"cases")
     res = graph.data(cquery)

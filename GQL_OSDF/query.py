@@ -114,7 +114,8 @@ returns = {
     'gender': "RETURN Subject.gender as prop, count(Subject.gender) as counts",
     'race': "RETURN Subject.race as prop, count(Subject.race) as counts",
     'format': "RETURN sf.format as prop, count(sf.format) as counts",
-    'size': "RETURN (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot"
+    'size': "RETURN (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot",
+    'pagination': "RETURN (count(sf)+count(cf)) AS tot"
 }
 
 # Final function needed to build the entirety of the Cypher query. Accepts the following:

@@ -42,24 +42,26 @@ def get_maps():
 def get_cases():
     
     filters = request.args.get('filters')
-    # HACK until I figure out portal syntax, can use new pie charts to lay foundation for this change
-    filters = filters.replace("cases.ProjectName","Project.name")
-    filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
-    
     from_num = request.args.get('from')
     size = request.args.get('size')
     sort = request.args.get('sort')
     url = ""
 
     if(request.args.get('expand')): # Here need to process simple/advanced queries, handling happens at GQL
-        p1 = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits(cy%3A%22"
+        p1 = "http://localhost:5000/ac_schema?query=%7Bpagination(cy%3A%22"
         p2 = "%22%2Cs%3A"
-        p3 = "%2Co%3A%22"
-        p4 = "%22%2Cf%3A"
-        p5 = ")%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+        p3 = "%2Cf%3A"
+        p4 = ")%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits(cy%3A%22"
+        p5 = "%22%2Cs%3A"
+        p6 = "%2Co%3A%22"
+        p7 = "%22%2Cf%3A"
+        p8 = ")%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         if len(filters) < 3:
-            url = "%s%s%s%s%s%s%s" % (p1,p2,size,p3,p4,from_num,p5)
+            url = "%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,p2,size,p3,from_num,p4,p5,size,p6,p7,from_num,p8)
         else:
+            # HACK until I figure out portal syntax, can use new pie charts to lay foundation for this change
+            filters = filters.replace("cases.ProjectName","Project.name")
+            filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
             filters = filters.replace('"','|')
             url = "%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,sort,p4,from_num,p5)
         response = urllib2.urlopen(url)

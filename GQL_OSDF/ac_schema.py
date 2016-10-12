@@ -1,6 +1,6 @@
 import graphene
 from graphene import relay
-from models import Pagination, CaseHits, Aggregations, get_buckets, get_case_hits
+from models import Pagination, CaseHits, Aggregations, get_buckets, get_case_hits, get_pagination
 
 # Can preload counts. These aggregations can remain stagnant so don't need to update
 # based on filters as these are used to give a total count of the data.
@@ -9,18 +9,18 @@ samFMA = get_buckets("Sample.body_site","no","")
 
 class Query(graphene.ObjectType):
 
-    pagination = graphene.Field(Pagination)
+    pagination = graphene.Field(Pagination, cy=graphene.String(description='Cypher WHERE parameters'), s=graphene.Int(description='size of subset to return'), f=graphene.Int(description='what position of the sort to start at'))
     hits = graphene.List(CaseHits, cy=graphene.String(description='Cypher WHERE parameters'), s=graphene.Int(description='size of subset to return'), o=graphene.String(description='what to sort by'), f=graphene.Int(description='what position of the sort to start at'))
     aggregations = graphene.Field(Aggregations)
 
     def resolve_pagination(self, args, context, info):
-        return Pagination(count=25, sort="case_id.raw:asc", fromNum=1, page=1, total=25, pages=1, size=25)
+        return get_pagination("",args['s'],args['f'])
 
     def resolve_hits(self, args, context, info):
         cy = args['cy'].replace("|",'"') # handle quotes for GQL
         o = args['o'].replace("case_id","Sample._id") # lose the portal ordering syntax
         if args['cy'] == "":
-            return get_case_hits(20,"Sample._id:asc",1,"")
+            return get_case_hits(args['s'],"Sample._id:asc",args['f'],"")
         else:
             return get_case_hits(args['s'],o,args['f'],cy)
 
