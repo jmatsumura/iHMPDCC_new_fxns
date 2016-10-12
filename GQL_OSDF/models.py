@@ -272,9 +272,14 @@ def get_case_hits(size,order,f,cy):
 
 # Function to return file values to populate the table, note that this will just return first 30 values arbitrarily for the moment
 # Note that the way this is performed, guaranteed a trimmed set from a raw set so pulling 15 and pulling one file from each node (=30)
-def get_file_hits():
+def get_file_hits(size,order,f,cy):
     hits = []
-    cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project,sf,cf,Sample._id LIMIT 15"
+    cquery = ""
+    if cy == "":
+        order = order.split(":")
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project,sf,cf,Sample._id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1],f,size/2)
+    else:
+        cquery = build_cypher(match,cy,order,f,size/2,"files")
     res = graph.data(cquery)
     for x in range(0,len(res)):
         case_hits = [] # reinit each iteration
