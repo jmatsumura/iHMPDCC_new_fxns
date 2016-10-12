@@ -14,11 +14,13 @@ class Query(graphene.ObjectType):
     aggregations = graphene.Field(Aggregations)
 
     def resolve_pagination(self, args, context, info):
-        return get_pagination("",args['s'],args['f'])
+        cy = args['cy'].replace("|",'"')
+        return get_pagination(cy,args['s'],args['f'])
 
     def resolve_hits(self, args, context, info):
         cy = args['cy'].replace("|",'"') # handle quotes for GQL
         o = args['o'].replace("case_id","Sample._id") # lose the portal ordering syntax
+        o = o.replace(".raw","")
         if args['cy'] == "":
             return get_case_hits(args['s'],"Sample._id:asc",args['f'],"")
         else:

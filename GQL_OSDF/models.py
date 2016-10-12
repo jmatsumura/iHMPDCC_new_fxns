@@ -127,6 +127,7 @@ def pagination_calcs(total,start,size):
     pgs = int(total / size) + (total % size > 0)
     pg = int(start / size) + (start % size > 0)
     cnt = 0
+    paths = int(total / 2)
     if (start+size) < total: # less than full page, count must be page size
         cnt = size
     else: # if less than a full page (only possible on last page), find the difference
@@ -135,6 +136,7 @@ def pagination_calcs(total,start,size):
     pagcalcs.append(pgs)
     pagcalcs.append(pg)
     pagcalcs.append(cnt)
+    pagcalcs.append(paths)
     return pagcalcs
 
 # Function to determine how pagination is to work for the cases/files tabs. This will 
@@ -148,7 +150,12 @@ def get_pagination(cy,size,f):
         cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN (count(sf)+count(cf)) AS tot"
         res = graph.data(cquery)
         calcs = pagination_calcs(res[0]['tot'],f,size)
-        return Pagination(count=calcs[2], sort="case_id.raw:asc", fromNum=f, page=calcs[1], total=res[0]['tot'], pages=calcs[0], size=size)
+        return Pagination(count=calcs[2], sort="case_id.raw:asc", fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
+    else:
+        cquery = cquery = build_cypher(match,cy,"null","null","null","pagination")
+        res = graph.data(cquery)
+        calcs = pagination_calcs(res[0]['tot'],f,size)
+        return Pagination(count=calcs[2], sort="case_id.raw:asc", fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
 
 # Function to build and run a basic Cypher query. Accepts the following parameters:
 # attr = property to match against, val = desired value of the property of attr,
@@ -247,9 +254,9 @@ def get_case_hits(size,order,f,cy):
     cquery = ""
     if cy == "":
         order = order.split(":")
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project.name,Project.subtype,Sample.body_site,Sample._id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1],f-1,size)
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project.name,Project.subtype,Sample.body_site,Sample._id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1],f,size)
     else:
-        cquery = build_cypher(match,cy,order,fro,size,"cases")
+        cquery = build_cypher(match,cy,order,f,size,"cases")
     res = graph.data(cquery)
     for x in range(0,len(res)):
         cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.body_site'],name=res[x]['Project.name'],diseaseType="demo"),caseId=res[x]['Sample._id'])

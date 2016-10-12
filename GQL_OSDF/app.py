@@ -44,7 +44,7 @@ def get_cases():
     filters = request.args.get('filters')
     from_num = request.args.get('from')
     size = request.args.get('size')
-    sort = request.args.get('sort')
+    order = request.args.get('sort')
     url = ""
 
     if(request.args.get('expand')): # Here need to process simple/advanced queries, handling happens at GQL
@@ -63,7 +63,7 @@ def get_cases():
             filters = filters.replace("cases.ProjectName","Project.name")
             filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
             filters = filters.replace('"','|')
-            url = "%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,sort,p4,from_num,p5)
+            url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
         response = urllib2.urlopen(url)
         r = response.read()
         return ('%s, "warnings": {}}' % r[:-1])
