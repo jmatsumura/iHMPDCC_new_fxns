@@ -15,7 +15,7 @@ class Query(graphene.ObjectType):
 
     def resolve_pagination(self, args, context, info):
         cy = args['cy'].replace("|",'"')
-        return get_pagination(cy,args['s'],args['f'])
+        return get_pagination(cy,args['s'],args['f'],'c')
 
     def resolve_hits(self, args, context, info):
         cy = args['cy'].replace("|",'"') # handle quotes for GQL

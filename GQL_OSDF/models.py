@@ -123,11 +123,17 @@ def get_total_file_size(cy):
     return res[0]['tot']
 
 # Function for pagination calculations. Find the page, number of pages, and number of entries on a single page.
-def pagination_calcs(total,start,size):
+def pagination_calcs(total,start,size,c_or_f):
     pgs = int(total / size) + (total % size > 0)
     pg = int(start / size) + (start % size > 0)
     cnt = 0
-    paths = int(total / 2)
+    tot = 0
+    if c_or_f == "c":
+        tot = int(total / 2)
+        sort = "case_id.raw:asc"
+    else:
+        tot = int(total)
+        sort = "file_name.raw:asc"
     if (start+size) < total: # less than full page, count must be page size
         cnt = size
     else: # if less than a full page (only possible on last page), find the difference
@@ -136,7 +142,8 @@ def pagination_calcs(total,start,size):
     pagcalcs.append(pgs)
     pagcalcs.append(pg)
     pagcalcs.append(cnt)
-    pagcalcs.append(paths)
+    pagcalcs.append(tot)
+    pagcalcs.append(sort)
     return pagcalcs
 
 # Function to determine how pagination is to work for the cases/files tabs. This will 
@@ -145,17 +152,17 @@ def pagination_calcs(total,start,size):
 # cy = Cypher filters/ops
 # size = size of each page
 # f = from/start position
-def get_pagination(cy,size,f):
+def get_pagination(cy,size,f,c_or_f):
     if cy == "":
         cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN (count(sf)+count(cf)) AS tot"
         res = graph.data(cquery)
-        calcs = pagination_calcs(res[0]['tot'],f,size)
-        return Pagination(count=calcs[2], sort="case_id.raw:asc", fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
+        calcs = pagination_calcs(res[0]['tot'],f,size,c_or_f)
+        return Pagination(count=calcs[2], sort=calcs[4], fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
     else:
         cquery = cquery = build_cypher(match,cy,"null","null","null","pagination")
         res = graph.data(cquery)
-        calcs = pagination_calcs(res[0]['tot'],f,size)
-        return Pagination(count=calcs[2], sort="case_id.raw:asc", fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
+        calcs = pagination_calcs(res[0]['tot'],f,size,c_or_f)
+        return Pagination(count=calcs[2], sort=calcs[4], fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
 
 # Function to build and run a basic Cypher query. Accepts the following parameters:
 # attr = property to match against, val = desired value of the property of attr,
