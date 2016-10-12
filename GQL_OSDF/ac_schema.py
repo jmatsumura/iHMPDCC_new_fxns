@@ -3,8 +3,8 @@ from graphene import relay
 from models import Pagination, CaseHits, Aggregations, get_buckets, get_case_hits
 
 # Can preload counts
-proName = get_buckets("Project.name","no")
-samFMA = get_buckets("Sample.body_site","no")
+proName = get_buckets("Project.name","no","")
+samFMA = get_buckets("Sample.body_site","no","")
 
 class Query(graphene.ObjectType):
 

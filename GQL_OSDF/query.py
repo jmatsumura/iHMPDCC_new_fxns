@@ -98,11 +98,15 @@ def build_where(filters):
         w2 = build_advanced_where(w1)
     return w2
 
+# Note that body_site and fma_body_site are HMP and iHMP specific, respectively. If the 
+# following return ends in "counts", then it is for a pie chart. The first two are for
+# cases/files tabs and the last is for the total size. 
 returns = {
     'cases': "RETURN Project.name, Project.subtype, Sample.fma_body_site, Sample._id, Study.name",
     'files': "RETURN Project, sf, cf, Sample._id",
-    'project': "RETURN Project.name as prop, count(Project.name) as counts",
-    'bodysite': "RETURN Sample.fma_body_site as prop, count(Sample.fma_body_site) as counts",
+    'name': "RETURN Project.name as prop, count(Project.name) as counts",
+    'body_site': "RETURN Sample.body_site as prop, count(Sample.body_site) as counts",
+    'fma_body_site': "RETURN Sample.fma_body_site as prop, count(Sample.fma_body_site) as counts",
     'study': "RETURN Study.name as prop, count(Study.name) as counts",
     'gender': "RETURN Subject.gender as prop, count(Subject.gender) as counts",
     'race': "RETURN Subject.race as prop, count(Subject.race) as counts",

@@ -116,7 +116,7 @@ def extract_url(urls_node):
 def get_total_file_size(cy):
     cquery = ""
     if cy == "":
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) RETURN (SUM(toInt(s.size))+SUM(toInt(c.size))) as tot"
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot"
     else:
         cquery = build_cypher(match,cy,"null","null","null","size")
     res = graph.data(cquery)
@@ -175,12 +175,16 @@ def get_proj_data(sample_id):
     return Project(name=res[0]['p']['name'],projectId=res[0]['p']['subtype'])
 
 # Cypher query to count the amount of each distinct property
-def count_props(node, prop):
-    cquery = "MATCH (n:%s) RETURN n.%s as prop, count(n.%s) as counts" % (node, prop, prop)
+def count_props(node, prop, cy):
+    cquery = ""
+    if cy == "":
+        cquery = "MATCH (n:%s) RETURN n.%s as prop, count(n.%s) as counts" % (node, prop, prop)
+    else:
+        cquery = build_cypher(match,cy,"null","null","null",prop)
     return graph.data(cquery)
 
 # Formats the values from the count_props function above into GQL
-def get_buckets(inp,sum):
+def get_buckets(inp,sum, cy):
 
     splits = inp.split('.') # parse for node/prop values to be counted by
     node = splits[0]
@@ -188,7 +192,7 @@ def get_buckets(inp,sum):
     bucketl = []
 
     if sum == "no": # not a full summary, just key and doc count need to be returned
-        res = count_props(node, prop)
+        res = count_props(node, prop, cy)
         for x in range(0,len(res)):
             if res[x]['prop'] != "":
                 cur = Bucket(key=res[x]['prop'], docCount=res[x]['counts'])
@@ -197,7 +201,7 @@ def get_buckets(inp,sum):
         return BucketCounter(buckets=bucketl)
 
     else: # return full summary including case_count, doc_count, file_size, and key
-        res = count_props(node, prop)
+        res = count_props(node, prop, cy)
         for x in range(0,len(res)):
             if res[x]['prop'] != "":
                 cur = SBucket(key=res[x]['prop'], docCount=res[x]['counts'], fileSize=res[x]['counts'], caseCount=res[x]['counts'])

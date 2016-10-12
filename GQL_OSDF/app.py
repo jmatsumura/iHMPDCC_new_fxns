@@ -167,8 +167,11 @@ def get_annotation():
 # to populate the pie charts
 @app.route('/ui/search/summary', methods=['GET','OPTIONS','POST'])
 def get_ui_search_summary():
-    beg = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DProjectName%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs(cy%3A%22"
-    end = "%22)%7Bvalue%7D%7D"
+    empty_cy = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DProjectName(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs(cy%3A%22%22)%7Bvalue%7D%7D"
+    p1 = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite(cy%3A%22" # inject Cypher into body site query
+    p2 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DProjectName(cy%3A%22" # inject Cypher into project name query
+    p3 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs(cy%3A%22" # inject Cypher into file size query
+    p4 = "%22)%7Bvalue%7D%7D"
     filters = request.get_data()
     url = ""
     if filters: # only modify call if filters arg is present
@@ -182,11 +185,11 @@ def get_ui_search_summary():
         filters = filters.replace("cases.ProjectName","Project.name")
         filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
         if len(filters) > 2: # need actual content in the JSON, not empty
-            url = "%s%s%s" % (beg,filters,end) 
+            url = "%s%s%s%s%s%s%s" % (p1,filters,p2,filters,p3,filters,p4) 
         else:
-            url = "%s%s" % (beg,end)
+            url = empty_cy # no Cypher parameters entered
     else:
-        url = "%s%s" % (beg,end)
+        url = empty_cy
     response = urllib2.urlopen(url)
     # another hack, remove "data" root from GQL results
     r1 = response.read()[8:]
