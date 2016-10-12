@@ -220,7 +220,7 @@ def get_proj_data(sample_id):
 def count_props(node, prop, cy):
     cquery = ""
     if cy == "":
-        cquery = "MATCH (n:%s) RETURN n.%s as prop, count(n.%s) as counts" % (node, prop, prop)
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN %s.%s as prop, count(%s.%s) as counts" % (node, prop, node, prop)
     else:
         cquery = build_cypher(match,cy,"null","null","null",prop)
     return graph.data(cquery)
