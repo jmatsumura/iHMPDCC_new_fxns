@@ -12,6 +12,7 @@ from models import get_url_for_download
 import graphene
 import urllib2
 import sys
+import json, re
 
 app = Flask(__name__)
 app.debug = True
@@ -126,11 +127,21 @@ def get_status_api_data():
 
 @app.route('/files', methods=['GET','OPTIONS','POST'])
 def get_files():
-    filters = request.args.get('filters')
+    filters, url = ("" for i in range(2))
+    if request.args.get('filters'):
+        filters = request.args.get('filters')
+    elif request.get_data():
+        f1 = request.get_data().decode('utf-8')
+        f2 = json.loads(f1)
+        filters = f2['filters']
+    else: # beyond my understanding why this works at the moment
+        if request.method == 'POST':
+            return 'hi'
+        elif request.method == 'OPTIONS':
+            return 'hi2'
     from_num = request.args.get('from')
     size = request.args.get('size')
     order = request.args.get('sort')
-    url = ""
     if len(filters) < 3:
         p1 = "http://localhost:5000/table_schema?query=%7Bpagination(cy%3A%22"
         p2 = "%22%2Cs%3A"
@@ -141,10 +152,34 @@ def get_files():
         p7 = "%22%2Cf%3A"
         p8 = ")%7Bdata_type%2Cfile_name%2Cdata_format%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cfile_size%2Ccases%7Bproject%7Bproject_id%2Cname%7D%2Ccase_id%7Dexperimental_strategy%7D%2Caggregations%7Bdata_type%7Bbuckets%7Bkey%2Cdoc_count%7D%7Ddata_format%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         url = "%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,p2,size,p3,from_num,p4,p5,size,p6,order,p7,from_num,p8)
+        if 'op' in filters:
+            f1 = request.get_data()
+            f2 = json.loads(f1)
+            filters = json.dumps(filters)
+            from_num = f2['from']
+            order = f2['sort']
+            size = f2['size']
+            filters = str(filters)
+            filters = filters.replace("cases.ProjectName","Project.name")
+            filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
+            filters = filters.replace("project.primary_site","Sample.body_site")
+            filters = filters.replace("files.file_id","sf._id")
+            filters = filters.replace('"','|')
+            filters = filters.replace(" ","")
+            p1 = "http://localhost:5000/table_schema?query=%7Bpagination(cy%3A%22"
+            p2 = "%22%2Cs%3A"
+            p3 = "%2Cf%3A"
+            p4 = ")%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits(cy%3A%22"
+            p5 = "%22%2Cs%3A"
+            p6 = "%2Co%3A%22"
+            p7 = "%22%2Cf%3A"
+            p8 = ")%7Bdata_type%2Cfile_name%2Cdata_format%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cfile_size%2Ccases%7Bproject%7Bproject_id%2Cname%7D%2Ccase_id%7Dexperimental_strategy%7D%2Caggregations%7Bdata_type%7Bbuckets%7Bkey%2Cdoc_count%7D%7Ddata_format%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+            url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
     else:
         filters = filters.replace("cases.ProjectName","Project.name")
         filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
         filters = filters.replace("project.primary_site","Sample.body_site")
+        filters = filters.replace("files.file_id","sf._id")
         filters = filters.replace('"','|')
         p1 = "http://localhost:5000/table_schema?query=%7Bpagination(cy%3A%22"
         p2 = "%22%2Cs%3A"
