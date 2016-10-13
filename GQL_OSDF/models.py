@@ -124,10 +124,9 @@ def get_total_file_size(cy):
 
 # Function for pagination calculations. Find the page, number of pages, and number of entries on a single page.
 def pagination_calcs(total,start,size,c_or_f):
-    pgs = int(total / size) + (total % size > 0)
-    pg = int(start / size) + (start % size > 0)
-    cnt = 0
-    tot = 0
+    pg,pgs,cnt,tot = (0 for i in range(4))
+    if size != 0: pgs = int(total / size) + (total % size > 0)
+    if size != 0: pg = int(start / size) + (start % size > 0)
     if c_or_f == "c":
         tot = int(total / 2)
         sort = "case_id.raw:asc"
