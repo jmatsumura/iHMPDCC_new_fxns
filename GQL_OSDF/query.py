@@ -138,12 +138,3 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
         return "%s %s %s %s" % (match,where,retval1,retval2)
     else:
         return "%s %s %s" % (match,where,retval1)
-
-def parallel_exe(fxns):
-    proc = []
-    for fn in fxns:
-        p = Process(target=fn) # assign each function a thread
-        p.start() # initiate each thread as it goes
-        proc.append(p)
-    for p in proc:
-        p.join() # wait for all to finish

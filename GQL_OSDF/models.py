@@ -125,18 +125,18 @@ def get_total_file_size(cy):
 # Function for pagination calculations. Find the page, number of pages, and number of entries on a single page.
 def pagination_calcs(total,start,size,c_or_f):
     pg,pgs,cnt,tot = (0 for i in range(4))
-    if size != 0: pgs = int(total / size) + (total % size > 0)
-    if size != 0: pg = int(start / size) + (start % size > 0)
     if c_or_f == "c":
-        tot = int(total / 2)
-        sort = "case_id.raw:asc"
+        tot = int(total/2) # one case per two types of files currently
+        sort = "case_id.raw:asc"      
     else:
         tot = int(total)
         sort = "file_name.raw:asc"
-    if (start+size) < total: # less than full page, count must be page size
+    if size != 0: pgs = int(tot / size) + (tot % size > 0)
+    if size != 0: pg = int(start / size) + (start % size > 0)
+    if (start+size) < tot: # less than full page, count must be page size
         cnt = size
     else: # if less than a full page (only possible on last page), find the difference
-        cnt = total-start 
+        cnt = tot-start
     pagcalcs = []
     pagcalcs.append(pgs)
     pagcalcs.append(pg)
@@ -260,7 +260,7 @@ def get_case_hits(size,order,f,cy):
     cquery = ""
     if cy == "":
         order = order.split(":")
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project.name,Project.subtype,Sample.body_site,Sample._id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1],f,size)
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project.name,Project.subtype,Sample.body_site,Sample._id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),f-1,size)
     else:
         cquery = build_cypher(match,cy,order,f,size,"cases")
     res = graph.data(cquery)
@@ -277,7 +277,7 @@ def get_file_hits(size,order,f,cy):
     cquery = ""
     if cy == "":
         order = order.split(":")
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project,sf,cf,Sample._id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1],f,size/2)
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project,sf,cf,Sample._id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),f-1,size/2)
     else:
         cquery = build_cypher(match,cy,order,f,size/2,"files")
     res = graph.data(cquery)
