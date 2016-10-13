@@ -48,7 +48,17 @@ def get_cases():
     order = request.args.get('sort')
     url = ""
 
-    if(request.args.get('expand')): # Here need to process simple/advanced queries, handling happens at GQL
+    # Processing autocomplete here as well as finding counts for the set category
+    if(request.args.get('facets') and not request.args.get('expand')):
+        beg = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7B"
+        mid = request.args.get('facets')
+        end = "%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+        url = '%s%s%s' % (beg,mid,end)
+        response = urllib2.urlopen(url)
+        r = response.read()
+        return ('%s, "warnings": {}}' % r[:-1])
+
+    elif(request.args.get('expand') or request.args.get('filters')): # Here need to process simple/advanced queries, handling happens at GQL
         p1 = "http://localhost:5000/ac_schema?query=%7Bpagination(cy%3A%22"
         p2 = "%22%2Cs%3A"
         p3 = "%2Cf%3A"
@@ -69,20 +79,6 @@ def get_cases():
         response = urllib2.urlopen(url)
         r = response.read()
         return ('%s, "warnings": {}}' % r[:-1])
-
-    # Processing autocomplete here as well as finding counts for the set category
-    elif(request.args.get('facets')):
-        beg = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7B"
-        mid = request.args.get('facets')
-        end = "%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
-        url = '%s%s%s' % (beg,mid,end)
-        response = urllib2.urlopen(url)
-        r = response.read()
-        return ('%s, "warnings": {}}' % r[:-1])
-
-    else:
-        return jsonify({"data": {"hits": [], "pagination": {"count": 0, "sort": "case_id.raw:asc", "from": 1, "page": 1, "total": 166, "pages": 166, "size": 0}}, "warnings": {}, "filters": filters})
-
 
 # Route for specific cases endpoints that associates with various files
 @app.route('/cases/<case_id>', methods=['GET','OPTIONS'])
