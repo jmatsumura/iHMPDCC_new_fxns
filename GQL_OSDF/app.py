@@ -62,6 +62,7 @@ def get_cases():
             # HACK until I figure out portal syntax, can use new pie charts to lay foundation for this change
             filters = filters.replace("cases.ProjectName","Project.name")
             filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
+            filters = filters.replace("project.primary_site","Sample.body_site")
             filters = filters.replace('"','|')
             url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
         response = urllib2.urlopen(url)
@@ -143,6 +144,7 @@ def get_files():
     else:
         filters = filters.replace("cases.ProjectName","Project.name")
         filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
+        filters = filters.replace("project.primary_site","Sample.body_site")
         filters = filters.replace('"','|')
         p1 = "http://localhost:5000/table_schema?query=%7Bpagination(cy%3A%22"
         p2 = "%22%2Cs%3A"
@@ -224,6 +226,7 @@ def get_ui_search_summary():
         # Cypher ready Project.name here (as are the other possible query parameters).
         filters = filters.replace("cases.ProjectName","Project.name")
         filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
+        filters = filters.replace("project.primary_site","Sample.body_site")
         if len(filters) > 2: # need actual content in the JSON, not empty
             url = "%s%s%s%s%s%s%s" % (p1,filters,p2,filters,p3,filters,p4) 
         else:
