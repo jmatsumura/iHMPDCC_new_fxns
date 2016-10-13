@@ -273,6 +273,7 @@ def get_case_hits(size,order,f,cy):
 # Note that the way this is performed, guaranteed a trimmed set from a raw set so pulling 15 and pulling one file from each node (=30)
 def get_file_hits(size,order,f,cy):
     hits = []
+    f = int(f / 2) + (f % 2 > 0)
     cquery = ""
     if cy == "":
         order = order.split(":")
