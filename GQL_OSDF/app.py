@@ -67,7 +67,7 @@ def get_cases():
         p5 = "%22%2Cs%3A"
         p6 = "%2Co%3A%22"
         p7 = "%22%2Cf%3A"
-        p8 = ")%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+        p8 = ")%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSubjectGender%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         if len(filters) < 3:
             url = "%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,p2,size,p3,from_num,p4,p5,size,p6,p7,from_num,p8)
         else:
@@ -227,11 +227,12 @@ def get_annotation():
 # to populate the pie charts
 @app.route('/ui/search/summary', methods=['GET','OPTIONS','POST'])
 def get_ui_search_summary():
-    empty_cy = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DProjectName(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs(cy%3A%22%22)%7Bvalue%7D%7D"
+    empty_cy = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DProjectName(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DSubjectGender(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D%2Cfs(cy%3A%22%22)%7Bvalue%7D%7D"
     p1 = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite(cy%3A%22" # inject Cypher into body site query
     p2 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DProjectName(cy%3A%22" # inject Cypher into project name query
-    p3 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs(cy%3A%22" # inject Cypher into file size query
-    p4 = "%22)%7Bvalue%7D%7D"
+    p3 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DSubjectGender(cy%3A%22" # inject Cypher into subject gender query
+    p4 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs(cy%3A%22" # inject Cypher into file size query
+    p5 = "%22)%7Bvalue%7D%7D"
     filters = request.get_data()
     url = ""
     if filters: # only modify call if filters arg is present
@@ -239,7 +240,7 @@ def get_ui_search_summary():
         filters = filters[11:]
         filters = convert_gdc_to_osdf(filters)
         if len(filters) > 2: # need actual content in the JSON, not empty
-            url = "%s%s%s%s%s%s%s" % (p1,filters,p2,filters,p3,filters,p4) 
+            url = "%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,filters,p3,filters,p4,filters,p5) 
         else:
             url = empty_cy # no Cypher parameters entered
     else:

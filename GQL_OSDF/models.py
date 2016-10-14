@@ -116,7 +116,9 @@ def convert_gdc_to_osdf(inp_str):
     # Cypher ready Project.name here (as are the other possible query parameters).
     inp_str = inp_str.replace("cases.ProjectName","Project.name")
     inp_str = inp_str.replace("cases.SampleFmabodysite","Sample.body_site")
+    inp_str = inp_str.replace("cases.SubjectGender","Subject.gender")
     inp_str = inp_str.replace("project.primary_site","Sample.body_site")
+    inp_str = inp_str.replace("subject.gender","Subject.gender")
     inp_str = inp_str.replace("files.file_id","sf._id")
     # Next two lines guarantee URL encoding (seeing errors with urllib and hacking for demo)
     inp_str = inp_str.replace('"','|')
