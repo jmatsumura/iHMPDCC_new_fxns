@@ -81,7 +81,7 @@ class SBucket(graphene.ObjectType): # Same idea as early bucket but used for sum
     key = graphene.String()
     docCount = graphene.Int(name="doc_count")
     caseCount = graphene.Int(name="case_count")
-    fileSize = graphene.Int(name="file_size")
+    fileSize = graphene.Float(name="file_size")
 
 class SBucketCounter(graphene.ObjectType): # List of SBuckets
     buckets = graphene.List(SBucket)
@@ -120,7 +120,7 @@ def convert_gdc_to_osdf(inp_str):
     inp_str = inp_str.replace("project.primary_site","Sample.body_site")
     inp_str = inp_str.replace("subject.gender","Subject.gender")
     inp_str = inp_str.replace("files.file_id","sf._id")
-    # Next two lines guarantee URL encoding (seeing errors with urllib and hacking for demo)
+    # Next two lines guarantee URL encoding (seeing errors with urllib)
     inp_str = inp_str.replace('"','|')
     inp_str = inp_str.replace(" ","%20")
     return inp_str
@@ -240,7 +240,17 @@ def count_props(node, prop, cy):
         cquery = build_cypher(match,cy,"null","null","null",prop)
     return graph.data(cquery)
 
-# Formats the values from the count_props function above into GQL
+# Cypher query to count the amount of each distinct property
+def count_props_and_files(node, prop, cy):
+    cquery = ""
+    if cy == "":
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN %s.%s as prop, count(%s.%s) as ccounts, (count(sf)+count(cf)) as dcounts, (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot" % (node, prop, node, prop)
+    else:
+        prop_detailed = "%s_detailed" % (prop)
+        cquery = build_cypher(match,cy,"null","null","null",prop_detailed)
+    return graph.data(cquery)
+
+# Formats the values from count_props & count_props_and_files functions above into GQL
 def get_buckets(inp,sum, cy):
 
     splits = inp.split('.') # parse for node/prop values to be counted by
@@ -258,10 +268,10 @@ def get_buckets(inp,sum, cy):
         return BucketCounter(buckets=bucketl)
 
     else: # return full summary including case_count, doc_count, file_size, and key
-        res = count_props(node, prop, cy)
+        res = count_props_and_files(node, prop, cy)
         for x in range(0,len(res)):
             if res[x]['prop'] != "":
-                cur = SBucket(key=res[x]['prop'], docCount=res[x]['counts'], fileSize=res[x]['counts'], caseCount=res[x]['counts'])
+                cur = SBucket(key=res[x]['prop'], docCount=res[x]['dcounts'], fileSize=res[x]['tot'], caseCount=res[x]['ccounts'])
                 bucketl.append(cur)
 
         return SBucketCounter(buckets=bucketl)
