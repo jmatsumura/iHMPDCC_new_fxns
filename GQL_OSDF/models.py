@@ -1,6 +1,5 @@
 import re
 import graphene
-from graphene import relay
 from py2neo import Graph # Using py2neo v3 not v2
 from query import match, build_cypher
 
@@ -74,6 +73,7 @@ class BucketCounter(graphene.ObjectType): # List of Buckets
 class Aggregations(graphene.ObjectType): # Collecting lists of buckets (BucketCounter)
     Project_name = graphene.Field(BucketCounter)
     Sample_fmabodysite = graphene.Field(BucketCounter)
+    Subject_gender = graphene.Field(BucketCounter)
     dataType = graphene.Field(BucketCounter, name="data_type")
     dataFormat = graphene.Field(BucketCounter, name="data_format")
 
@@ -108,6 +108,20 @@ def extract_url(urls_node):
     else:
         fn = "none"
     return fn
+
+# Function to extract known GDC syntax and convert to OSDF. This is commonly needed for performing
+# cypher queries while still being able to develop the front-end with the cases syntax.
+def convert_gdc_to_osdf(inp_str):
+    # Errors in Graphene mapping prevent the syntax I want, so ProjectName is converted to 
+    # Cypher ready Project.name here (as are the other possible query parameters).
+    inp_str = inp_str.replace("cases.ProjectName","Project.name")
+    inp_str = inp_str.replace("cases.SampleFmabodysite","Sample.body_site")
+    inp_str = inp_str.replace("project.primary_site","Sample.body_site")
+    inp_str = inp_str.replace("files.file_id","sf._id")
+    # Next two lines guarantee URL encoding (seeing errors with urllib and hacking for demo)
+    inp_str = inp_str.replace('"','|')
+    inp_str = inp_str.replace(" ","%20")
+    return inp_str
 
 # Function to get file size from Neo4j. 
 # This current iteration should catch all the file data types EXCEPT for the *omes and the multi-step/repeat

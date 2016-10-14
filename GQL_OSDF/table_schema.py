@@ -1,5 +1,4 @@
 import graphene
-from graphene import relay
 from models import Pagination, FileHits, Aggregations, get_buckets, get_file_hits, get_pagination
 
 # Can preload aggregate. Note that the get_buckets function needs to be changed 

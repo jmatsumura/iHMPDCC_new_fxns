@@ -1,11 +1,11 @@
 import graphene
-from graphene import relay
 from models import Pagination, CaseHits, Aggregations, get_buckets, get_case_hits, get_pagination
 
 # Can preload counts. These aggregations can remain stagnant so don't need to update
 # based on filters as these are used to give a total count of the data.
 proName = get_buckets("Project.name","no","")
 samFMA = get_buckets("Sample.body_site","no","")
+subGender = get_buckets("Subject.gender","no","")
 
 class Query(graphene.ObjectType):
 
@@ -27,6 +27,6 @@ class Query(graphene.ObjectType):
             return get_case_hits(args['s'],o,args['f'],cy)
 
     def resolve_aggregations(self, args, context, info):
-        return Aggregations(Project_name=proName, Sample_fmabodysite=samFMA)
+        return Aggregations(Project_name=proName, Sample_fmabodysite=samFMA, Subject_gender=subGender)
         
 ac_schema = graphene.Schema(query=Query)

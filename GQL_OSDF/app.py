@@ -8,7 +8,7 @@ from ac_schema import ac_schema
 from files_schema import files_schema
 from table_schema import table_schema
 from indiv_files_schema import indiv_files_schema
-from models import get_url_for_download
+from models import get_url_for_download, convert_gdc_to_osdf
 import graphene
 import urllib2
 import sys
@@ -32,11 +32,12 @@ app.after_request(add_cors_headers)
 
 sample_fma_body_site = {"description": "The FMA body site related to the sample", "doc_type": "cases", "field": "SampleFmabodysite", "full": "cases.SampleFmabodysite", "type": "string"}
 project_name = {"description": "The Project Name", "doc_type": "cases", "field": "ProjectName", "full": "cases.ProjectName", "type": "string"}
+subject_gender = {"description": "Gender of subject", "doc_type": "cases", "field": "SubjectGender", "full": "cases.SubjectGender", "type": "string"}
 
 @app.route('/gql/_mapping', methods=['GET'])
 def get_maps():
     add_cors_headers
-    res = jsonify({"cases.SampleFmabodysite": sample_fma_body_site, "cases.ProjectName": project_name})
+    res = jsonify({"cases.SampleFmabodysite": sample_fma_body_site, "cases.ProjectName": project_name, "cases.SubjectGender": subject_gender})
     return res
 
 @app.route('/cases', methods=['GET','OPTIONS'])
@@ -70,11 +71,7 @@ def get_cases():
         if len(filters) < 3:
             url = "%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,p2,size,p3,from_num,p4,p5,size,p6,p7,from_num,p8)
         else:
-            # HACK until I figure out portal syntax, can use new pie charts to lay foundation for this change
-            filters = filters.replace("cases.ProjectName","Project.name")
-            filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
-            filters = filters.replace("project.primary_site","Sample.body_site")
-            filters = filters.replace('"','|')
+            filters = convert_gdc_to_osdf(filters)
             url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
         response = urllib2.urlopen(url)
         r = response.read()
@@ -155,13 +152,7 @@ def get_files():
             from_num = f2['from']
             order = f2['sort']
             size = f2['size']
-            filters = str(filters)
-            filters = filters.replace("cases.ProjectName","Project.name")
-            filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
-            filters = filters.replace("project.primary_site","Sample.body_site")
-            filters = filters.replace("files.file_id","sf._id")
-            filters = filters.replace('"','|')
-            filters = filters.replace(" ","")
+            filters = convert_gdc_to_osdf(filters)
             p1 = "http://localhost:5000/table_schema?query=%7Bpagination(cy%3A%22"
             p2 = "%22%2Cs%3A"
             p3 = "%2Cf%3A"
@@ -172,11 +163,7 @@ def get_files():
             p8 = ")%7Bdata_type%2Cfile_name%2Cdata_format%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cfile_size%2Ccases%7Bproject%7Bproject_id%2Cname%7D%2Ccase_id%7Dexperimental_strategy%7D%2Caggregations%7Bdata_type%7Bbuckets%7Bkey%2Cdoc_count%7D%7Ddata_format%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
             url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
     else:
-        filters = filters.replace("cases.ProjectName","Project.name")
-        filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
-        filters = filters.replace("project.primary_site","Sample.body_site")
-        filters = filters.replace("files.file_id","sf._id")
-        filters = filters.replace('"','|')
+        filters = convert_gdc_to_osdf(filters)
         p1 = "http://localhost:5000/table_schema?query=%7Bpagination(cy%3A%22"
         p2 = "%22%2Cs%3A"
         p3 = "%2Cf%3A"
@@ -250,14 +237,7 @@ def get_ui_search_summary():
     if filters: # only modify call if filters arg is present
         filters = filters[:-1] # hack to get rid of "filters" root of JSON data
         filters = filters[11:]
-        # Next two lines guarantee URL encoding (seeing errors with urllib and hacking for demo)
-        filters = filters.replace('"','|')
-        filters = filters.replace(" ","%20")
-        # Errors in Graphene mapping prevent the syntax I want, so ProjectName is converted to 
-        # Cypher ready Project.name here (as are the other possible query parameters).
-        filters = filters.replace("cases.ProjectName","Project.name")
-        filters = filters.replace("cases.SampleFmabodysite","Sample.body_site")
-        filters = filters.replace("project.primary_site","Sample.body_site")
+        filters = convert_gdc_to_osdf(filters)
         if len(filters) > 2: # need actual content in the JSON, not empty
             url = "%s%s%s%s%s%s%s" % (p1,filters,p2,filters,p3,filters,p4) 
         else:

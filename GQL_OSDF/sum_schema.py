@@ -1,17 +1,18 @@
 import graphene
-from graphene import relay
 from models import SBucketCounter, FileSize, get_buckets, get_total_file_size
 
 # Can preload default counts for fast loading, user interaction with facets or
 # queries will then refine these counts.
 proName = get_buckets("Project.name","yes","")
 samFMA = get_buckets("Sample.body_site","yes","")
+subGender = get_buckets("Subject.gender","yes","")
 fs = FileSize(value=get_total_file_size(""))
 
 class Query(graphene.ObjectType):
 
     SampleFmabodysite = graphene.Field(SBucketCounter, cy=graphene.String(description='Cypher WHERE parameters'))
     ProjectName = graphene.Field(SBucketCounter, cy=graphene.String(description='Cypher WHERE parameters'))
+    SubjectGender = graphene.Field(SBucketCounter, cy=graphene.String(description='Cypher WHERE parameters'))
     fs = graphene.Field(FileSize, cy=graphene.String(description='Cypher WHERE parameters'))
 
     def resolve_SampleFmabodysite(self, args, context, info):
@@ -28,6 +29,13 @@ class Query(graphene.ObjectType):
             return proName
         else:
             return get_buckets("Project.name","yes",cy)
+
+    def resolve_SubjectGender(self, args, context, info):
+        cy = args['cy'].replace("|",'"') 
+        if cy == "":
+            return subGender
+        else:
+            return get_buckets("Subject.gender","yes",cy)
 
     def resolve_fs(self, args, context, info):
         cy = args['cy'].replace("|",'"') 
