@@ -2,6 +2,7 @@ import re
 import graphene
 from py2neo import Graph # Using py2neo v3 not v2
 from query import match, build_cypher
+import sys
 
 ###################
 # DEFINING MODELS #
@@ -230,6 +231,16 @@ def get_proj_data(sample_id):
     cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(SUBJECT)<-[:BY]-(VISIT)<-[:COLLECTED_DURING]-(Sample) WHERE Sample._id=\"%s\" RETURN p" % (sample_id)
     res = graph.data(cquery)
     return Project(name=res[0]['p']['name'],projectId=res[0]['p']['subtype'])
+
+def get_all_proj_data():
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(SUBJECT)<-[:BY]-(VISIT)<-[:COLLECTED_DURING]-(Sample) RETURN DISTINCT p"
+    res = graph.data(cquery)
+    return res
+
+def get_all_proj_counts():
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(SUBJECT)<-[:BY]-(VISIT)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN DISTINCT p.id, p.name, Sample.body_site, (COUNT(sf)+COUNT(cf)) as file_count"
+    res = graph.data(cquery)
+    return res
 
 # Cypher query to count the amount of each distinct property
 def count_props(node, prop, cy):

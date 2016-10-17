@@ -8,7 +8,7 @@ from ac_schema import ac_schema
 from files_schema import files_schema
 from table_schema import table_schema
 from indiv_files_schema import indiv_files_schema
-from models import get_url_for_download, convert_gdc_to_osdf
+from models import get_url_for_download, convert_gdc_to_osdf,get_all_proj_data,get_all_proj_counts
 import graphene
 import urllib2
 import sys
@@ -181,43 +181,82 @@ def get_files():
 def get_project():
     facets = request.args.get('facets')
 
-    # HACK - hard-code a couple of syntactically-correct return values so the UI runs error-free
-    # request without facets parameter
+    # /projects request WITHOUT facets parameter
+    # 
+    # e.g., like this one from the portal home page: 
+    #  https://gdc-api.nci.nih.gov/v0/projects?filters=%7B%7D&from=1&size=100&sort=summary.case_count:desc
+    #
+    # which expects a response like the following (with one hit per project and a 1-1 mapping between Project and primary_site):
+    #
+    # {"data": {
+    #    "hits": [
+    #              {"dbgap_accession_number": "phs000467", "disease_type": "Neuroblastoma", "released": true, 
+    #               "state": "legacy", "primary_site": "Nervous System", "project_id": "TARGET-NBL", "name": "Neuroblastoma"},
+    #     ... 
+    #    "pagination": {"count": 39, "sort": "summary.case_count:desc", "from": 1, "page": 1, "total": 39, "pages": 1, "size": 100}}, 
+    #    "warnings": {}}
+    #
     if facets is None:
-        return """
-  {"data" :
-   {"hits" :
-    [
-      {"dbgap_accession_number": "N/A", "disease_type": "N/A", "released": true, "state": "legacy", "primary_site": "N/A", "project_id": "DEMO", "name": "HMP Demonstration Project"},
-      {"dbgap_accession_number": "N/A", "disease_type": "N/A", "released": true, "state": "legacy", "primary_site": "N/A", "project_id": "HHS", "name": "HMP Healthy Human Subjects (HHS)"},
-      {"dbgap_accession_number": "N/A", "disease_type": "Crohn's Disease", "released": true, "state": "legacy", "primary_site": "GI tract", "project_id": "CD", "name": "Crohn's Disease"},
-      {"dbgap_accession_number": "N/A", "disease_type": "Type 2 Diabetes", "released": true, "state": "legacy", "primary_site": "Endocrine pancreas", "project_id": "T2D", "name": "Type 2 Diabetes"},
-      {"dbgap_accession_number": "N/A", "disease_type": "Pre-Term Birth", "released": true, "state": "legacy", "primary_site": "N/A", "project_id": "PTB", "name": "Pre-Term Birth"}
-    ],
-  "pagination": {"count": 5, "sort": "summary.case_count:desc", "from": 1, "page": 1, "total": 5, "pages": 1, "size": 100}},
-  "warnings": {}}
-"""
+        # HACK - should go through GQL endpoint
+        pdata = get_all_proj_data()
+        proj_list = []
 
-    # request with facets parameter
-    return """
-  {"data" :
-   { 
-   "aggregations": { "primary_site": { "buckets": [ 
-      { "key": "N/A", "doc_count": 3 } ,
-      { "key": "GI tract", "doc_count": 1 } ,
-      { "key": "Endocrine pancreas", "doc_count": 1 } 
-     ] }},
-   "hits" :
-    [
-      {"primary_site": "N/A", "project_id": "DEMO", "summary": { "case_count": 50, "file_count": 100 }},
-      {"primary_site": "N/A", "project_id": "HHS", "summary": { "case_count": 150, "file_count": 300 }},
-      {"primary_site": "GI tract", "project_id": "CD", "summary": { "case_count": 25, "file_count": 50 }},
-      {"primary_site": "Endocrine pancreas", "project_id": "T2D", "summary": { "case_count": 75, "file_count": 175 }},
-      {"primary_site": "N/A", "project_id": "PTB", "summary": { "case_count": 60, "file_count": 120 }}
-    ],
-  "pagination": {"count": 5, "sort": "summary.case_count:desc", "from": 1, "page": 1, "total": 5, "pages": 1, "size": 100},
-  "warnings": {}}}
-"""
+        for p in pdata:
+            proj_list.append({ "project_id": p["p"]["name"], "primary_site": "multiple", "disease_type": "unknown", "released": True, "name": p["p"]["name"] })
+
+        np = len(proj_list)
+
+        p_str = "{ \"count\": %s, \"sort\": \"\", \"from\": 1, \"page\": 1, \"total\": %s, \"pages\": 1, \"size\": 100 }" % (np, np)
+        hit_str = json.dumps(proj_list)
+        return "{\"data\" : {\"hits\" : [ %s ], \"pagination\": %s}, \"warnings\": {}}" % (hit_str, p_str)
+
+    # /projects request WITH facets parameter
+    # 
+    # e.g., like this one from the portal home page: 
+    #  https://gdc-api.nci.nih.gov/v0/projects?facets=primary_site&fields=primary_site,project_id,summary.case_count,summary.file_count&filters=%7B%7D&from=1&size=1000&sort=summary.case_count:desc
+    #
+    # which expects a response like the following (with one hit per project and an 'aggregations' field that gives
+    #    the number of _projects_ associated with each primary_site):
+    #
+    # {"data": {
+    #  "pagination": {"count": 39, "sort": "summary.case_count:desc", "from": 1, "page": 1, "total": 39, "pages": 1, "size": 1000}, 
+    #  "hits": [
+    #     {"project_id": "TARGET-NBL", "primary_site": "Nervous System", "summary": {"case_count": 1120, "file_count": 2803}}, 
+    #     ...
+    # "aggregations": {"primary_site": {"buckets": [{"key": "Kidney", "doc_count": 6}, {"key": "Adrenal Gland", "doc_count": 2}, ... ]}}}, 
+    # "warnings": {}}
+
+    # HACK - should go through GQL endpoint
+    pd = get_all_proj_counts()
+
+    npd = len(pd)
+    p_str = "{ \"count\": %d, \"sort\": \"\", \"from\": 1, \"page\": 1, \"total\": %d, \"pages\": 1, \"size\": 100 }" % (npd, npd)
+    counts = {}
+    hit_list = []
+
+    for p in pd:
+        proj_id = p["p.name"]
+        psite = p["Sample.body_site"]
+        n_files = p["file_count"]
+        n_cases = n_files / 2
+        if psite is None:
+            psite = "None"
+        if psite in counts:
+            counts[psite] = counts[psite] + 1
+        else:
+            counts[psite] =  1
+        hit_list.append({"primary_site" : psite, "project_id": proj_id , "summary": { "case_count": n_cases, "file_count": n_files} })
+
+    buckets_list = []
+    for ckey in counts:
+        ccount = counts[ckey]
+        buckets_list.append({ "key": ckey, "doc_count": ccount})
+
+    buckets_str = json.dumps(buckets_list)
+    hit_str = json.dumps(hit_list)
+    agg_str = "{ \"primary_site\": { \"buckets\": %s }}" % (buckets_str)
+
+    return "{\"data\" : {\"aggregations\": %s, \"hits\" : %s, \"pagination\": %s}, \"warnings\": {}}" % (agg_str, hit_str, p_str)
 
 @app.route('/annotations', methods=['GET','OPTIONS'])
 def get_annotation():
