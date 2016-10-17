@@ -15,7 +15,7 @@ tstr6 = '{"op":"and","content":[{"op":"in","content":{"field":"cases.project.pri
 tstr7 = '{"op":"and","content":[{"op":"AND","content":[{"op":"in","content":{"field":"cases.ProjectName","value":["Human Microbiome Project (HMP)","iHMP"]}},{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"Vagina [FMA:19949]"}}]}]}'
 
 comp_ops = ["=",">",">=","<","<=","!=","EXCLUDE","IN","in","IS","NOT"] # distinguishing factor from the next is "in" which is utilized in facet
-comp_ops2 = ["AND","OR","=",">",">=","<","<=","!=","EXCLUDE","IN","IS","NOT"] # separate group to delineate when to combine left/right halves of string
+comp_ops2 = ["AND","OR","=",">",">=","<","<=","!=","EXCLUDE","IN","IS","NOT", "and", "or"] # separate group to delineate when to combine left/right halves of string
 comps = set(comp_ops)
 comps2 = set(comp_ops2)
 
