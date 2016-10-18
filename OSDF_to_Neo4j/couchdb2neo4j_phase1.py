@@ -33,6 +33,8 @@ nodes = {
     'host_seq_prep': 'Host_Seq_Prep',
     'wgs_raw_seq_set': 'WGS_Raw_Seq_Set',
     'host_wgs_raw_seq_set': 'Host_WGS_Raw_Seq_Set',
+    'microb_transcriptomics_raw_seq_set': 'Microb_Transcriptomics_Raw_Seq_Set',
+    'host_transcriptomics_raw_seq_set': 'Host_Transcriptomics_Raw_Seq_Set',
     'wgs_assembled_seq_set': 'WGS_Assembled_Seq_Set',
     'viral_seq_set': 'Viral_Seq_Set',
     'annotation': 'Annotation',
@@ -62,21 +64,42 @@ edges = {
     'computed_from': 'COMPUTED_FROM'
 }
 
-# Recurse through JSON object
-def traverse_json(x, arr):
+# Skip any nested dictionaries like those under 'doc' or 'meta'. 'linkage' is
+# skipped since this script is only concerned with creating nodes, not edges.
+# Also skip numerous CouchDB specific attributes (_rev, rev, key, _id). 
+skipUs = ['value','doc','meta','linkage','sequenced_from','acl','_rev','rev','key','_id']
+skip = set(skipUs) 
+e = set(edges)
+
+# Recurse through JSON object. Note that throughout this function many nodes are
+# likely to be created per document depending on the number of unique tags found.
+def traverse_json(x, arr, uset):
     if type(x) is dict and x: # iterate over each dictionary
+
         for k,v in x.iteritems():
-            print "%s --> %s" % (k,v)
-        return max(traverse_json(x[a], arr) for a in x)
+            if v == "": 
+                pass
+            elif k in skip or k in e: # skip info we don't want to transfer and edge info for now
+                pass
+            else: 
+                if k == "tags": # new node for each new tag
+                    for j in v:
+                        if j not in uset and len(j)<25:
+                            uset.add(j) # union to add values
+                            cstr = "CREATE (node:Tags{term:'%s'})" % (j)
+                            cypher.run(cstr)
+
+        return max(traverse_json(x[a], arr, uset) for a in x)
+
     if type(x) is list and x: # handle potential lists of dictionaries
-        return max(traverse_json(a, arr) for a in x)
+        return max(traverse_json(a, arr, uset) for a in x)
+        
     return arr
+
+uniqueTags = set() # Create one 'Tag' node per unique found tag property value
 
 for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None: # ignore history documents
         arr = [] # reinitialize array at each new document
-        traverse_json(x, arr)
-        print
-        print
-
-
+        traverse_json(x, arr, uniqueTags)
+        print (len(uniqueTags))
