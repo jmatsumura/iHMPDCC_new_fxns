@@ -73,6 +73,7 @@ skipUs = ['value','doc','meta','linkage','sequenced_from','acl','_rev','rev','ke
 skip = set(skipUs) 
 e = set(edges)
 
+
 # Recurse through JSON object. Note that throughout this function many nodes are
 # likely to be created per document depending on the number of unique tags found.
 def traverse_json(x, snode):
@@ -87,7 +88,7 @@ def traverse_json(x, snode):
                 # Tags (list), MIMARKS (dict), and mixs (dict), should be individual nodes so add now
                 if k == "tags": # new node for each new tag in this list
                     for tag in v:
-                        cstr = "MERGE (node:Tags{term:'%s'})" % (tag)
+                        cstr = "MERGE (node:Tags { term:'%s' })" % (tag)
                         cypher.run(cstr)
                 elif k == "mimarks" or k == 'mixs':
                     for key,value in v.iteritems():
@@ -96,10 +97,10 @@ def traverse_json(x, snode):
                         else:
                             if isinstance(value, list): # some of the values in mixs/MIMARKS are lists
                                 for z in value:
-                                    cstr = "MERGE (node:%s{%s:'%s'})" % (nodes[k],key,z)
+                                    cstr = "MERGE (node:%s { %s:'%s' })" % (nodes[k],key,z)
                                     cypher.run(cstr)
                             else:
-                                cstr = "MERGE (node:%s{%s:'%s'})" % (nodes[k],key,value)
+                                cstr = "MERGE (node:%s { %s:'%s' })" % (nodes[k],key,value)
                                 cypher.run(cstr)
 
                 else: # any attributes other than tags, mimarks, or mixs, process here
@@ -115,20 +116,18 @@ def traverse_json(x, snode):
                     if k == "urls":
                         prop = "" # variable prop name for each URL, shouldn't expect consistent ordering
                         for file in v:
-                            if 'fpt://' in file:
+                            if 'ftp://' in file:
                                 prop = "ftp"
                             elif 'http://' in file:
                                 prop = "http"
                             elif 's3://' in file:
                                 prop = "s3"
-                            cstr = "%s:%s" % (prop,file) # build string appropriate for Neo4j
-                            if cstr not in snode: # ensure no dupes due to recursion
-                                snode.add(cstr)
+                            if prop not in snode: # ensure no dupes due to recursion
+                                snode[prop] = file
 
-                    else:
-                        cstr = "%s:%s" % (k,v) 
-                        if cstr not in snode: 
-                            snode.add(cstr)
+                    else: 
+                        if k not in snode: 
+                            snode[k] = v
 
         return max(traverse_json(x[a], snode) for a in x)
 
@@ -137,7 +136,19 @@ def traverse_json(x, snode):
         
     return snode # give back the attributes of a single doc which will convert to a single node
 
+# Some terminal feedback
+print "Approximate number of documents found in CouchDB (likely includes _hist entries which are ignored) = %s" % (len(docList))
+m = 0
+# Iterate over each doc from CouchDB and insert the nodes into Neo4j.
 for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None: # ignore history documents
-        singleNode = set() # reinitialize array at each new document
-        node = traverse_json(x, singleNode)
+        singleNode = {} # reinitialize array at each new document
+        res = traverse_json(x, singleNode)
+        props = ' , '.join(["%s:'%s'" % (key, value) for (key, value) in res.items()])
+        cstr = "MERGE (node:`%s` { %s })" % (nodes[res['node_type']],props)
+        cypher.run(cstr)
+        if m % 500 == 0:
+            print "%s documents converted into nodes and in Neo4j" % (m)
+        m += 1
+
+print "Finished. Processed a total of %s documents." % (m)
