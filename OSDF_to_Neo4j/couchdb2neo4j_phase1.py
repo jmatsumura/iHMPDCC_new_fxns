@@ -144,7 +144,7 @@ for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None: # ignore history documents
         singleNode = {} # reinitialize array at each new document
         res = traverse_json(x, singleNode)
-        props = ' , '.join(["%s:'%s'" % (key, value) for (key, value) in res.items()])
+        props = ' , '.join(['%s:"%s"' % (key, value) for (key, value) in res.items()])
         cstr = "MERGE (node:`%s` { %s })" % (nodes[res['node_type']],props)
         cypher.run(cstr)
         if m % 500 == 0:
