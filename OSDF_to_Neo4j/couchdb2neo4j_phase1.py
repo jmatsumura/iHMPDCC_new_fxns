@@ -50,6 +50,8 @@ nodes = {
     'cytokine': 'Cytokine',
     'abundance_matrix': 'Abundance_Matrix',
     'tags': 'Tags',
+    'mimarks': 'MIMARKS',
+    'mixs': 'Mixs'
 }
 
 edges = {
@@ -73,7 +75,7 @@ e = set(edges)
 
 # Recurse through JSON object. Note that throughout this function many nodes are
 # likely to be created per document depending on the number of unique tags found.
-def traverse_json(x, arr, uset):
+def traverse_json(x, snode):
     if type(x) is dict and x: # iterate over each dictionary
 
         for k,v in x.iteritems():
@@ -82,24 +84,60 @@ def traverse_json(x, arr, uset):
             elif k in skip or k in e: # skip info we don't want to transfer and edge info for now
                 pass
             else: 
-                if k == "tags": # new node for each new tag
-                    for j in v:
-                        if j not in uset and len(j)<25:
-                            uset.add(j) # union to add values
-                            cstr = "CREATE (node:Tags{term:'%s'})" % (j)
-                            cypher.run(cstr)
+                # Tags (list), MIMARKS (dict), and mixs (dict), should be individual nodes so add now
+                if k == "tags": # new node for each new tag in this list
+                    for tag in v:
+                        cstr = "MERGE (node:Tags{term:'%s'})" % (tag)
+                        cypher.run(cstr)
+                elif k == "mimarks" or k == 'mixs':
+                    for key,value in v.iteritems():
+                        if value == "" or not value: # check for empty string/list
+                            pass
+                        else:
+                            if isinstance(value, list): # some of the values in mixs/MIMARKS are lists
+                                for z in value:
+                                    cstr = "MERGE (node:%s{%s:'%s'})" % (nodes[k],key,z)
+                                    cypher.run(cstr)
+                            else:
+                                cstr = "MERGE (node:%s{%s:'%s'})" % (nodes[k],key,value)
+                                cypher.run(cstr)
 
-        return max(traverse_json(x[a], arr, uset) for a in x)
+                else: # any attributes other than tags, mimarks, or mixs, process here
+
+                    # A few keys need special handling due to their values not being strings
+                    if k == "write":
+                        v = v[0]
+                    elif k == "read":
+                        v = v[0]
+                    elif k == "checksums":
+                        v = v['md5']
+                    
+                    if k == "urls":
+                        prop = "" # variable prop name for each URL, shouldn't expect consistent ordering
+                        for file in v:
+                            if 'fpt://' in file:
+                                prop = "ftp"
+                            elif 'http://' in file:
+                                prop = "http"
+                            elif 's3://' in file:
+                                prop = "s3"
+                            cstr = "%s:%s" % (prop,file) # build string appropriate for Neo4j
+                            if cstr not in snode: # ensure no dupes due to recursion
+                                snode.add(cstr)
+
+                    else:
+                        cstr = "%s:%s" % (k,v) 
+                        if cstr not in snode: 
+                            snode.add(cstr)
+
+        return max(traverse_json(x[a], snode) for a in x)
 
     if type(x) is list and x: # handle potential lists of dictionaries
-        return max(traverse_json(a, arr, uset) for a in x)
+        return max(traverse_json(a, snode) for a in x)
         
-    return arr
-
-uniqueTags = set() # Create one 'Tag' node per unique found tag property value
+    return snode # give back the attributes of a single doc which will convert to a single node
 
 for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None: # ignore history documents
-        arr = [] # reinitialize array at each new document
-        traverse_json(x, arr, uniqueTags)
-        print (len(uniqueTags))
+        singleNode = set() # reinitialize array at each new document
+        node = traverse_json(x, singleNode)
