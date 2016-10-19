@@ -18,6 +18,7 @@ nodes = {
     'wgs_dna_prep': 'WGS_DNA_Prep',
     'host_seq_prep': 'Host_Seq_Prep',
     'wgs_raw_seq_set': 'WGS_Raw_Seq_Set',
+    'wgs_raw_seq_set_private': 'WGS_Raw_Seq_Set_Private',
     'host_wgs_raw_seq_set': 'Host_WGS_Raw_Seq_Set',
     'microb_transcriptomics_raw_seq_set': 'Microb_Transcriptomics_Raw_Seq_Set',
     'host_transcriptomics_raw_seq_set': 'Host_Transcriptomics_Raw_Seq_Set',

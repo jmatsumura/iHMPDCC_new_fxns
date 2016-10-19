@@ -112,11 +112,11 @@ for x in docList:
             if y > 0: # add comma for every subsequent key/value pair
                 props += ',' 
             if isinstance(value, int) or isinstance(value, float):
-                props += '%s:%s' % (key,value)
+                props += '`%s`:%s' % (key,value)
                 y += 1
             else:
                 value = value.replace('"',"'")
-                props += '%s:"%s"' % (key,value)
+                props += '`%s`:"%s"' % (key,value)
                 y += 1
         cstr = "MERGE (node:`%s` { %s })" % (nodes[res['node_type']],props)
         cypher.run(cstr)
