@@ -31,7 +31,7 @@ def traverse_json(x, snode):
     if type(x) is dict and x: # iterate over each dictionary
 
         for k,v in x.iteritems():
-            if v == "": 
+            if v == "" or not v: # check for empty string/list 
                 pass
             elif k in skip or k in e: # skip info we don't want to transfer and edge info for now
                 pass
@@ -48,15 +48,15 @@ def traverse_json(x, snode):
                         else:
                             if isinstance(value, list): # some of the values in mixs/MIMARKS are lists
                                 for z in value:
-                                    z = str(z) # certain values, like 0 need to not be bools
-                                    z = z.replace("'","\'")
-                                    z = z.replace('"','\"')
+                                    if isinstance(z, str):
+                                        z = z.replace("'","\'")
+                                        z = z.replace('"','\"')
                                     cstr = "MERGE (node:%s { %s:'%s' })" % (nodes[k],key,z)
                                     cypher.run(cstr)
                             else:
-                                value = str(value)
-                                value = value.replace("'","\'")
-                                value = value.replace('"','\"')
+                                if isinstance(value, str):
+                                    value = value.replace("'","\'")
+                                    value = value.replace('"','\"')
                                 cstr = "MERGE (node:%s { %s:'%s' })" % (nodes[k],key,value)
                                 cypher.run(cstr)
 
@@ -95,17 +95,19 @@ def traverse_json(x, snode):
 
 # Some terminal feedback
 print "Approximate number of documents found in CouchDB (likely includes _hist entries which are ignored) = %s" % (len(docList))
-m = 0
+n = 0
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j.
 for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None: # ignore history documents
-        singleNode = {} # reinitialize array at each new document
+        singleNode = {} # reinitialize dict at each new document
         res = traverse_json(x, singleNode)
         props = ' , '.join(['%s:"%s"' % (key, value) for (key, value) in res.items()])
+        props = props.replace(' "',' \"') # add literal quotes for those within string
+        props = props.replace('" ','\" ')
         cstr = "MERGE (node:`%s` { %s })" % (nodes[res['node_type']],props)
         cypher.run(cstr)
-        if m % 500 == 0:
-            print "%s documents converted into nodes and in Neo4j" % (m)
-        m += 1
+        if n % 500 == 0:
+            print "%s documents converted into nodes and in Neo4j" % (n)
+        n += 1
 
-print "Finished. Processed a total of %s documents." % (m)
+print "Finished. Processed a total of %s documents." % (n)

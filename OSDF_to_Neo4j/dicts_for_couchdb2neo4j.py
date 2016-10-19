@@ -62,13 +62,13 @@ edges = {
 # Neo4j. Others, like 'associated_with' or 'computed_from' can be derived from
 # a variety of nodes so just have to do a generic search by ID to accommodate. 
 definitive_edges = {
-    'part_of': 'PART_OF',
-    'subset_of': 'SUBSET_OF',
-    'participates_in': 'PARTICIPATES_IN',
-    'by': 'BY',
-    'collected_during': 'COLLECTED_DURING',
-    'prepared_from': 'PREPARED_FROM',
-    'has_tag': 'HAS_TAG',
-    'has_mimarks': 'HAS_MIMARKS',
-    'has_mixs': 'HAS_MIXS'
+    'part_of': 'Project',
+    'subset_of': 'Study',
+    'participates_in': 'Study',
+    'by': 'Subject',
+    'collected_during': 'Visit',
+    'prepared_from': 'Sample',
+    'has_tag': 'Tags',
+    'has_mimarks': 'MIMARKS',
+    'has_mixs': 'Mixs'
 }
