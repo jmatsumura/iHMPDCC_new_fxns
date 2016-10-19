@@ -48,9 +48,15 @@ def traverse_json(x, snode):
                         else:
                             if isinstance(value, list): # some of the values in mixs/MIMARKS are lists
                                 for z in value:
+                                    z = str(z) # certain values, like 0 need to not be bools
+                                    z = z.replace("'","\'")
+                                    z = z.replace('"','\"')
                                     cstr = "MERGE (node:%s { %s:'%s' })" % (nodes[k],key,z)
                                     cypher.run(cstr)
                             else:
+                                value = str(value)
+                                value = value.replace("'","\'")
+                                value = value.replace('"','\"')
                                 cstr = "MERGE (node:%s { %s:'%s' })" % (nodes[k],key,value)
                                 cypher.run(cstr)
 

@@ -1,7 +1,8 @@
 #!/usr/bin/python
 #
-# Below are dictionaries to convert from OSDF syntax to what will be loaded
-# in Neo4j. 
+# Contains dictionaries to convert from OSDF syntax to what will be loaded in Neo4j.
+
+# This dictionary simply reformats aspects like capitalization for Neo4j. 
 nodes = {
     'project': 'Project',
     'study': 'Study',
@@ -39,8 +40,10 @@ nodes = {
     'mixs': 'Mixs'
 }
 
+# These are all the different edge types present in the schema. 
 edges = {
     'part_of': 'PART_OF',
+    'subset_of': 'SUBSET_OF',
     'participates_in': 'PARTICIPATES_IN',
     'associated_with': 'ASSOCIATED_WITH',
     'by': 'BY',
@@ -49,6 +52,22 @@ edges = {
     'sequenced_from': 'SEQUENCED_FROM',
     'derived_from': 'DERIVED_FROM',
     'computed_from': 'COMPUTED_FROM',
+    'has_tag': 'HAS_TAG',
+    'has_mimarks': 'HAS_MIMARKS',
+    'has_mixs': 'HAS_MIXS'
+}
+
+# These are the edges with definitive endpoints (can only attach to one node).
+# Thus, can use this information to subset and speed up the edge attachment in
+# Neo4j. Others, like 'associated_with' or 'computed_from' can be derived from
+# a variety of nodes so just have to do a generic search by ID to accommodate. 
+definitive_edges = {
+    'part_of': 'PART_OF',
+    'subset_of': 'SUBSET_OF',
+    'participates_in': 'PARTICIPATES_IN',
+    'by': 'BY',
+    'collected_during': 'COLLECTED_DURING',
+    'prepared_from': 'PREPARED_FROM',
     'has_tag': 'HAS_TAG',
     'has_mimarks': 'HAS_MIMARKS',
     'has_mixs': 'HAS_MIXS'
