@@ -21,7 +21,7 @@ cypher = graph
 # Skip any nested dictionaries like those under 'doc' or 'meta'. 'linkage' is
 # skipped since this script is only concerned with creating nodes, not edges.
 # Also skip numerous CouchDB specific attributes (_rev, rev, key, _id). 
-skipUs = ['value','doc','meta','linkage','sequenced_from','acl','_rev','rev','key','_id']
+skipUs = ['value','doc','meta','linkage','sequenced_from','acl','_rev','rev','key','_id','_search']
 skip = set(skipUs) 
 e = set(edges)
 
@@ -69,7 +69,13 @@ def traverse_json(x, snode):
                         v = v[0]
                     elif k == "checksums":
                         v = v['md5']
-                    
+                    elif k == "contact": # Note, building a single string out of potentially many here for now
+                        contacts = []
+                        for i in v:
+                            if "@" in i:
+                                contacts.append(i)
+                        v = (',').join(contacts)
+
                     if k == "urls":
                         prop = "" # variable prop name for each URL, shouldn't expect consistent ordering
                         for file in v:
@@ -81,9 +87,8 @@ def traverse_json(x, snode):
                                 prop = "s3"
                             if prop not in snode and prop != "": # ensure no dupes due to recursion
                                 snode[prop] = file
-
                     else: 
-                        if k not in snode: 
+                        if k not in snode and not isinstance(v, dict) and not isinstance(v, list): # reached single k/v pairs, add now
                             snode[k] = v
 
         return max(traverse_json(x[a], snode) for a in x)
@@ -101,9 +106,18 @@ for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None: # ignore history documents
         singleNode = {} # reinitialize dict at each new document
         res = traverse_json(x, singleNode)
-        props = ' , '.join(['%s:"%s"' % (key, value) for (key, value) in res.items()])
-        props = props.replace(' "',' \"') # add literal quotes for those within string
-        props = props.replace('" ','\" ')
+        props = ""
+        y = 0 # track how many props are being added
+        for key,value in res.iteritems():
+            if y > 0: # add comma for every subsequent key/value pair
+                props += ',' 
+            if isinstance(value, int) or isinstance(value, float):
+                props += '%s:%s' % (key,value)
+                y += 1
+            else:
+                value = value.replace('"',"'")
+                props += '%s:"%s"' % (key,value)
+                y += 1
         cstr = "MERGE (node:`%s` { %s })" % (nodes[res['node_type']],props)
         cypher.run(cstr)
         if n % 500 == 0:
