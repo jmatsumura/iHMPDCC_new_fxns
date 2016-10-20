@@ -85,6 +85,8 @@ def traverse_json(x, snode):
                                 prop = "http"
                             elif 's3://' in file:
                                 prop = "s3"
+                            elif 'fasp://' in file:
+                                prop = "fasp"
                             if prop not in snode and prop != "": # ensure no dupes due to recursion
                                 snode[prop] = file
                     else: 
@@ -118,8 +120,9 @@ for x in docList:
                 value = value.replace('"',"'")
                 props += '`%s`:"%s"' % (key,value)
                 y += 1
-        cstr = "MERGE (node:`%s` { %s })" % (nodes[res['node_type']],props)
-        cypher.run(cstr)
+        if 'node_type' in res: # if no node type, need to ignore     
+            cstr = "CREATE (node:`%s` { %s })" % (nodes[res['node_type']],props) # create should make this faster, trust CouchDB to guarantee unique
+            cypher.run(cstr)
         if n % 500 == 0:
             print "%s documents converted into nodes and in Neo4j" % (n)
         n += 1
