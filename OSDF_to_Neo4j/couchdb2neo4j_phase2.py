@@ -27,7 +27,7 @@ de = set (definitive_edges)
 # the lookup phase. Accepts the name of a node (possible values in dicts_for_couchdb2neo4j)
 # and the property that that node ought to be indexed by. 
 def build_index(node,prop):
-    cstr = "CREATE INDEX ON: %s(%s)" % (node,prop)
+    cstr = "CREATE INDEX ON: `%s`(%s)" % (node,prop)
     cypher.run(cstr)
 
 # Function to build an edge between two nodes. Accepts the following parameters:
@@ -46,11 +46,11 @@ def build_edge(n1,id,link,n2,n2_p,n2_v):
 
 # These indices will be used a lot and belong to edges where the endpoint,
 # as well as the property to match to, is known. 
-build_index('Project','id')
-build_index('Study','id')
-build_index('Subject','id')
-build_index('Visit','id')
-build_index('Sample','id')
+noId = ['tags','mimarks','mixs']
+for k,v in nodes.iteritems(): # build indices on primary key of all those nodes that have one
+    if k not in noId:
+        build_index(v,'id')
+
 build_index('Tags','term')
 
 # Recurse through JSON object and find anything that pertains to an edge. 
@@ -111,13 +111,15 @@ for x in docList:
         res = traverse_json(x, singleNode)
         id = res['id']
         nt = res['node_type']
-        tg = res['tags']
         mm = res['mimarks']
         mx = res['mixs']
         lk = res['linkage'] # two elements = edge type + id (so 1 edge)
+        tg = ""
         
-        for tag in tg:
-            build_edge(nodes[nt],id,edges['has_tag'],nodes['tags'],'term',tag)
+        if 'tags' in res: # some nodes may be missing this. 
+            tg = res['tags']
+            for tag in tg:
+                build_edge(nodes[nt],id,edges['has_tag'],nodes['tags'],'term',tag)
         
         for mim in mm:
             p = re.search(regexForPropValue,mim).group(1)
@@ -137,7 +139,7 @@ for x in docList:
 
         tot += (1+len(tg)+len(mm)+len(mx)+len(lk)/2) 
         if tot > breaks:
-            print "%s\t\tedges added." % (tot)
+            print "%s\t\tedges added." % (breaks)
             breaks += 1000
 
 print "Finished. Attached a total of %s edges." % (tot)
