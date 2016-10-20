@@ -9,6 +9,8 @@ GDC - Dockerfile to build the GDC front-end website.
 
 GQL_OSDF - Python Flask app that runs the back-end for the GDC front. Uses GraphQL and Neo4j.
 
+OSDF_to_Neo4j - Scripts for converting OSDF (CouchDB) into Neo4j.
+
 misc - Contains files like the conf for Neo4j that can be easily copied for personal use. 
 
 OSDF - (not currently used) Docker file to build OSDF and all of its dependencies.

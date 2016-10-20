@@ -39,10 +39,10 @@ def build_index(node,prop):
 def build_edge(n1,id,link,n2,n2_p,n2_v):
     cstr = ""
     if n2 != 'noidea': # Both node names are known here
-        cstr = "MERGE (n1:%s{`id`:'%s'})-[:%s]-(n2:%s{`%s`:'%s'})" % (n1,id,link,n2,n2_p,n2_v)
+        cstr = "MATCH (n1:`%s`{`id`:'%s'}),(n2:`%s`{`%s`:'%s'}) CREATE (n1)-[:%s]->(n2)" % (n1,id,n2,n2_p,n2_v,link)
     else: # Don't know what the node is definitively, have to find it
-        cstr = "MERGE (n1:%s{`id`:'%s'})-[:%s]-(n2 {`%s`:'%s'})" % (n1,id,link,n2_p,n2_v)
-    cypher.run(str)
+        cstr = "MATCH (n1:`%s`{`id`:'%s'}),(n2 {`%s`:'%s'}) CREATE (n1)-[:%s]->(n2)" % (n1,id,n2_p,n2_v,link)
+    cypher.run(cstr)
 
 # These indices will be used a lot and belong to edges where the endpoint,
 # as well as the property to match to, is known. 
@@ -76,14 +76,14 @@ def traverse_json(x, snode):
                                 if isinstance(z, str):
                                     z = z.replace("'","\'")
                                     z = z.replace('"','\"')
-                                combined = "%s:'%s'" % (key,z)
+                                combined = "%s:%s" % (key,z)
                                 if combined not in snode[k]:
                                     snode[k].append(combined)
                         else:
                             if isinstance(value, str):
                                 value = value.replace("'","\'")
                                 value = value.replace('"','\"')
-                            combined = "%s:'%s'" % (key,value)
+                            combined = "%s:%s" % (key,value)
                             if combined not in snode[k]:
                                 snode[k].append(combined)
 
@@ -100,6 +100,7 @@ regexForPropValue = r"(.*):(.*)"
 # Some terminal feedback
 print "Beginning to add the edges to all docs within the file '%s'. Total number of docs (including _hist) is = %s" % (sys.argv[1],len(docList))
 tot = 0 # count total number of edges for verification
+breaks = 1000 # break up the output
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j.
 for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None: # ignore history documents
@@ -116,27 +117,27 @@ for x in docList:
         lk = res['linkage'] # two elements = edge type + id (so 1 edge)
         
         for tag in tg:
-            build_edge(nt,id,edges['has_tag'],nodes['tags'],'term',tag)
+            build_edge(nodes[nt],id,edges['has_tag'],nodes['tags'],'term',tag)
         
         for mim in mm:
             p = re.search(regexForPropValue,mim).group(1)
             v = re.search(regexForPropValue,mim).group(2)
-            build_edge(nt,id,edges['has_mimarks'],nodes['mimarks'],p,v)
+            build_edge(nodes[nt],id,edges['has_mimarks'],nodes['mimarks'],p,v)
 
         for mix in mx:
             p = re.search(regexForPropValue,mix).group(1)
             v = re.search(regexForPropValue,mix).group(2)
-            build_edge(nt,id,edges['has_mixs'],nodes['mixs'],p,v)
+            build_edge(nodes[nt],id,edges['has_mixs'],nodes['mixs'],p,v)
 
         for links in lk:
             if links[0] in definitive_edges:
-                build_edge(id,nt,edges[links[0]],definitive_edges[links[0]],'id',[links[1]][0][0])
+                build_edge(nodes[nt],id,edges[links[0]],definitive_edges[links[0]],'id',[links[1]][0][0])
             else:
-                build_edge(id,nt,edges[links[0]],'noidea','id',[links[1]][0][0])
+                build_edge(nodes[nt],id,edges[links[0]],'noidea','id',[links[1]][0][0])
 
-        n = 0 # find how many edges added from this doc
-        n += (1+len(tg)+len(mm)+len(mx)+len(lk)/2) 
-        tot += n
-        print "%s\t\tedges added, totaling to\t\t%s" % (n,tot)
+        tot += (1+len(tg)+len(mm)+len(mx)+len(lk)/2) 
+        if tot > breaks:
+            print "%s\t\tedges added." % (tot)
+            breaks += 1000
 
 print "Finished. Attached a total of %s edges." % (tot)
