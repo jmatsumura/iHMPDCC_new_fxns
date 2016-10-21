@@ -3,34 +3,28 @@
 # Script to go through a CouchDB dump of OSDF data and create the respective
 # nodes in Neo4j. 
 #
-# Accepts two parameters:
+# Accepts the following parameter:
 # 1) Path to couchdb_dump.json file
-# 2) 'yshell' or 'nshell' for 'yes shell' or 'no shell'. 'yshell' means
-# you want to run this script by building a file that is then used by
-# the neo4j-shell in order to insert the nodes. 'nshell' means you want
-# to perform all the Cypher queries through py2neo. The latter is more 
-# useful for debugging as it errors out more verbosely. 
 #
-# Note that if you choose 'yshell', you need to run a command like:
+### PLEASE NOTE ###
+# After this script finishes, an output file will be written to the directory the script
+# was invoked in. This file needs to be passed to the neo4j-shell for loading using the
+# following command (note make sure the database is as you want it to be as this will
+# be using largely CREATE statements, not MERGE, so it is likely to double the data if 
+# you are not starting with a new database):
 # /path/to/neo4j/bin/neo4j-shell -path /data/databases/my_graph.db -c < /couchdb2neo4.phase1.out
 #
 # Phase 1 consists of simply converting all documents+attributes into
 # nodes+properties. Phase 2 will add the relevant edges to the nodes. 
 
 import json, sys, re
-from py2neo import Graph
-from dicts_for_couchdb2neo4j import nodes, edges
+from dicts_for_couchdb2neo4j import nodes, edges, definitive_edges
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
 docList = json_data['rows']
 
-shell = sys.argv[2] # 'yshell' or 'nshell' for 'yes shell' or 'no shell'
-o = "" # place here in case an output file needed
-
-neo4j_password = "neo4j" # Neo4j setup
-graph = Graph(password = neo4j_password)
-cypher = graph
+o = open('./couchdb2neo4j.cypher','w')
 
 #########
 # NODES #
@@ -43,7 +37,6 @@ def build_index(node,prop,output):
     cstr = "CREATE INDEX ON: `%s`(%s);\n" % (node,prop)
     output.write(cstr+'\n')
 
-o = open('./couchdb2neo4j.cypher','w')
 o.write('BEGIN'+'\n')
 # These indices will be used a lot and belong to edges where the endpoint,
 # as well as the property to match to, is known. 
@@ -77,10 +70,7 @@ def traverse_json_nodes(x, snode):
                 if k == "tags": # new node for each new tag in this list
                     for tag in v:
                         cstr = "MERGE (node:Tags { term:'%s' })" % (tag)
-                        if shell == 'yshell':
-                            o.write(cstr+'\n')
-                        else:
-                            cypher.run(cstr)
+                        o.write(cstr+'\n')
                 elif k == "mimarks" or k == 'mixs':
                     for key,value in v.iteritems():
                         if value == "" or not value: # check for empty string/list
