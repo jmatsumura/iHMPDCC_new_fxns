@@ -23,13 +23,6 @@ cypher = graph
 e = set(edges)
 de = set (definitive_edges)
 
-# Function to build an index in Neo4j to make edge connection a bit faster during
-# the lookup phase. Accepts the name of a node (possible values in dicts_for_couchdb2neo4j)
-# and the property that that node ought to be indexed by. 
-def build_index(node,prop):
-    cstr = "CREATE INDEX ON: `%s`(%s)" % (node,prop)
-    cypher.run(cstr)
-
 # Function to build an edge between two nodes. Accepts the following parameters:
 # n1: Neo4j node name of the document currently being processed
 # id: ID of this n1 source node
@@ -43,15 +36,6 @@ def build_edge(n1,id,link,n2,n2_p,n2_v):
     else: # Don't know what the node is definitively, have to find it
         cstr = "MATCH (n1:`%s`{`id`:'%s'}),(n2 {`%s`:'%s'}) CREATE (n1)-[:%s]->(n2)" % (n1,id,n2_p,n2_v,link)
     cypher.run(cstr)
-
-# These indices will be used a lot and belong to edges where the endpoint,
-# as well as the property to match to, is known. 
-noId = ['tags','mimarks','mixs']
-for k,v in nodes.iteritems(): # build indices on primary key of all those nodes that have one
-    if k not in noId:
-        build_index(v,'id')
-
-build_index('Tags','term')
 
 # Recurse through JSON object and find anything that pertains to an edge. 
 def traverse_json(x, snode):
@@ -110,11 +94,14 @@ for x in docList:
         singleNode['linkage'] = []
         res = traverse_json(x, singleNode)
         id = res['id']
-        nt = res['node_type']
         mm = res['mimarks']
         mx = res['mixs']
         lk = res['linkage'] # two elements = edge type + id (so 1 edge)
         tg = ""
+        nt = ""
+
+        if 'node_type' in res: # must be a node if edges are to be added
+            nt = res['node_type']
         
         if 'tags' in res: # some nodes may be missing this. 
             tg = res['tags']
