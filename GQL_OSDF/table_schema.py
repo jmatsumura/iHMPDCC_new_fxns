@@ -20,10 +20,10 @@ class Query(graphene.ObjectType):
 
     def resolve_hits(self, args, context, info):
         cy = args['cy'].replace("|",'"') # handle quotes for GQL
-        o = args['o'].replace("file_name","Sample._id") # lose the portal ordering syntax
+        o = args['o'].replace("file_name","Sample.id") # lose the portal ordering syntax
         o = o.replace(".raw","")
         if args['cy'] == "":
-            return get_file_hits(args['s'],"Sample._id:asc",args['f'],"")
+            return get_file_hits(args['s'],"Sample.id:asc",args['f'],"")
         else:
             return get_file_hits(args['s'],o,args['f'],cy)
 

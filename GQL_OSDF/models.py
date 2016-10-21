@@ -120,7 +120,7 @@ def convert_gdc_to_osdf(inp_str):
     inp_str = inp_str.replace("cases.SubjectGender","Subject.gender")
     inp_str = inp_str.replace("project.primary_site","Sample.body_site")
     inp_str = inp_str.replace("subject.gender","Subject.gender")
-    inp_str = inp_str.replace("files.file_id","sf._id")
+    inp_str = inp_str.replace("files.file_id","sf.id")
     # Next two lines guarantee URL encoding (seeing errors with urllib)
     inp_str = inp_str.replace('"','|')
     inp_str = inp_str.replace(" ","%20")
@@ -211,7 +211,7 @@ def get_files(sample_id):
     regex_for_http_urls = '\,\su(http.*data/(.*))\,'
     pattern = re.compile(regex_for_http_urls)
     
-    cquery = "MATCH (b:Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE b._id=\"%s\" RETURN s, c" % (sample_id)
+    cquery = "MATCH (b:Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE b.id=\"%s\" RETURN s, c" % (sample_id)
     res = graph.data(cquery)
 
     for x in range(0,len(res)): # iterate over each unique path
@@ -220,7 +220,7 @@ def get_files(sample_id):
             df = res[x][key]['format']
             ac = "open" # again, default to accommodate current GDC format
             fs = res[x][key]['size']
-            fi = res[x][key]['_id']
+            fi = res[x][key]['id']
             fn = extract_url(res[x][key]['urls'])
             fl.append(IndivFiles(dataType=dt,fileName=fn,dataFormat=df,access=ac,fileId=fi,fileSize=fs))
 
@@ -228,7 +228,7 @@ def get_files(sample_id):
 
 # Query to traverse top half of OSDF model (Project<-....-Sample). 
 def get_proj_data(sample_id):
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(SUBJECT)<-[:BY]-(VISIT)<-[:COLLECTED_DURING]-(Sample) WHERE Sample._id=\"%s\" RETURN p" % (sample_id)
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(SUBJECT)<-[:BY]-(VISIT)<-[:COLLECTED_DURING]-(Sample) WHERE Sample.id=\"%s\" RETURN p" % (sample_id)
     res = graph.data(cquery)
     return Project(name=res[0]['p']['name'],projectId=res[0]['p']['subtype'])
 
@@ -297,12 +297,12 @@ def get_case_hits(size,order,f,cy):
     cquery = ""
     if cy == "":
         order = order.split(":")
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project.name,Project.subtype,Sample.body_site,Sample._id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),f-1,size)
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project.name,Project.subtype,Sample.body_site,Sample.id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),f-1,size)
     else:
         cquery = build_cypher(match,cy,order,f,size,"cases")
     res = graph.data(cquery)
     for x in range(0,len(res)):
-        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.body_site'],name=res[x]['Project.name'],diseaseType="demo"),caseId=res[x]['Sample._id'])
+        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.body_site'],name=res[x]['Project.name'],diseaseType="demo"),caseId=res[x]['Sample.id'])
         hits.append(cur)
     return hits
 
@@ -314,18 +314,18 @@ def get_file_hits(size,order,f,cy):
     cquery = ""
     if cy == "":
         order = order.split(":")
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project,sf,cf,Sample._id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),f-1,size/2)
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project,sf,cf,Sample.id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),f-1,size/2)
     else:
         cquery = build_cypher(match,cy,order,f,size/2,"files")
     res = graph.data(cquery)
     for x in range(0,len(res)):
         case_hits = [] # reinit each iteration
-        cur_case = CaseHits(project=Project(projectId=res[x]['Project']['subtype'],name=res[x]['Project']['name']),caseId=res[x]['Sample._id'])
+        cur_case = CaseHits(project=Project(projectId=res[x]['Project']['subtype'],name=res[x]['Project']['name']),caseId=res[x]['Sample.id'])
         case_hits.append(cur_case)
         fn_s = extract_url(res[x]['sf']['urls']) # File name is our URL
         fn_c = extract_url(res[x]['cf']['urls'])
-        cur_file1 = FileHits(dataType=res[x]['sf']['subtype'],fileName=fn_s,dataFormat=res[x]['sf']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['sf']['_id'],dataCategory=res[x]['sf']['node_type'],experimentalStrategy=res[x]['sf']['subtype'],fileSize=res[x]['sf']['size'],cases=case_hits)
-        cur_file2 = FileHits(dataType=res[x]['cf']['subtype'],fileName=fn_c,dataFormat=res[x]['cf']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['cf']['_id'],dataCategory=res[x]['cf']['node_type'],experimentalStrategy=res[x]['cf']['subtype'],fileSize=res[x]['cf']['size'],cases=case_hits) 
+        cur_file1 = FileHits(dataType=res[x]['sf']['subtype'],fileName=fn_s,dataFormat=res[x]['sf']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['sf']['id'],dataCategory=res[x]['sf']['node_type'],experimentalStrategy=res[x]['sf']['subtype'],fileSize=res[x]['sf']['size'],cases=case_hits)
+        cur_file2 = FileHits(dataType=res[x]['cf']['subtype'],fileName=fn_c,dataFormat=res[x]['cf']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['cf']['id'],dataCategory=res[x]['cf']['node_type'],experimentalStrategy=res[x]['cf']['subtype'],fileSize=res[x]['cf']['size'],cases=case_hits) 
         hits.append(cur_file1)
         hits.append(cur_file2)       
     return hits
@@ -339,43 +339,43 @@ def get_file_hits(size,order,f,cy):
 #return FileHits(dataType=,fileName=fn,md5sum=,dataFormat=,submitterId="",state="submitted",access="open",fileId=,dataCategory=,experimentalStrategy=,fileSize=,cases=,associatedEntities=,analysis=)
 def get_16s_raw_seq_set(id):
     cl, al, fl = ([] for i in range(3))
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE s._id=\"%s\" RETURN p,prep,s,c,b" % (id)
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE s.id=\"%s\" RETURN p,prep,s,c,b" % (id)
     res = graph.data(cquery)
     fn = extract_url(res[0]['s']['urls'])
     wf = "%s -> %s" % (res[0]['prep']['subtype'],res[0]['s']['subtype']) # this WF could be quite revealing, decide a more complete definition later
-    cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['_id']))
-    al.append(AssociatedEntities(entityId=res[0]['prep']['_id'],caseId=res[0]['b']['_id'],entityType="prep"))
-    al.append(AssociatedEntities(entityId=res[0]['c']['_id'],caseId=res[0]['b']['_id'],entityType="trimmed set")) 
+    cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['id']))
+    al.append(AssociatedEntities(entityId=res[0]['prep']['id'],caseId=res[0]['b']['id'],entityType="prep"))
+    al.append(AssociatedEntities(entityId=res[0]['c']['id'],caseId=res[0]['b']['id'],entityType="trimmed set")) 
     fl.append(IndivFiles(fileId="null"))
     a = Analysis(updatedDatetime="null",workflowType=wf,analysisId="null",inputFiles=fl)
-    return FileHits(dataType=res[0]['s']['subtype'],fileName=fn,md5sum=res[0]['s']['checksums'],dataFormat=res[0]['s']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['s']['_id'],dataCategory="16S",experimentalStrategy=res[0]['s']['study'],fileSize=res[0]['s']['size'],cases=cl,associatedEntities=al,analysis=a)
+    return FileHits(dataType=res[0]['s']['subtype'],fileName=fn,md5sum=res[0]['s']['checksums'],dataFormat=res[0]['s']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['s']['id'],dataCategory="16S",experimentalStrategy=res[0]['s']['study'],fileSize=res[0]['s']['size'],cases=cl,associatedEntities=al,analysis=a)
 
 def get_16s_trimmed_seq_set(id):
     cl, al, fl = ([] for i in range(3)) # case, associated entity, and input file lists
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE c._id=\"%s\" RETURN p,prep,s,c,b" % (id)
+    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE c.id=\"%s\" RETURN p,prep,s,c,b" % (id)
     res = graph.data(cquery)
     fn = extract_url(res[0]['c']['urls'])
     wf = "%s -> %s -> %s" % (res[0]['prep']['subtype'],res[0]['s']['subtype'],res[0]['c']['subtype']) # this WF could be quite revealing, decide a more complete definition later
-    cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['_id']))
-    al.append(AssociatedEntities(entityId=res[0]['prep']['_id'],caseId=res[0]['b']['_id'],entityType="prep"))
-    al.append(AssociatedEntities(entityId=res[0]['s']['_id'],caseId=res[0]['b']['_id'],entityType="raw set"))
-    fl.append(IndivFiles(fileId=res[0]['s']['_id']))
+    cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['id']))
+    al.append(AssociatedEntities(entityId=res[0]['prep']['id'],caseId=res[0]['b']['id'],entityType="prep"))
+    al.append(AssociatedEntities(entityId=res[0]['s']['id'],caseId=res[0]['b']['id'],entityType="raw set"))
+    fl.append(IndivFiles(fileId=res[0]['s']['id']))
     a = Analysis(updatedDatetime="null",workflowType=wf,analysisId="null",inputFiles=fl) # can add analysis ID once node is present or remove if deemed unnecessary
-    return FileHits(dataType=res[0]['c']['subtype'],fileName=fn,md5sum=res[0]['c']['checksums'],dataFormat=res[0]['c']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['c']['_id'],dataCategory="16S",experimentalStrategy=res[0]['c']['study'],fileSize=res[0]['c']['size'],cases=cl,associatedEntities=al,analysis=a)
+    return FileHits(dataType=res[0]['c']['subtype'],fileName=fn,md5sum=res[0]['c']['checksums'],dataFormat=res[0]['c']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['c']['id'],dataCategory="16S",experimentalStrategy=res[0]['c']['study'],fileSize=res[0]['c']['size'],cases=cl,associatedEntities=al,analysis=a)
 
 options = {'16s_raw_seq_set': get_16s_raw_seq_set,
     '16s_trimmed_seq_set': get_16s_trimmed_seq_set,
 }
 
 def get_file_data(file_id):
-    cquery = "MATCH (n) WHERE n._id=\"%s\" RETURN n.node_type AS type" % (file_id)
+    cquery = "MATCH (n) WHERE n.id=\"%s\" RETURN n.node_type AS type" % (file_id)
     res = graph.data(cquery)
     node = res[0]['type']
     final_res = options[node](file_id)
     return final_res
 
 def get_url_for_download(id):
-    cquery = "MATCH (n) WHERE n._id=\"%s\" RETURN n.urls AS urls" % (id)
+    cquery = "MATCH (n) WHERE n.id=\"%s\" RETURN n.urls AS urls" % (id)
     res = graph.data(cquery)
     return extract_url(res[0]['urls'])
     

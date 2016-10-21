@@ -105,8 +105,8 @@ def build_where(filters):
 # following return ends in "counts", then it is for a pie chart. The first two are for
 # cases/files tabs and the last is for the total size. 
 returns = {
-    'cases': "RETURN Project.name, Project.subtype, Sample.body_site, Sample._id, Study.name",
-    'files': "RETURN Project, sf, cf, Sample._id",
+    'cases': "RETURN Project.name, Project.subtype, Sample.body_site, Sample.id, Study.name",
+    'files': "RETURN Project, sf, cf, Sample.id",
     'name': "RETURN Project.name as prop, count(Project.name) as counts",
     'name_detailed': "RETURN Project.name as prop, count(Project.name) as ccounts, (count(sf)+count(cf)) as dcounts, (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot",
     'body_site': "RETURN Sample.body_site as prop, count(Sample.body_site) as counts",
