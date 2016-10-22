@@ -110,6 +110,8 @@ def extract_url(urls_node):
         fn = urls_node['ftp']
     elif 's3' in urls_node:
         fn = urls_node['s3']
+    else:
+        fn = "No File Found."
     return fn
 
 # Function to extract known GDC syntax and convert to OSDF. This is commonly needed for performing
