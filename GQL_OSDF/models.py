@@ -101,13 +101,15 @@ graph = Graph("http://localhost:7474/db/data/")
 
 # Function to extract a file name and an HTTP URL given values from a urls property from an OSDF node
 def extract_url(urls_node):
-    regex_for_http_urls = '(http.*data/\S+)[,\]]'
     fn = ""
-    if re.match('.*http.*', urls_node):
-        name_and_url = re.search(regex_for_http_urls, urls_node)
-        fn = name_and_url.group(1) # File name is our URL
-    else:
-        fn = "none"
+    if 'http' in urls_node:
+        fn = urls_node['http']
+    elif 'fasp' in urls_node:
+        fn = urls_node['fasp']
+    elif 'ftp' in urls_node:
+        fn = urls_node['ftp']
+    elif 's3' in urls_node:
+        fn = urls_node['s3']
     return fn
 
 # Function to extract known GDC syntax and convert to OSDF. This is commonly needed for performing
@@ -221,7 +223,7 @@ def get_files(sample_id):
             ac = "open" # again, default to accommodate current GDC format
             fs = res[x][key]['size']
             fi = res[x][key]['id']
-            fn = extract_url(res[x][key]['urls'])
+            fn = extract_url(res[x][key])
             fl.append(IndivFiles(dataType=dt,fileName=fn,dataFormat=df,access=ac,fileId=fi,fileSize=fs))
 
     return fl
@@ -322,8 +324,8 @@ def get_file_hits(size,order,f,cy):
         case_hits = [] # reinit each iteration
         cur_case = CaseHits(project=Project(projectId=res[x]['Project']['subtype'],name=res[x]['Project']['name']),caseId=res[x]['Sample.id'])
         case_hits.append(cur_case)
-        fn_s = extract_url(res[x]['sf']['urls']) # File name is our URL
-        fn_c = extract_url(res[x]['cf']['urls'])
+        fn_s = extract_url(res[x]['sf']) # File name is our URL
+        fn_c = extract_url(res[x]['cf'])
         cur_file1 = FileHits(dataType=res[x]['sf']['subtype'],fileName=fn_s,dataFormat=res[x]['sf']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['sf']['id'],dataCategory=res[x]['sf']['node_type'],experimentalStrategy=res[x]['sf']['subtype'],fileSize=res[x]['sf']['size'],cases=case_hits)
         cur_file2 = FileHits(dataType=res[x]['cf']['subtype'],fileName=fn_c,dataFormat=res[x]['cf']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['cf']['id'],dataCategory=res[x]['cf']['node_type'],experimentalStrategy=res[x]['cf']['subtype'],fileSize=res[x]['cf']['size'],cases=case_hits) 
         hits.append(cur_file1)
@@ -341,7 +343,7 @@ def get_16s_raw_seq_set(id):
     cl, al, fl = ([] for i in range(3))
     cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE s.id=\"%s\" RETURN p,prep,s,c,b" % (id)
     res = graph.data(cquery)
-    fn = extract_url(res[0]['s']['urls'])
+    fn = extract_url(res[0]['s'])
     wf = "%s -> %s" % (res[0]['prep']['subtype'],res[0]['s']['subtype']) # this WF could be quite revealing, decide a more complete definition later
     cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['id']))
     al.append(AssociatedEntities(entityId=res[0]['prep']['id'],caseId=res[0]['b']['id'],entityType="prep"))
@@ -354,7 +356,7 @@ def get_16s_trimmed_seq_set(id):
     cl, al, fl = ([] for i in range(3)) # case, associated entity, and input file lists
     cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE c.id=\"%s\" RETURN p,prep,s,c,b" % (id)
     res = graph.data(cquery)
-    fn = extract_url(res[0]['c']['urls'])
+    fn = extract_url(res[0]['c'])
     wf = "%s -> %s -> %s" % (res[0]['prep']['subtype'],res[0]['s']['subtype'],res[0]['c']['subtype']) # this WF could be quite revealing, decide a more complete definition later
     cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['id']))
     al.append(AssociatedEntities(entityId=res[0]['prep']['id'],caseId=res[0]['b']['id'],entityType="prep"))
@@ -377,5 +379,5 @@ def get_file_data(file_id):
 def get_url_for_download(id):
     cquery = "MATCH (n) WHERE n.id=\"%s\" RETURN n.urls AS urls" % (id)
     res = graph.data(cquery)
-    return extract_url(res[0]['urls'])
+    return extract_url(res[0])
     
