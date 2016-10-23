@@ -5,10 +5,24 @@ from multiprocessing import Process, Queue, Pool
 # the graph entirely and use filters to return a subset of the total traversal. 
 match = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) WHERE"
 
+# test strings with roughly increasing complexity
+tstr = '{"op":"and","content":[{"op":"in","content":{"field":"cases.Project.name","value":["Human Microbiome Project (HMP)"]}}]}'
+tstr2 = '{"op":"and","content":[{"op":"AND","content":[{"op":"in","content":{"field":"cases.Project.name","value":["Human Microbiome Project (HMP)"]}},{"op":"OR","content":[{"op":"=","content":{"field":"cases.Sample.fma_body_site","value":"right cubital fossa [FMA:39849]"}},{"op":"=","content":{"field":"cases.Sample.fma_body_site","value":"Gingiva [FMA:59762]"}}]}]}]}'
+tstr3 = '{"op":"and","content":[{"op":"OR","content":[{"op":"=","content":{"field":"cases.project.disease_type","value":"Acute Myeloid Leukemia"}},{"op":"OR","content":[{"op":"=","content":{"field":"cases.project.name","value":"Neuroblastoma"}},{"op":"=","content":{"field":"cases.case_id","value":"0004d251-3f70-4395-b175-c94c2f5b1b81"}}]}]}]}'
+tstr4 = '{"op":"and","content":[{"op":"OR","content":[{"op":"=","content":{"field":"cases.project.disease_type","value":"Acute Myeloid Leukemia"}},{"op":"OR","content":[{"op":"=","content":{"field":"cases.project.name","value":"Neuroblastoma"}},{"op":"OR","content":[{"op":"=","content":{"field":"cases.case_id","value":"0004d251-3f70-4395-b175-c94c2f5b1b81"}},{"op":"=","content":{"field":"cases.demographic.ethnicity","value":"not reported"}}]}]}]}]}'
+tstr5 = '{"op":"and","content":[{"op":"in","content":{"field":"cases.project.primary_site","value":["Kidney","Brain","Nervous System"]}}]}'
+tstr6 = '{"op":"and","content":[{"op":"in","content":{"field":"cases.project.primary_site","value":["Kidney","Brain","Nervous System"]}},{"op":"in","content":{"field":"cases.project.program.name","value":["TCGA"]}}]}'
+tstr7 = '{"op":"and","content":[{"op":"AND","content":[{"op":"in","content":{"field":"cases.ProjectName","value":["Human Microbiome Project (HMP)","iHMP"]}},{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"Vagina [FMA:19949]"}}]}]}'
+tstr8 = '{"op":"and","content":[{"op":"AND","content":[{"op":"OR","content":[{"op":"=","content":{"field":"cases.ProjectName","value":"Human Microbiome Project (HMP)"}},{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"right_retroauricular_crease"}}]},{"op":"=","content":{"field":"cases.SubjectGender","value":"male"}}]}]}'
+tstr9 = '{"op":"and","content":[{"op":"OR","content":[{"op":"=","content":{"field":"cases.ProjectName","value":"Human Microbiome Project (HMP)"}},{"op":"AND","content":[{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"right_retroauricular_crease"}},{"op":"=","content":{"field":"cases.SubjectGender","value":"male"}}]}]}]}'
+tstr10 = '{"op":"and","content":[{"op":"AND","content":[{"op":"OR","content":[{"op":"=","content":{"field":"cases.ProjectName","value":"Human Microbiome Project (HMP)"}},{"op":"OR","content":[{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"right_retroauricular_crease"}},{"op":"=","content":{"field":"cases.SubjectGender","value":"female"}}]}]},{"op":"=","content":{"field":"cases.SubjectGender","value":"male"}}]}]}'
+
 comp_ops = ["=",">",">=","<","<=","!=","EXCLUDE","IN","in","IS","NOT"] # distinguishing factor from the next is "in" which is utilized in facet
-comp_ops2 = ["AND","OR","=",">",">=","<","<=","!=","EXCLUDE","IN","IS","NOT", "and", "or"] # separate group to delineate when to combine left/right halves of string
+comp_ops2 = ["AND","OR","=",">",">=","<","<=","!=","EXCLUDE","in","IN","IS","NOT", "and", "or"] # separate group to delineate when to combine left/right halves of string
+comp_ops3 = ["AND","OR","and","or"]
 comps = set(comp_ops)
 comps2 = set(comp_ops2)
+comps3 = set(comp_ops3)
 
 # This is a recursive function originally used to traverse and find the depth 
 # of nested JSON. Now used to traverse the op/filters query from GDC and 
@@ -72,6 +86,31 @@ def build_advanced_where(inp):
     else:
         return lstr
 
+# Fxn to build Cypher based on advanced search, accepts output from get_depth
+def build_advanced_where2(inp): 
+    skip_me = set()
+    lstr, rstr = ("" for i in range(2)) # right/left strings to combine
+    # Makes more sense to build up than it is to build down.
+    for x in reversed(range(1,len(inp))):
+        if x in skip_me: # pass over elements we know are already consumed
+            pass
+        elif inp[x-2] in comps: # case to build comparison statement
+            if inp[x-2] == "in" or inp[x-2] == "IN": # need to add brackets for Cypher if list present
+                inp[x] = "[%s]" % (inp[x])
+            if lstr == "":
+                lstr = "%s %s %s" % (inp[x-1],inp[x-2],inp[x])
+            else:
+                rstr = "%s %s %s" % (inp[x-1],inp[x-2],inp[x])
+            skip_me.update(range(x-2,x))
+        else: # process the overarching AND/OR of the WHERE
+            if inp[x] in comps2: # check for clarity
+                rstr = "%s %s %s" % (lstr,inp[x],rstr)
+                lstr = "" # reset, rstr will be built upon
+    if rstr != "":
+        return rstr # send back Cypher-ready WHERE clause
+    else:
+        return lstr
+
 # Builds the Cypher WHERE clause, accepts output from GDC-portal filters argument
 def build_where(filters): 
     arr = [] # need an empty array for depth recursion
@@ -81,15 +120,19 @@ def build_where(filters):
     w2 = "" # final where clause entity
 
     for x in reversed(range(1,len(w1))): # search for AND/OR which are unique syntax for advanced query
+        if w1[x] in comps3 and w1[x+1] in comps3:
+            qtype = "advanced2"
         if w1[x] in comps2:
             qtype = "advanced"
-            break
+            #break
 
     if qtype == "facet": # decide between which WHERE builder to use
         w2 = build_facet_where(w1)
     elif qtype == "advanced": # written for clarity
         w2 = build_advanced_where(w1)
-    return w2
+    elif qtype == "advanced2":
+        w2 = build_advanced_where2(w1)
+    print w2
 
 # Note that body_site and fma_body_site are HMP and iHMP specific, respectively. If the 
 # following return ends in "counts", then it is for a pie chart. The first two are for
@@ -131,3 +174,5 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
         return "%s %s %s %s" % (match,where,retval1,retval2)
     else:
         return "%s %s %s" % (match,where,retval1)
+
+build_where(tstr8)
