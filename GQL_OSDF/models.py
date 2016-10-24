@@ -379,7 +379,6 @@ def get_file_data(file_id):
     return final_res
 
 def get_url_for_download(id):
-    cquery = "MATCH (n) WHERE n.id=\"%s\" RETURN n.urls AS urls" % (id)
+    cquery = "MATCH (n) WHERE n.id=\"%s\" RETURN n" % (id)
     res = graph.data(cquery)
-    return extract_url(res[0])
-    
+    return extract_url(res[0]['n'])
