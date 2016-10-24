@@ -15,7 +15,8 @@ tstr6 = '{"op":"and","content":[{"op":"in","content":{"field":"cases.project.pri
 tstr7 = '{"op":"and","content":[{"op":"AND","content":[{"op":"in","content":{"field":"cases.ProjectName","value":["Human Microbiome Project (HMP)","iHMP"]}},{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"Vagina [FMA:19949]"}}]}]}'
 tstr8 = '{"op":"and","content":[{"op":"AND","content":[{"op":"OR","content":[{"op":"=","content":{"field":"cases.ProjectName","value":"Human Microbiome Project (HMP)"}},{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"right_retroauricular_crease"}}]},{"op":"=","content":{"field":"cases.SubjectGender","value":"male"}}]}]}'
 tstr9 = '{"op":"and","content":[{"op":"OR","content":[{"op":"=","content":{"field":"cases.ProjectName","value":"Human Microbiome Project (HMP)"}},{"op":"AND","content":[{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"right_retroauricular_crease"}},{"op":"=","content":{"field":"cases.SubjectGender","value":"male"}}]}]}]}'
-tstr10 = '{"op":"and","content":[{"op":"AND","content":[{"op":"OR","content":[{"op":"=","content":{"field":"cases.ProjectName","value":"Human Microbiome Project (HMP)"}},{"op":"OR","content":[{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"right_retroauricular_crease"}},{"op":"=","content":{"field":"cases.SubjectGender","value":"female"}}]}]},{"op":"=","content":{"field":"cases.SubjectGender","value":"male"}}]}]}'
+tstr10 = '{"op":"and","content":[{"op":"OR","content":[{"op":"AND","content":[{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"buccal_mucosa"}},{"op":"=","content":{"field":"cases.ProjectName","value":"iHMP"}}]},{"op":"AND","content":[{"op":"=","content":{"field":"cases.ProjectName","value":"Human Microbiome Project (HMP)"}},{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"nasal"}}]}]}]}'
+tstr11 = '{"op":"and","content":[{"op":"OR","content":[{"op":"AND","content":[{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"buccal_mucosa"}},{"op":"=","content":{"field":"cases.ProjectName","value":"iHMP"}}]},{"op":"OR","content":[{"op":"AND","content":[{"op":"=","content":{"field":"cases.ProjectName","value":"Human Microbiome Project (HMP)"}},{"op":"=","content":{"field":"cases.SampleFmabodysite","value":"nasal"}}]},{"op":"=","content":{"field":"cases.ProjectName","value":"Test Project"}}]}]}]}'
 
 comp_ops = ["=",">",">=","<","<=","!=","EXCLUDE","IN","in","IS","NOT"] # distinguishing factor from the next is "in" which is utilized in facet
 comp_ops2 = ["AND","OR","=",">",">=","<","<=","!=","EXCLUDE","in","IN","IS","NOT", "and", "or"] # separate group to delineate when to combine left/right halves of string
@@ -72,6 +73,8 @@ def build_advanced_where(inp):
         elif inp[x-2] in comps: # case to build comparison statement
             if inp[x-2] == "in" or inp[x-2] == "IN": # need to add brackets for Cypher if list present
                 inp[x] = "[%s]" % (inp[x])
+            elif inp[x-2] == "!=": # convert not equals to Cypher syntax
+                inp[x-2] = "<>"
             if lstr == "":
                 lstr = "%s %s %s" % (inp[x-1],inp[x-2],inp[x])
             else:
@@ -86,52 +89,48 @@ def build_advanced_where(inp):
     else:
         return lstr
 
-# Fxn to build Cypher based on advanced search, accepts output from get_depth
-def build_advanced_where2(inp): 
+# Fxn to build Cypher based on an advanced search that uses parenthesis to subset
+# particular groups of the query
+def build_advanced_where_with_parenthesis(inp): 
     skip_me = set()
-    lstr, rstr = ("" for i in range(2)) # right/left strings to combine
-    # Makes more sense to build up than it is to build down.
+    fstr = "" # final string to return
+    subset,ops = ([] for i in range(2))
+
     for x in reversed(range(1,len(inp))):
-        if x in skip_me: # pass over elements we know are already consumed
-            pass
-        elif inp[x-2] in comps: # case to build comparison statement
-            if inp[x-2] == "in" or inp[x-2] == "IN": # need to add brackets for Cypher if list present
-                inp[x] = "[%s]" % (inp[x])
-            if lstr == "":
-                lstr = "%s %s %s" % (inp[x-1],inp[x-2],inp[x])
-            else:
-                rstr = "%s %s %s" % (inp[x-1],inp[x-2],inp[x])
-            skip_me.update(range(x-2,x))
-        else: # process the overarching AND/OR of the WHERE
-            if inp[x] in comps2: # check for clarity
-                rstr = "%s %s %s" % (lstr,inp[x],rstr)
-                lstr = "" # reset, rstr will be built upon
-    if rstr != "":
-        return rstr # send back Cypher-ready WHERE clause
-    else:
-        return lstr
+        print inp[x]
+        if inp[x-6] in comps3 and x-6 != 1 and x-6 != 0:
+            subset.append(build_advanced_where(inp[x-7:x+1]))
+            if inp[x-7] in comps3 and x-7 != 0:
+                ops.append(inp[x-7])
+    i = 0
+    for x in ops:
+        fstr += "(%s) %s (%s)" % (subset[i],x,subset[i+1])
+        i += 1
+
+    return fstr
 
 # Builds the Cypher WHERE clause, accepts output from GDC-portal filters argument
 def build_where(filters): 
     arr = [] # need an empty array for depth recursion
-    qtype = "facet" # by default, set as facet search
     q = json.loads(filters) # parse filters input into JSON (yields hashes of arrays)
     w1 = get_depth(q, arr) # first step of building where clause is the array of individual comparison elements
     w2 = "" # final where clause entity
 
-    for x in reversed(range(1,len(w1))): # search for AND/OR which are unique syntax for advanced query
-        if w1[x] in comps3 and w1[x+1] in comps3:
-            qtype = "advanced2"
-        if w1[x] in comps2:
+    qtype = "facet" # by default, set as facet search
+
+    for x in reversed(range(1,len(w1))): 
+        if w1[x] in comps3 and w1[x+1] in comps3: 
+            qtype = "advanced with parenthesis"
+            break # stop everything if this is true, since this encansuplates multiple advanced queries
+        if w1[x] in comps2: # search for AND/OR which are unique syntax for advanced query
             qtype = "advanced"
-            #break
 
     if qtype == "facet": # decide between which WHERE builder to use
         w2 = build_facet_where(w1)
     elif qtype == "advanced": # written for clarity
         w2 = build_advanced_where(w1)
-    elif qtype == "advanced2":
-        w2 = build_advanced_where2(w1)
+    elif qtype == "advanced with parenthesis":
+        w2 = build_advanced_where_with_parenthesis(w1)
     print w2
 
 # Note that body_site and fma_body_site are HMP and iHMP specific, respectively. If the 
@@ -175,4 +174,4 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
     else:
         return "%s %s %s" % (match,where,retval1)
 
-build_where(tstr8)
+build_where(tstr10)
