@@ -66,6 +66,11 @@ def build_facet_where(inp):
 def build_advanced_where(inp): 
     skip_me = set()
     lstr, rstr = ("" for i in range(2)) # right/left strings to combine
+
+    # Queries with parenthesis may pass subgroups here that are very basic, handle here
+    if len(inp) == 3:
+        return "%s %s %s" % (inp[1],inp[0],inp[2])
+
     # Makes more sense to build up than it is to build down.
     for x in reversed(range(1,len(inp))):
         if x in skip_me: # pass over elements we know are already consumed
@@ -92,19 +97,25 @@ def build_advanced_where(inp):
 # Fxn to build Cypher based on an advanced search that uses parenthesis to subset
 # particular groups of the query
 def build_advanced_where_with_parenthesis(inp): 
-    skip_me = set()
+    skip_me = set() # keep track of what indices have already been accounted for
     fstr = "" # final string to return
     subset,ops = ([] for i in range(2))
 
-    for x in reversed(range(1,len(inp))):
-        print inp[x]
-        if inp[x-6] in comps3 and x-6 != 1 and x-6 != 0:
-            subset.append(build_advanced_where(inp[x-7:x+1]))
-            if inp[x-7] in comps3 and x-7 != 0:
+    for x in reversed(range(1,len(inp))): # note the reversed range
+        if "'" in inp[x] and inp[x-6] in comps3: # confirm that we have nested statements present
+            subset.append(build_advanced_where(inp[x-7:x+1])) # work around range used in build_advanced_where()
+            if inp[x-7] in comps3 and x-7 != 0: # found comparison op to follow parenthesis
                 ops.append(inp[x-7])
+            skip_me.update(range(x-7,x+1))
+        elif inp[x-2] in comps and x-2 not in skip_me: # found an isolated statement (just 'field op value'')
+            subset.append(build_advanced_where(inp[x-2:x+1]))
+
     i = 0
-    for x in ops:
-        fstr += "(%s) %s (%s)" % (subset[i],x,subset[i+1])
+    for x in subset: # build up the final MATCH parameters
+        if i == 0:
+            fstr += "(%s)" % (x)
+        else:
+            fstr += " %s (%s)" % (ops[i-1],x)
         i += 1
 
     return fstr
@@ -174,4 +185,4 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
     else:
         return "%s %s %s" % (match,where,retval1)
 
-build_where(tstr10)
+build_where(tstr8)
