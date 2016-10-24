@@ -58,6 +58,8 @@ def build_advanced_where(inp):
         elif inp[x-2] in comps: # case to build comparison statement
             if inp[x-2] == "in" or inp[x-2] == "IN": # need to add brackets for Cypher if list present
                 inp[x] = "[%s]" % (inp[x])
+            elif inp[x-2] == "!=": # convert not equals to Cypher syntax
+                inp[x-2] = "<>"
             if lstr == "":
                 lstr = "%s %s %s" % (inp[x-1],inp[x-2],inp[x])
             else:
