@@ -47,52 +47,6 @@ def build_facet_where(inp):
             facets.append("%s in %s" % (lstr, rstr))
     return " AND ".join(facets) # send back Cypher-ready WHERE clause
 
-# Fxn to build Cypher based on advanced search, accepts output from get_depth
-def build_advanced_where(inp): 
-    skip_me = set()
-    lstr, rstr = ("" for i in range(2)) # right/left strings to combine
-    # Makes more sense to build up than it is to build down.
-    for x in reversed(range(1,len(inp))):
-        if x in skip_me: # pass over elements we know are already consumed
-            pass
-        elif inp[x-2] in comps: # case to build comparison statement
-            if inp[x-2] == "in" or inp[x-2] == "IN": # need to add brackets for Cypher if list present
-                inp[x] = "[%s]" % (inp[x])
-            elif inp[x-2] == "!=": # convert not equals to Cypher syntax
-                inp[x-2] = "<>"
-            if lstr == "":
-                lstr = "%s %s %s" % (inp[x-1],inp[x-2],inp[x])
-            else:
-                rstr = "%s %s %s" % (inp[x-1],inp[x-2],inp[x])
-            skip_me.update(range(x-2,x))
-        else: # process the overarching AND/OR of the WHERE
-            if inp[x] in comps2: # check for clarity
-                rstr = "%s %s %s" % (lstr,inp[x],rstr)
-                lstr = "" # reset, rstr will be built upon
-    if rstr != "":
-        return rstr # send back Cypher-ready WHERE clause
-    else:
-        return lstr
-
-# Builds the Cypher WHERE clause, accepts output from GDC-portal filters argument
-def build_where(filters): 
-    arr = [] # need an empty array for depth recursion
-    qtype = "facet" # by default, set as facet search
-    q = json.loads(filters) # parse filters input into JSON (yields hashes of arrays)
-    w1 = get_depth(q, arr) # first step of building where clause is the array of individual comparison elements
-    w2 = "" # final where clause entity
-
-    for x in reversed(range(1,len(w1))): # search for AND/OR which are unique syntax for advanced query
-        if w1[x] in comps2:
-            qtype = "advanced"
-            break
-
-    if qtype == "facet": # decide between which WHERE builder to use
-        w2 = build_facet_where(w1)
-    elif qtype == "advanced": # written for clarity
-        w2 = build_advanced_where(w1)
-    return w2
-
 # Note that body_site and fma_body_site are HMP and iHMP specific, respectively. If the 
 # following return ends in "counts", then it is for a pie chart. The first two are for
 # cases/files tabs and the last is for the total size. 
@@ -121,7 +75,10 @@ returns = {
 # size = number of results to return
 # rtype = return type, want to be able to hit this for both cases, files, and aggregation counts.
 def build_cypher(match,whereFilters,order,start,size,rtype):
-    where = build_where(whereFilters) # build WHERE portion of Cypher
+    arr = []
+    q = json.loads(whereFilters) # parse filters input into JSON (yields hashes of arrays)
+    w1 = get_depth(q, arr) # first step of building where clause is the array of individual comparison elements
+    where = build_facet_where(w1)
     where = where.replace("cases.","") # trim the GDC syntax, hack until we refactor cases/files syntax
     where = where.replace("files.","")
     order = order.replace("cases.","")

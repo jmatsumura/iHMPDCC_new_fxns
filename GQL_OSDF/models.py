@@ -302,7 +302,7 @@ def get_case_hits(size,order,f,cy):
     if cy == "":
         order = order.split(":")
         cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project.name,Project.subtype,Sample.body_site,Sample.id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),f-1,size)
-    else:
+    elif '"op"' in cy:
         cquery = build_cypher(match,cy,order,f,size,"cases")
     res = graph.data(cquery)
     for x in range(0,len(res)):
@@ -319,7 +319,7 @@ def get_file_hits(size,order,f,cy):
     if cy == "":
         order = order.split(":")
         cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project,sf,cf,Sample.id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),f-1,size/2)
-    else:
+    elif '"op"' in cy:
         cquery = build_cypher(match,cy,order,f,size/2,"files")
     res = graph.data(cquery)
     for x in range(0,len(res)):
