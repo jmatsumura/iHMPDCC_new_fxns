@@ -108,9 +108,20 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
     else:
         return "%s %s %s" % (match,where,retval1)
 
+# First iteration, handling all regex individually
+regexForNotEqual = re.compile(r"<>\s([0-9]*[a-zA-Z_]+[a-zA-Z0-9_]*)\b") # only want to add quotes to anything that's not solely numbers
+regexForEqual = re.compile(r"=\s([0-9]*[a-zA-Z_]+[a-zA-Z0-9_]*)\b") 
+
 def build_adv_cypher(match,whereFilters,order,start,size,rtype):
     where = whereFilters[10:len(whereFilters)-2] 
     where = where.replace("!=","<>")
+    
+    # Add quotes that FE missed
+    if '=' in where:
+        where = regexForEqual.sub(r'= "\1"',where)
+    if '<>' in where:
+        where = regexForNotEqual.sub(r'<> "\1"',where)
+
     order = order.replace("cases.","")
     order = order.replace("files.","")
     retval1 = returns[rtype] # actual RETURN portion of statement

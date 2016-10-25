@@ -173,10 +173,6 @@ def get_files():
         p7 = "%22%2Cf%3A"
         p8 = ")%7Bdata_type%2Cfile_name%2Cdata_format%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cfile_size%2Ccases%7Bproject%7Bproject_id%2Cname%7D%2Ccase_id%7Dexperimental_strategy%7D%2Caggregations%7Bdata_type%7Bbuckets%7Bkey%2Cdoc_count%7D%7Ddata_format%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
-    print
-    print url
-    print url
-    print
     response = urllib2.urlopen(url)
     r = response.read()
     return ('%s, "warnings": {}}' % r[:-1])
@@ -288,10 +284,6 @@ def get_ui_search_summary():
             url = empty_cy # no Cypher parameters entered
     else:
         url = empty_cy
-    print
-    print url
-    print url
-    print
     response = urllib2.urlopen(url)
     # another hack, remove "data" root from GQL results
     r1 = response.read()[8:]
