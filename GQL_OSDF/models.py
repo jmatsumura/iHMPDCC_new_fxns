@@ -1,7 +1,7 @@
 import re
 import graphene
 from py2neo import Graph # Using py2neo v3 not v2
-from query import match, build_cypher
+from query import match, build_cypher, build_adv_cypher
 import sys
 
 ###################
@@ -138,8 +138,10 @@ def get_total_file_size(cy):
     cquery = ""
     if cy == "":
         cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot"
-    else:
+    elif '"op"' in cy:
         cquery = build_cypher(match,cy,"null","null","null","size")
+    else:
+        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot"
     res = graph.data(cquery)
     return res[0]['tot']
 
@@ -173,13 +175,17 @@ def pagination_calcs(total,start,size,c_or_f):
 # size = size of each page
 # f = from/start position
 def get_pagination(cy,size,f,c_or_f):
+    cquery = ""
     if cy == "":
         cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN (count(sf)+count(cf)) AS tot"
         res = graph.data(cquery)
         calcs = pagination_calcs(res[0]['tot'],f,size,c_or_f)
         return Pagination(count=calcs[2], sort=calcs[4], fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
     else:
-        cquery = cquery = build_cypher(match,cy,"null","null","null","pagination")
+        if '"op"' in cy:
+            cquery = build_cypher(match,cy,"null","null","null","pagination")
+        else:
+            cquery = build_adv_cypher(match,cy,"null","null","null","pagination")
         res = graph.data(cquery)
         calcs = pagination_calcs(res[0]['tot'],f,size,c_or_f)
         return Pagination(count=calcs[2], sort=calcs[4], fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
@@ -260,9 +266,12 @@ def count_props_and_files(node, prop, cy):
     cquery = ""
     if cy == "":
         cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN %s.%s as prop, count(%s.%s) as ccounts, (count(sf)+count(cf)) as dcounts, (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot" % (node, prop, node, prop)
-    else:
+    elif '"op"' in cy:
         prop_detailed = "%s_detailed" % (prop)
         cquery = build_cypher(match,cy,"null","null","null",prop_detailed)
+    else:
+        prop_detailed = "%s_detailed" % (prop)
+        cquery = build_adv_cypher(match,cy,"null","null","null",prop_detailed)
     return graph.data(cquery)
 
 # Formats the values from count_props & count_props_and_files functions above into GQL
@@ -304,6 +313,8 @@ def get_case_hits(size,order,f,cy):
         cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project.name,Project.subtype,Sample.body_site,Sample.id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),f-1,size)
     elif '"op"' in cy:
         cquery = build_cypher(match,cy,order,f,size,"cases")
+    else:
+        cquery = build_adv_cypher(match,cy,order,f,size,"cases")
     res = graph.data(cquery)
     for x in range(0,len(res)):
         cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.body_site'],name=res[x]['Project.name'],diseaseType="demo"),caseId=res[x]['Sample.id'])
@@ -321,6 +332,8 @@ def get_file_hits(size,order,f,cy):
         cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN Project,sf,cf,Sample.id ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),f-1,size/2)
     elif '"op"' in cy:
         cquery = build_cypher(match,cy,order,f,size/2,"files")
+    else:
+        cquery = build_adv_cypher(match,cy,order,f,size/2,"files")
     res = graph.data(cquery)
     for x in range(0,len(res)):
         case_hits = [] # reinit each iteration

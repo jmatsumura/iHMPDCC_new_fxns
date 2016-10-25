@@ -90,3 +90,19 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
         return "%s %s %s %s" % (match,where,retval1,retval2)
     else:
         return "%s %s %s" % (match,where,retval1)
+
+def build_adv_cypher(match,whereFilters,order,start,size,rtype):
+    w = whereFilters[10:len(whereFilters)-2] 
+    w = w.replace("cases.ProjectName","Project.name")
+    w = w.replace("cases.SubjectGender","Subject.gender")
+    w = w.replace("cases.SampleFmabodysite","Sample.body_site")
+    where = 'Project.name = "iHMP"'
+    order = order.replace("cases.","")
+    order = order.replace("files.","")
+    retval1 = returns[rtype] # actual RETURN portion of statement
+    if rtype in ["cases","files"]: # pagination handling needed for these returns
+        order = order.split(":")
+        retval2 = "ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),start-1,size) 
+        return "%s %s %s %s" % (match,where,retval1,retval2)
+    else:
+        return "%s %s %s" % (match,where,retval1)
