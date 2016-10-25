@@ -1,7 +1,7 @@
 import re
 import graphene
 from py2neo import Graph # Using py2neo v3 not v2
-from query import match, build_cypher, build_adv_cypher
+from query import match, build_cypher, build_adv_cypher, convert_gdc_to_osdf
 import sys
 
 ###################
@@ -114,22 +114,6 @@ def extract_url(urls_node):
         fn = "No File Found."
     return fn
 
-# Function to extract known GDC syntax and convert to OSDF. This is commonly needed for performing
-# cypher queries while still being able to develop the front-end with the cases syntax.
-def convert_gdc_to_osdf(inp_str):
-    # Errors in Graphene mapping prevent the syntax I want, so ProjectName is converted to 
-    # Cypher ready Project.name here (as are the other possible query parameters).
-    inp_str = inp_str.replace("cases.ProjectName","Project.name")
-    inp_str = inp_str.replace("cases.SampleFmabodysite","Sample.body_site")
-    inp_str = inp_str.replace("cases.SubjectGender","Subject.gender")
-    inp_str = inp_str.replace("project.primary_site","Sample.body_site")
-    inp_str = inp_str.replace("subject.gender","Subject.gender")
-    inp_str = inp_str.replace("files.file_id","sf.id")
-    # Next two lines guarantee URL encoding (seeing errors with urllib)
-    inp_str = inp_str.replace('"','|')
-    inp_str = inp_str.replace(" ","%20")
-    return inp_str
-
 # Function to get file size from Neo4j. 
 # This current iteration should catch all the file data types EXCEPT for the *omes and the multi-step/repeat
 # edges like the two "computed_from" edges between abundance matrix and 16s_raw_seq_set. Should be
@@ -141,7 +125,7 @@ def get_total_file_size(cy):
     elif '"op"' in cy:
         cquery = build_cypher(match,cy,"null","null","null","size")
     else:
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot"
+        cquery = build_adv_cypher(match,cy,"null","null","null","size")
     res = graph.data(cquery)
     return res[0]['tot']
 

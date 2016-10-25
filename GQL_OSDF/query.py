@@ -10,6 +10,23 @@ comp_ops2 = ["AND","OR","=",">",">=","<","<=","!=","EXCLUDE","IN","IS","NOT", "a
 comps = set(comp_ops)
 comps2 = set(comp_ops2)
 
+# Function to extract known GDC syntax and convert to OSDF. This is commonly needed for performing
+# cypher queries while still being able to develop the front-end with the cases syntax.
+def convert_gdc_to_osdf(inp_str):
+    # Errors in Graphene mapping prevent the syntax I want, so ProjectName is converted to 
+    # Cypher ready Project.name here (as are the other possible query parameters).
+    inp_str = inp_str.replace("cases.ProjectName","Project.name")
+    inp_str = inp_str.replace("cases.SampleFmabodysite","Sample.body_site")
+    inp_str = inp_str.replace("cases.SubjectGender","Subject.gender")
+    inp_str = inp_str.replace("project.primary_site","Sample.body_site")
+    inp_str = inp_str.replace("subject.gender","Subject.gender")
+    inp_str = inp_str.replace("files.file_id","sf.id")
+    # Next two lines guarantee URL encoding (seeing errors with urllib)
+    inp_str = inp_str.replace('"','|')
+    inp_str = inp_str.replace('\\','')
+    inp_str = inp_str.replace(" ","%20")
+    return inp_str
+
 # This is a recursive function originally used to traverse and find the depth 
 # of nested JSON. Now used to traverse the op/filters query from GDC and 
 # ultimately aims to provide input to build the WHERE clause of a Cypher query. 
@@ -92,11 +109,8 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
         return "%s %s %s" % (match,where,retval1)
 
 def build_adv_cypher(match,whereFilters,order,start,size,rtype):
-    w = whereFilters[10:len(whereFilters)-2] 
-    w = w.replace("cases.ProjectName","Project.name")
-    w = w.replace("cases.SubjectGender","Subject.gender")
-    w = w.replace("cases.SampleFmabodysite","Sample.body_site")
-    where = 'Project.name = "iHMP"'
+    where = whereFilters[10:len(whereFilters)-2] 
+    where = where.replace("!=","<>")
     order = order.replace("cases.","")
     order = order.replace("files.","")
     retval1 = returns[rtype] # actual RETURN portion of statement
