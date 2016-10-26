@@ -5,11 +5,6 @@ from multiprocessing import Process, Queue, Pool
 # the graph entirely and use filters to return a subset of the total traversal. 
 match = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) WHERE"
 
-comp_ops = ["=",">",">=","<","<=","!=","EXCLUDE","IN","in","IS","NOT"] # distinguishing factor from the next is "in" which is utilized in facet
-comp_ops2 = ["AND","OR","=",">",">=","<","<=","!=","EXCLUDE","IN","IS","NOT", "and", "or"] # separate group to delineate when to combine left/right halves of string
-comps = set(comp_ops)
-comps2 = set(comp_ops2)
-
 # Function to extract known GDC syntax and convert to OSDF. This is commonly needed for performing
 # cypher queries while still being able to develop the front-end with the cases syntax.
 def convert_gdc_to_osdf(inp_str):
@@ -111,16 +106,40 @@ def build_cypher(match,whereFilters,order,start,size,rtype):
 # First iteration, handling all regex individually
 regexForNotEqual = re.compile(r"<>\s([0-9]*[a-zA-Z_]+[a-zA-Z0-9_]*)\b") # only want to add quotes to anything that's not solely numbers
 regexForEqual = re.compile(r"=\s([0-9]*[a-zA-Z_]+[a-zA-Z0-9_]*)\b") 
+regexForIn = re.compile(r"(\[[a-zA-Z\'\"\s\,\(\)]+\])") # catch anything that should be in a list
 
 def build_adv_cypher(match,whereFilters,order,start,size,rtype):
     where = whereFilters[10:len(whereFilters)-2] 
     where = where.replace("!=","<>")
-    
+
     # Add quotes that FE missed
     if '=' in where:
         where = regexForEqual.sub(r'= "\1"',where)
     if '<>' in where:
         where = regexForNotEqual.sub(r'<> "\1"',where)
+    if ' in ' in where or ' IN ' in where: # lists present, parse through and add quotes to all values without them
+        lists = re.findall(regexForIn,where)
+        listDict = {}
+        for extractedList in lists:
+            original = extractedList
+            extractedList = extractedList.replace('[','')
+            extractedList = extractedList.replace(']','')
+            indivItems = extractedList.split(',')
+            newList = []
+            for item in indivItems:
+                if '"' in item:
+                    parts = re.split(r"""("[^"]*"|'[^']*')""", item) # remove spaces outside quotes
+                    parts[::2] = map(lambda s: "".join(s.split()), parts[::2])
+                    newList.append("".join(parts))
+                else:
+                    item = item.replace(" ","")
+                    newList.append('"%s"' % (item))
+            extractedList = ",".join(newList)
+            new = "[%s]" % (extractedList)
+            listDict[original] = new
+
+        for k,v in listDict.iteritems():
+            where = where.replace(k,v)
 
     order = order.replace("cases.","")
     order = order.replace("files.","")
