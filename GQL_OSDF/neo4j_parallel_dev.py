@@ -37,10 +37,10 @@ def cypher_time_trial(query,queryName,repeats):
         end = time.time()
         print "%s finished in %s s" % (queryName, end-start)
 
-cypher_time_trial(match1,"Match 1",10)
-cypher_time_trial(match2,"Match 2",10)
-cypher_time_trial(match3,"Match 3",10)
-cypher_time_trial(match4,"Match 4",10)
+cypher_time_trial(match1,"Match 1",50)
+cypher_time_trial(match2,"Match 2",50)
+cypher_time_trial(match3,"Match 3",50)
+cypher_time_trial(match4,"Match 4",50)
 
 
 # Function to extract known GDC syntax and convert to OSDF. This is commonly needed for performing
