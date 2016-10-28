@@ -11,7 +11,7 @@
 
 import json, sys, re
 from py2neo import Graph
-from dicts_for_couchdb2neo4j import nodes, edges
+from dicts_for_flattened_couchdb2neo4j import nodes, edges
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
@@ -28,12 +28,8 @@ def build_index(node,prop):
     cstr = "CREATE INDEX ON: `%s`(%s);\n" % (node,prop)
     cypher.run(cstr)
 
-    # These indices will be used a lot and belong to edges where the endpoint,
-    # as well as the property to match to, is known. 
-noId = ['tags','mimarks','mixs']
-for k,v in nodes.iteritems(): # build indices on primary key of all those nodes that have one
-    if k not in noId:
-        build_index(v,'id')
+build_index('Case','id')
+build_index('File','id')
 build_index('Tags','term')
 
 # Skip any nested dictionaries like those under 'doc' or 'meta'. 'linkage' is
