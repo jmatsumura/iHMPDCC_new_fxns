@@ -9,11 +9,15 @@ graph = Graph("http://localhost:7474/db/data/")
 match = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) WHERE"
 
 # With these 4 combined, everything should be accounted for.
-match1 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1) RETURN DISTINCT(s1) AS f ORDER BY f.id LIMIT 20"
-match2 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2) RETURN DISTINCT(s2) AS f ORDER BY f.id LIMIT 20"
-match3 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2)<-[:COMPUTED_FROM]-(s3) RETURN DISTINCT(s3) AS f ORDER BY f.id LIMIT 20"
-match4 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2)<-[:COMPUTED_FROM]-(s3)<-[:COMPUTED_FROM]-(s4) RETURN DISTINCT(s4) AS f ORDER BY f.id"
+match1 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1) RETURN s1 AS f ORDER BY f.id"
+match2 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2) RETURN s2 AS f ORDER BY f.id"
+match3 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2)<-[:COMPUTED_FROM]-(s3) RETURN s3 AS f ORDER BY f.id"
+match4 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2)<-[:COMPUTED_FROM]-(s3)<-[:COMPUTED_FROM]-(s4) RETURN s4 AS f ORDER BY f.id"
 
+count1 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1) RETURN COUNT(s1) AS count"
+count2 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2) RETURN COUNT(s2) AS count"
+count3 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2)<-[:COMPUTED_FROM]-(s3) RETURN COUNT(s3) AS count"
+count4 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2)<-[:COMPUTED_FROM]-(s3)<-[:COMPUTED_FROM]-(s4) RETURN COUNT(s4) AS count"
 ########################################
 # PARALLEL PROCESSING OF NEO4J RESULTS #
 ########################################
@@ -30,18 +34,24 @@ def cypher_time_trial(query,queryName,repeats):
             end = time.time()
             avg.append(end-start)
         average = sum(avg)/float(len(avg))
-        print "%s finished in an average of %s s" % (queryName, average)
+        print "%s finished in an average of %s s after %s executions" % (queryName, average, repeats)
     else:
-        start = time.time
+        start = time.time()
         res = graph.data(query)
         end = time.time()
         print "%s finished in %s s" % (queryName, end-start)
 
-cypher_time_trial(match1,"Match 1",50)
-cypher_time_trial(match2,"Match 2",50)
-cypher_time_trial(match3,"Match 3",50)
-cypher_time_trial(match4,"Match 4",50)
+cypher_time_trial(match1,"Match 1",1)
+cypher_time_trial(count1,"Count 1",1)
 
+cypher_time_trial(match2,"Match 2",1)
+cypher_time_trial(count2,"Count 2",1)
+
+cypher_time_trial(match3,"Match 3",1)
+cypher_time_trial(count3,"Count 3",1)
+
+cypher_time_trial(match4,"Match 4",1)
+cypher_time_trial(count4,"Count 4",1)
 
 # Function to extract known GDC syntax and convert to OSDF. This is commonly needed for performing
 # cypher queries while still being able to develop the front-end with the cases syntax.
