@@ -121,7 +121,13 @@ def extract_url(urls_node):
 def get_total_file_size(cy):
     cquery = ""
     if cy == "":
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot"
+        cquery = ("MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) "
+            "OPTIONAL MATCH (Preps)<-[:SEQUENCED_FROM|DERIVED_FROM]-(s1) "
+            "OPTIONAL MATCH (s1)<-[:COMPUTED_FROM]-(s2) "
+            "OPTIONAL MATCH (s2)<-[:COMPUTED_FROM]-(s3) "
+            "OPTIONAL MATCH (s3)<-[:COMPUTED_FROM]-(s4) "
+            "RETURN SUM(toInt(s1.size)) + SUM(toInt(s2.size)) + SUM(toInt(s3.size)) + SUM(toInt(s4.size)) as tot"
+        )
     elif '"op"' in cy:
         cquery = build_cypher(match,cy,"null","null","null","size")
     else:
