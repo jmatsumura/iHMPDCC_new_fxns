@@ -24,13 +24,13 @@ cypher = graph
 # Function to build an index in Neo4j to make edge connection a bit faster during
 # the lookup phase. Accepts the name of a node (possible values in dicts_for_couchdb2neo4j)
 # and the property that that node ought to be indexed by. 
-def build_index(node,prop):
-    cstr = "CREATE INDEX ON: `%s`(%s);\n" % (node,prop)
+def build_constraint_index(node,prop):
+    cstr = "CREATE CONSTRAINT ON (x:%s) ASSERT x.%s IS UNIQUE" % (node,prop)
     cypher.run(cstr)
 
-build_index('Case','id')
-build_index('File','id')
-build_index('Tags','term')
+build_constraint_index('Case','id')
+build_constraint_index('File','id')
+build_constraint_index('Tags','term')
 
 # Skip any nested dictionaries like those under 'doc' or 'meta'. 'linkage' is
 # skipped since this script is only concerned with creating nodes, not edges.

@@ -29,7 +29,7 @@ nodes = {
     '16s_dna_prep': 'File',
     '16s_raw_seq_set': 'File',
     '16s_trimmed_seq_set': 'File',
-    'microb_assay_prep': 'FIle',
+    'microb_assay_prep': 'File',
     'host_assay_prep': 'File',
     'proteome': 'File',
     'metabolome': 'File',
