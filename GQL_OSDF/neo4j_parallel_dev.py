@@ -1,5 +1,8 @@
 import urllib2, re, json
 from multiprocessing import Process, Queue, Pool
+from py2neo import Graph 
+import time
+graph = Graph("http://localhost:7474/db/data/")
 
 # The match var is the base query to prepend all queries. The idea is to traverse
 # the graph entirely and use filters to return a subset of the total traversal. 
@@ -10,6 +13,35 @@ match1 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:B
 match2 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2) RETURN DISTINCT(s2) AS f ORDER BY f.id LIMIT 20"
 match3 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2)<-[:COMPUTED_FROM]-(s3) RETURN DISTINCT(s3) AS f ORDER BY f.id LIMIT 20"
 match4 = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(Preps) OPTIONAL MATCH (Preps)-[:SEQUENCED_FROM|DERIVED_FROM]-(s1)<-[:COMPUTED_FROM]-(s2)<-[:COMPUTED_FROM]-(s3)<-[:COMPUTED_FROM]-(s4) RETURN DISTINCT(s4) AS f ORDER BY f.id"
+
+########################################
+# PARALLEL PROCESSING OF NEO4J RESULTS #
+########################################
+
+# query = Cypher query
+# queryName = name to output for the time trial
+# repeats = number of times to repeat and get an average value
+def cypher_time_trial(query,queryName,repeats):
+    if repeats > 1:
+        avg = []
+        for i in range(0,repeats):
+            start = time.time()
+            res = graph.data(query)
+            end = time.time()
+            avg.append(end-start)
+        average = sum(avg)/float(len(avg))
+        print "%s finished in an average of %s s" % (queryName, average)
+    else:
+        start = time.time
+        res = graph.data(query)
+        end = time.time()
+        print "%s finished in %s s" % (queryName, end-start)
+
+cypher_time_trial(match1,"Match 1",10)
+cypher_time_trial(match2,"Match 2",10)
+cypher_time_trial(match3,"Match 3",10)
+cypher_time_trial(match4,"Match 4",10)
+
 
 # Function to extract known GDC syntax and convert to OSDF. This is commonly needed for performing
 # cypher queries while still being able to develop the front-end with the cases syntax.
