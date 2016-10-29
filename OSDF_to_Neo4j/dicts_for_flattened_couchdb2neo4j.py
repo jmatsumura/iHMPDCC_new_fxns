@@ -57,3 +57,16 @@ edges = {
     'has_mimarks': 'HAS_MIMARKS',
     'has_mixs': 'HAS_MIXS'
 }
+
+definitive_edges = {
+    'part_of': 'Case',
+    'subset_of': 'Case',
+    'participates_in': 'Case',
+    'by': 'Case',
+    'associated_with': 'Case',
+    'collected_during': 'Case',
+    'prepared_from': 'Case',
+    'has_tag': 'Tags',
+    'has_mimarks': 'MIMARKS',
+    'has_mixs': 'Mixs'
+}

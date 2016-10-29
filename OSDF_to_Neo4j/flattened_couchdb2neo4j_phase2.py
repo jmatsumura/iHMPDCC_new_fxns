@@ -9,7 +9,7 @@
 
 import json, sys, re
 from py2neo import Graph
-from dicts_for_flattened_couchdb2neo4j import nodes, edges
+from dicts_for_flattened_couchdb2neo4j import nodes, edges, definitive_edges
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
@@ -18,6 +18,10 @@ docList = json_data['rows']
 neo4j_password = "neo4j" # Neo4j setup
 graph = Graph(password = neo4j_password)
 cypher = graph
+
+def build_edge(n1,id,link,n2,n2_p,n2_v):
+    cstr = "MATCH (n1:`%s`{`id`:'%s'}),(n2:`%s`{`%s`:'%s'}) CREATE (n1)-[:%s]->(n2)" % (n1,id,n2,n2_p,n2_v,link)
+    cypher.run(cstr)
 
 # Make a set out of the known edges so we can create them when found. 
 e = set(edges)
@@ -104,8 +108,10 @@ for x in docList:
             build_edge(nodes[nt],id,edges['has_mixs'],nodes['mixs'],p,v)
 
         for links in lk:
-            cstr = "MATCH (n1:`%s`{`id`:'%s'}),(n2 {`%s`:'%s'}) CREATE (n1)-[:%s]->(n2)" % (nodes[nt],id,edges[links[0]],'id',[links[1]][0][0])
-            cypher.run(cstr)
+            if links[0] in definitive_edges:
+                build_edge(nodes[nt],id,edges[links[0]],definitive_edges[links[0]],'id',[links[1]][0][0])
+            else: # know that we aren't dealing with case or other labels
+                build_edge(nodes[nt],id,edges[links[0]],'File','id',[links[1]][0][0]) 
 
         tot += (1+len(tg)+len(mm)+len(mx)+len(lk)/2) 
         if tot > breaks:
