@@ -40,7 +40,7 @@ def get_maps():
     res = jsonify({"cases.SampleFmabodysite": sample_fma_body_site, "cases.ProjectName": project_name, "cases.SubjectGender": subject_gender})
     return res
 
-@app.route('/cases', methods=['GET','OPTIONS'])
+@app.route('/cases', methods=['GET','OPTIONS','POST'])
 def get_cases():
     
     filters = request.args.get('filters')
@@ -59,7 +59,12 @@ def get_cases():
         r = response.read()
         return ('%s, "warnings": {}}' % r[:-1])
 
-    elif(request.args.get('expand') or request.args.get('filters')): # Here need to process simple/advanced queries, handling happens at GQL
+    else:
+        if not filters:
+            filters = ""
+            size = 20
+            from_num = 1
+    #elif(request.args.get('expand') or request.args.get('filters')): # Here need to process simple/advanced queries, handling happens at GQL
         p1 = "http://localhost:5000/ac_schema?query=%7Bpagination(cy%3A%22"
         p2 = "%22%2Cs%3A"
         p3 = "%2Cf%3A"
@@ -173,6 +178,14 @@ def get_files():
         p7 = "%22%2Cf%3A"
         p8 = ")%7Bdata_type%2Cfile_name%2Cdata_format%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cfile_size%2Ccases%7Bproject%7Bproject_id%2Cname%7D%2Ccase_id%7Dexperimental_strategy%7D%2Caggregations%7Bdata_type%7Bbuckets%7Bkey%2Cdoc_count%7D%7Ddata_format%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
+    print
+    print
+    print
+    print url
+    print url
+    print url
+    print
+    print
     response = urllib2.urlopen(url)
     r = response.read()
     return ('%s, "warnings": {}}' % r[:-1])
