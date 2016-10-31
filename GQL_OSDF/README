@@ -1,4 +1,8 @@
-Quick notes for what everything is in this directory
+Quick notes for what everything is in this directory and the versions within this directory...
+
+Note that under the directory osdf_mirror_backend is the schema for the expanded Neo4j instance
+that mirrors the OSDF backend. This current directory is working with a flattened database where
+nodes are only cases and files with particular node types. 
 
 app.py ~ Flask app, main endpoint that navigates to the various GQL schema
 
