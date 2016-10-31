@@ -114,6 +114,14 @@ def extract_url(urls_node):
         fn = "No File Found."
     return fn
 
+def extract_body_site(sample_node):
+    bs = "N/A"
+    if 'body_site' in sample_node:
+        bs = urls_node['body_site']
+    elif 'fma_body_site' in sample_node:
+        fn = urls_node['fma_body_site']
+    return fn
+
 # Function to get file size from Neo4j. 
 # This current iteration should catch all the file data types EXCEPT for the *omes and the multi-step/repeat
 # edges like the two "computed_from" edges between abundance matrix and 16s_raw_seq_set. Should be
@@ -196,35 +204,36 @@ def build_basic_query(attr, val, links):
         cquery = "MATCH (n {%s: '%s'}) RETURN n" % (attr, val)
         return graph.data(cquery)
 
-# Retrieve ALL files associated with a given sample_id. Note the generic node names p, s, and c.
-# Overall this means start at the (b)eginning (b:Sample), get all associated (p)repared from nodes,
-# then all (s)equenced from nodes, and finally all (c)omputed from nodes. The attributes to find and
-# return are the URL, name, size, format, and type. 
-def get_files(sample_id):
+# Retrieve ALL files associated with a given Subject ID.
+def get_files(subject_id):
     fl = []
     dt, fn, df, ac, fi = ("" for i in range(5))
     fs = 0
     regex_for_http_urls = '\,\su(http.*data/(.*))\,'
     pattern = re.compile(regex_for_http_urls)
     
-    cquery = "MATCH (Sample:Case{node_type:'sample'})<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) WHERE Sample.id=\"%s\" RETURN File" % (sample_id)
+    cquery = ("MATCH (Subject:Case{node_type:'subject'})<-[:BY]-(Visit:Case{node_type:'visit'})"
+        "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
+        "<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
+        "WHERE Subject.id=\"%s\" RETURN File"
+        ) 
+    cquery = cquery % (subject_id)
     res = graph.data(cquery)
 
     for x in range(0,len(res)): # iterate over each unique path
-        for key in res[x].keys(): # iterate over each unique node in the path
-            dt = res[x][key]['subtype']
-            df = res[x][key]['format']
-            ac = "open" # again, default to accommodate current GDC format
-            fs = res[x][key]['size']
-            fi = res[x][key]['id']
-            fn = extract_url(res[x][key])
-            fl.append(IndivFiles(dataType=dt,fileName=fn,dataFormat=df,access=ac,fileId=fi,fileSize=fs))
+        dt = res[x]['File']['subtype']
+        df = res[x]['File']['format']
+        ac = "open" # need to change this once a new private/public property is added to OSDF
+        fs = res[x]['File']['size']
+        fi = res[x]['File']['id']
+        fn = extract_url(res[x]['File'])
+        fl.append(IndivFiles(dataType=dt,fileName=fn,dataFormat=df,access=ac,fileId=fi,fileSize=fs))
 
     return fl
 
 # Query to traverse top half of OSDF model (Project<-....-Sample). 
-def get_proj_data(sample_id):
-    cquery = "MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})<-[:BY]-(Visit:Case{node_type:'visit'})<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'}) WHERE Sample.id=\"%s\" RETURN p" % (sample_id)
+def get_proj_data(subject_id):
+    cquery = "MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})<-[:BY]-(Visit:Case{node_type:'visit'})<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'}) WHERE Subject.id=\"%s\" RETURN p" % (sample_id)
     res = graph.data(cquery)
     return Project(name=res[0]['Project']['name'],projectId=res[0]['Project']['subtype'])
 
@@ -362,51 +371,29 @@ def get_file_hits(size,order,f,cy):
         hits.append(cur_file)    
     return hits
 
-# The following section is needed to pull data from the different file types/nodes.
-# How it aims to work is given a file ID, it will check Neo4j for the type then use
-# this knowledge to build a smarter Cypher query that will return the relevant data.
-# The logic here will be much easier to follow then writing one huge catch-all Neo4j
-# query and then parsing it afterwards.
-# next line is placeholder graphene object that will be reused
-#return FileHits(dataType=,fileName=fn,md5sum=,dataFormat=,submitterId="",state="submitted",access="open",fileId=,dataCategory=,experimentalStrategy=,fileSize=,cases=,associatedEntities=,analysis=)
-def get_16s_raw_seq_set(id):
-    cl, al, fl = ([] for i in range(3))
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE s.id=\"%s\" RETURN p,prep,s,c,b" % (id)
-    res = graph.data(cquery)
-    fn = extract_url(res[0]['s'])
-    wf = "%s -> %s" % (res[0]['prep']['subtype'],res[0]['s']['subtype']) # this WF could be quite revealing, decide a more complete definition later
-    cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['id']))
-    al.append(AssociatedEntities(entityId=res[0]['prep']['id'],caseId=res[0]['b']['id'],entityType="prep"))
-    al.append(AssociatedEntities(entityId=res[0]['c']['id'],caseId=res[0]['b']['id'],entityType="trimmed set")) 
-    fl.append(IndivFiles(fileId="null"))
-    a = Analysis(updatedDatetime="null",workflowType=wf,analysisId="null",inputFiles=fl)
-    return FileHits(dataType=res[0]['s']['subtype'],fileName=fn,md5sum=res[0]['s']['checksums'],dataFormat=res[0]['s']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['s']['id'],dataCategory="16S",experimentalStrategy=res[0]['s']['study'],fileSize=res[0]['s']['size'],cases=cl,associatedEntities=al,analysis=a)
-
-def get_16s_trimmed_seq_set(id):
-    cl, al, fl = ([] for i in range(3)) # case, associated entity, and input file lists
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(b:Sample)<-[:PREPARED_FROM]-(prep)<-[:SEQUENCED_FROM]-(s)<-[:COMPUTED_FROM]-(c) WHERE c.id=\"%s\" RETURN p,prep,s,c,b" % (id)
-    res = graph.data(cquery)
-    fn = extract_url(res[0]['c'])
-    wf = "%s -> %s -> %s" % (res[0]['prep']['subtype'],res[0]['s']['subtype'],res[0]['c']['subtype']) # this WF could be quite revealing, decide a more complete definition later
-    cl.append(CaseHits(project=Project(projectId=res[0]['p']['subtype']),caseId=res[0]['b']['id']))
-    al.append(AssociatedEntities(entityId=res[0]['prep']['id'],caseId=res[0]['b']['id'],entityType="prep"))
-    al.append(AssociatedEntities(entityId=res[0]['s']['id'],caseId=res[0]['b']['id'],entityType="raw set"))
-    fl.append(IndivFiles(fileId=res[0]['s']['id']))
-    a = Analysis(updatedDatetime="null",workflowType=wf,analysisId="null",inputFiles=fl) # can add analysis ID once node is present or remove if deemed unnecessary
-    return FileHits(dataType=res[0]['c']['subtype'],fileName=fn,md5sum=res[0]['c']['checksums'],dataFormat=res[0]['c']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['c']['id'],dataCategory="16S",experimentalStrategy=res[0]['c']['study'],fileSize=res[0]['c']['size'],cases=cl,associatedEntities=al,analysis=a)
-
-options = {'16s_raw_seq_set': get_16s_raw_seq_set,
-    '16s_trimmed_seq_set': get_16s_trimmed_seq_set,
-}
-
+# Pull all the data associated with a particular file ID. 
 def get_file_data(file_id):
-    cquery = "MATCH (n) WHERE n.id=\"%s\" RETURN n.node_type AS type" % (file_id)
+    cl, al, fl = ([] for i in range(3))
+    cquery = ("MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})"
+        "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
+        "<-[:BY]-(Visit:Case{node_type:'visit'})"
+        "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
+        "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM]-(File) "
+        "WHERE File.id=\"%s\" RETURN Project,Subject,Sample,pf,File"
+    )
+    cquery = "MATCH (n:File) WHERE n.id=\"%s\" RETURN n.node_type AS type" % (file_id)
     res = graph.data(cquery)
+    furl = extract_url(res[0]['File']) 
+    sample_bs = extract_body_site(res[0]['Sample'])
+    wf = "%s -> %s" % (sample_bs,res[0]['pf']['node_type'])
+    cl.append(CaseHits(project=Project(projectId=res[0]['Project']['subtype']),caseId=res[0]['Subject']['id']))
+    al.append(AssociatedEntities(entityId=res[0]['pf']['id'],caseId=res[0]['Sample']['id'],entityType=res[0]['pf']['node_type']))
+    fl.append(IndivFiles(fileId=res[0]['File']['id']))
+    a = Analysis(updatedDatetime="null",workflowType=wf,analysisId="null",inputFiles=fl) # can add analysis ID once node is present or remove if deemed unnecessary
     node = res[0]['type']
-    final_res = options[node](file_id)
-    return final_res
+    return FileHits(dataType=res[0]['File']['subtype'],fileName=furl,md5sum=res[0]['File']['checksums'],dataFormat=res[0]['File']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['File']['id'],dataCategory=res[0]['File']['node_type'],experimentalStrategy=res[0]['File']['study'],fileSize=res[0]['File']['size'],cases=cl,associatedEntities=al,analysis=a)
 
 def get_url_for_download(id):
-    cquery = "MATCH (n) WHERE n.id=\"%s\" RETURN n" % (id)
+    cquery = "MATCH (n:File) WHERE n.id=\"%s\" AND NOT n.node_type=~'.*prep' RETURN n" % (id)
     res = graph.data(cquery)
     return extract_url(res[0]['n'])

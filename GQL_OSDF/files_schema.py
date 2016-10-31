@@ -6,9 +6,9 @@ from models import Project, IndivFiles, get_proj_data, get_files
 
 class Query(graphene.ObjectType):
 
-    project = graphene.Field(Project, id=graphene.String(description='Sample ID to query on'))
-    files = graphene.List(IndivFiles, id=graphene.String(description='Sample ID to query on'))
-    caseId = graphene.String(name="case_id", id=graphene.String(description='Sample ID to query on'))
+    project = graphene.Field(Project, id=graphene.String(description='Subject ID to query on'))
+    files = graphene.List(IndivFiles, id=graphene.String(description='Subject ID to query on'))
+    caseId = graphene.String(name="case_id", id=graphene.String(description='Subject ID to query on'))
     submitterId = graphene.String(name="submitter_id") # dummy value returned, accommodate GDC
 
     def resolve_project(self, args, context, info):
