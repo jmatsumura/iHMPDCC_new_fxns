@@ -253,7 +253,7 @@ def get_all_proj_counts():
     res = graph.data(cquery)
     return res
 
-cases_dict = ["Project","Sample","Subject","Visit","Study"]
+cases_dict = ["project","sample","subject","sisit","study"] # all are lower case in Neo4j, might as well pass this syntax in ac_schema
 
 # Cypher query to count the amount of each distinct property
 def count_props(node, prop, cy):
