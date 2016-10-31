@@ -3,7 +3,13 @@ from multiprocessing import Process, Queue, Pool
 
 # The match var is the base query to prepend all queries. The idea is to traverse
 # the graph entirely and use filters to return a subset of the total traversal. 
-match = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) WHERE"
+match = ("MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})"
+    "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
+    "<-[:BY]-(Visit:Case{node_type:'visit'})"
+    "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
+    "<-[:PREPARED_FROM]-(pf)"
+    "<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) WHERE "
+    )
 
 # Function to extract known GDC syntax and convert to OSDF. This is commonly needed for performing
 # cypher queries while still being able to develop the front-end with the cases syntax.
@@ -64,19 +70,19 @@ def build_facet_where(inp):
 # cases/files tabs and the last is for the total size. 
 returns = {
     'cases': "RETURN Project.name, Project.subtype, Sample.body_site, Sample.id, Study.name",
-    'files': "RETURN Project, sf, cf, Sample.id",
+    'files': "RETURN Project, File, Sample.id",
     'name': "RETURN Project.name as prop, count(Project.name) as counts",
-    'name_detailed': "RETURN Project.name as prop, count(Project.name) as ccounts, (count(sf)+count(cf)) as dcounts, (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot",
+    'name_detailed': "RETURN Project.name as prop, count(Project.name) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
     'body_site': "RETURN Sample.body_site as prop, count(Sample.body_site) as counts",
-    'body_site_detailed': "RETURN Sample.body_site as prop, count(Sample.body_site) as ccounts, (count(sf)+count(cf)) as dcounts, (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot",    
+    'body_site_detailed': "RETURN Sample.body_site as prop, count(Sample.body_site) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",    
     'fma_body_site': "RETURN Sample.fma_body_site as prop, count(Sample.fma_body_site) as counts",
     'study': "RETURN Study.name as prop, count(Study.name) as counts",
     'gender': "RETURN Subject.gender as prop, count(Subject.gender) as counts",
-    'gender_detailed': "RETURN Subject.gender as prop, count(Subject.gender) as ccounts, (count(sf)+count(cf)) as dcounts, (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot",
+    'gender_detailed': "RETURN Subject.gender as prop, count(Subject.gender) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
     'race': "RETURN Subject.race as prop, count(Subject.race) as counts",
-    'format': "RETURN sf.format as prop, count(sf.format) as counts",
-    'size': "RETURN (SUM(toInt(sf.size))+SUM(toInt(cf.size))) as tot",
-    'pagination': "RETURN (count(sf)+count(cf)) AS tot"
+    'format': "RETURN sf.format as prop, count(File.format) as counts",
+    'size': "RETURN (SUM(toInt(File.size))) as tot",
+    'pagination': "RETURN (count(File)) AS tot"
 }
 
 # Final function needed to build the entirety of the Cypher query. Accepts the following:
