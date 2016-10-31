@@ -167,7 +167,10 @@ def pagination_calcs(total,start,size,c_or_f):
 def get_pagination(cy,size,f,c_or_f):
     cquery = ""
     if cy == "":
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN (count(sf)+count(cf)) AS tot"
+        if c_or_f == 'c':
+            cquery = "MATCH (n:Case {node_type:'subject'}) RETURN count(n) AS tot"
+        else:
+            cquery = "MATCH (n:File) WHERE NOT n.node_type=~'.*prep' RETURN count(n) AS tot"
         res = graph.data(cquery)
         calcs = pagination_calcs(res[0]['tot'],f,size,c_or_f)
         return Pagination(count=calcs[2], sort=calcs[4], fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
@@ -228,25 +231,30 @@ def get_files(sample_id):
 
 # Query to traverse top half of OSDF model (Project<-....-Sample). 
 def get_proj_data(sample_id):
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(SUBJECT)<-[:BY]-(VISIT)<-[:COLLECTED_DURING]-(Sample) WHERE Sample.id=\"%s\" RETURN p" % (sample_id)
+    cquery = "MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})<-[:BY]-(Visit:Case{node_type:'visit'})<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'}) WHERE Sample.id=\"%s\" RETURN p" % (sample_id)
     res = graph.data(cquery)
-    return Project(name=res[0]['p']['name'],projectId=res[0]['p']['subtype'])
+    return Project(name=res[0]['Project']['name'],projectId=res[0]['Project']['subtype'])
 
 def get_all_proj_data():
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(SUBJECT)<-[:BY]-(VISIT)<-[:COLLECTED_DURING]-(Sample) RETURN DISTINCT p"
+    cquery = "MATCH (Project:Case{node_type:'project'}) RETURN DISTINCT Project"
     res = graph.data(cquery)
     return res
 
 def get_all_proj_counts():
-    cquery = "MATCH (p:Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(SUBJECT)<-[:BY]-(VISIT)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN DISTINCT p.id, p.name, Sample.body_site, (COUNT(sf)+COUNT(cf)) as file_count"
+    cquery = "MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})<-[:BY]-(Visit:Case{node_type:'visit'})<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN DISTINCT Project.id, Project.name, Sample.body_site, (COUNT(sf)+COUNT(cf)) as file_count"
     res = graph.data(cquery)
     return res
+
+cases_dict = ["Project","Sample","Subject","Visit","Study"]
 
 # Cypher query to count the amount of each distinct property
 def count_props(node, prop, cy):
     cquery = ""
     if cy == "":
-        cquery = "MATCH (Project)<-[:PART_OF]-(Study)<-[:PARTICIPATES_IN]-(Subject)<-[:BY]-(Visit)<-[:COLLECTED_DURING]-(Sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM]-(sf)<-[:COMPUTED_FROM]-(cf) RETURN %s.%s as prop, count(%s.%s) as counts" % (node, prop, node, prop)
+        if node in cases_dict:
+            cquery = "MATCH (n:Case{node_type:'%s'}) RETURN n.%s as prop, count(n.%s) as counts" % (node, prop, prop)
+        else:
+            cquery = "Match (n:File) WHERE NOT n.node_type=~'.*prep' RETURN n.%s as prop, count(n.%s) as counts" % (prop, prop)
     else:
         cquery = build_cypher(match,cy,"null","null","null",prop)
     return graph.data(cquery)

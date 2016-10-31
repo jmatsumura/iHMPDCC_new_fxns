@@ -202,7 +202,7 @@ def get_project():
         proj_list = []
 
         for p in pdata:
-            proj_list.append({ "project_id": p["p"]["name"], "primary_site": "multiple", "disease_type": "unknown", "released": True, "name": p["p"]["name"] })
+            proj_list.append({ "project_id": p["Project"]["name"], "primary_site": "multiple", "disease_type": "unknown", "released": True, "name": p["Project"]["name"] })
 
         np = len(proj_list)
 
@@ -235,7 +235,7 @@ def get_project():
     hit_list = []
 
     for p in pd:
-        proj_id = p["p.name"]
+        proj_id = p["Project.name"]
         psite = p["Sample.body_site"]
         n_files = p["file_count"]
         n_cases = n_files / 2

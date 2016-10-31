@@ -5,8 +5,8 @@ from models import Pagination, FileHits, Aggregations, get_buckets, get_file_hit
 # up a bit for files counts since it needs to pull ALL nodes that are tied to 
 # some file and count those unique groups. Should be easy enough, just match by 
 # the relevant edges. Simplified for now. 
-dt = get_buckets("cf.format","no","")
-df = get_buckets("sf.format","no","")
+dt = get_buckets("File.node_type","no","")
+df = get_buckets("File.format","no","")
 
 class Query(graphene.ObjectType):
 
