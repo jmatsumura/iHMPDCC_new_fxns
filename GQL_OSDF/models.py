@@ -218,8 +218,7 @@ def get_files(sample_id):
     regex_for_http_urls = '\,\su(http.*data/(.*))\,'
     pattern = re.compile(regex_for_http_urls)
     
-    cquery = ("MATCH (Subject:Case{node_type:'subject'})<-[:BY]-(Visit:Case{node_type:'visit'})"
-        "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
+    cquery = ("MATCH (Sample:Case{node_type:'sample'})"
         "<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
         "WHERE Sample.id=\"%s\" RETURN File"
         ) 
@@ -239,7 +238,13 @@ def get_files(sample_id):
 
 # Query to traverse top half of OSDF model (Project<-....-Sample). 
 def get_proj_data(sample_id):
-    cquery = "MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})<-[:BY]-(Visit:Case{node_type:'visit'})<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'}) WHERE Sample.id=\"%s\" RETURN p" % (sample_id)
+    cquery = ("MATCH (Project:Case{node_type:'project'})"
+        "<-[:PART_OF]-(Study:Case{node_type:'study'})"
+        "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
+        "<-[:BY]-(Visit:Case{node_type:'visit'})"
+        "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'}) WHERE Sample.id=\"%s\" RETURN Project"
+        ) 
+    cquery = cquery % (sample_id)
     res = graph.data(cquery)
     return Project(name=res[0]['Project']['name'],projectId=res[0]['Project']['subtype'])
 
