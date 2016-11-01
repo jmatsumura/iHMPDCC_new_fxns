@@ -69,7 +69,7 @@ def build_facet_where(inp):
 # following return ends in "counts", then it is for a pie chart. The first two are for
 # cases/files tabs and the last is for the total size. 
 returns = {
-    'cases': "RETURN Project.name, Project.subtype, Sample.body_site, Sample.id, Study.name",
+    'cases': "RETURN DISTINCT Project.name, Project.subtype, Sample.body_site, Sample.id, Study.name",
     'files': "RETURN Project, File, Sample.id",
     'name': "RETURN Project.name as prop, count(Project.name) as counts",
     'name_detailed': "RETURN Project.name as prop, count(Project.name) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
@@ -82,7 +82,8 @@ returns = {
     'race': "RETURN Subject.race as prop, count(Subject.race) as counts",
     'format': "RETURN File.format as prop, count(File.format) as counts",
     'size': "RETURN (SUM(toInt(File.size))) as tot",
-    'pagination': "RETURN (count(File)) AS tot"
+    'f_pagination': "RETURN (count(File)) AS tot",
+    'c_pagination': "RETURN (count(DISTINCT(Sample))) AS tot"
 }
 
 # Final function needed to build the entirety of the Cypher query. Accepts the following:

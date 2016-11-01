@@ -117,10 +117,10 @@ def extract_url(urls_node):
 def extract_body_site(sample_node):
     bs = "N/A"
     if 'body_site' in sample_node:
-        bs = urls_node['body_site']
+        bs = sample_node['body_site']
     elif 'fma_body_site' in sample_node:
-        fn = urls_node['fma_body_site']
-    return fn
+        bs = sample_node['fma_body_site']
+    return bs
 
 # Function to get file size from Neo4j. 
 # This current iteration should catch all the file data types EXCEPT for the *omes and the multi-step/repeat
@@ -170,7 +170,7 @@ def get_pagination(cy,size,f,c_or_f):
     cquery = ""
     if cy == "":
         if c_or_f == 'c':
-            cquery = "MATCH (n:Case {node_type:'subject'}) RETURN count(n) AS tot"
+            cquery = "MATCH (n:Case {node_type:'sample'}) RETURN count(n) AS tot"
         else:
             cquery = "MATCH (n:File) WHERE NOT n.node_type=~'.*prep' RETURN count(n) AS tot"
         res = graph.data(cquery)
@@ -178,9 +178,15 @@ def get_pagination(cy,size,f,c_or_f):
         return Pagination(count=calcs[2], sort=calcs[4], fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
     else:
         if '"op"' in cy:
-            cquery = build_cypher(match,cy,"null","null","null","pagination")
+            if c_or_f == 'c':
+                cquery = build_cypher(match,cy,"null","null","null","c_pagination")
+            else:
+                cquery = build_cypher(match,cy,"null","null","null","f_pagination")
         else:
-            cquery = build_adv_cypher(match,cy,"null","null","null","pagination")
+            if c_or_f == 'c':
+                cquery = build_adv_cypher(match,cy,"null","null","null","c_pagination")
+            else:
+                cquery = build_adv_cypher(match,cy,"null","null","null","f_pagination")
         res = graph.data(cquery)
         calcs = pagination_calcs(res[0]['tot'],f,size,c_or_f)
         return Pagination(count=calcs[2], sort=calcs[4], fromNum=f, page=calcs[1], total=calcs[3], pages=calcs[0], size=size)
@@ -205,7 +211,7 @@ def build_basic_query(attr, val, links):
         return graph.data(cquery)
 
 # Retrieve ALL files associated with a given Subject ID.
-def get_files(subject_id):
+def get_files(sample_id):
     fl = []
     dt, fn, df, ac, fi = ("" for i in range(5))
     fs = 0
@@ -215,9 +221,9 @@ def get_files(subject_id):
     cquery = ("MATCH (Subject:Case{node_type:'subject'})<-[:BY]-(Visit:Case{node_type:'visit'})"
         "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
         "<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
-        "WHERE Subject.id=\"%s\" RETURN File"
+        "WHERE Sample.id=\"%s\" RETURN File"
         ) 
-    cquery = cquery % (subject_id)
+    cquery = cquery % (sample_id)
     res = graph.data(cquery)
 
     for x in range(0,len(res)): # iterate over each unique path
@@ -232,8 +238,8 @@ def get_files(subject_id):
     return fl
 
 # Query to traverse top half of OSDF model (Project<-....-Sample). 
-def get_proj_data(subject_id):
-    cquery = "MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})<-[:BY]-(Visit:Case{node_type:'visit'})<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'}) WHERE Subject.id=\"%s\" RETURN p" % (sample_id)
+def get_proj_data(sample_id):
+    cquery = "MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})<-[:BY]-(Visit:Case{node_type:'visit'})<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'}) WHERE Sample.id=\"%s\" RETURN p" % (sample_id)
     res = graph.data(cquery)
     return Project(name=res[0]['Project']['name'],projectId=res[0]['Project']['subtype'])
 
@@ -247,7 +253,7 @@ def get_all_proj_counts():
         "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
         "<-[:BY]-(Visit:Case{node_type:'visit'})"
         "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
-        "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM]-(File) "
+        "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
         "RETURN DISTINCT Project.id, Project.name, Sample.body_site, (COUNT(File)) as file_count"
         )
     res = graph.data(cquery)
@@ -275,7 +281,7 @@ def count_props_and_files(node, prop, cy):
             "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
             "<-[:BY]-(Visit:Case{node_type:'visit'})"
             "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
-            "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM]-(File) "
+            "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
             "RETURN %s.%s as prop, count(%s.%s) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot"
         )
         cquery = cquery % (node, prop, node, prop)
@@ -327,8 +333,8 @@ def get_case_hits(size,order,f,cy):
             "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
             "<-[:BY]-(Visit:Case{node_type:'visit'})"
             "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
-            "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM]-(File) "
-            "RETURN Project.name,Project.subtype,Sample.body_site,Sample.id ORDER BY %s %s SKIP %s LIMIT %s"
+            "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
+            "RETURN DISTINCT Project.name,Sample.id,Project.subtype,Sample.body_site ORDER BY %s %s SKIP %s LIMIT %s"
         )
         cquery = cquery % (order[0],order[1].upper(),f-1,size)
     elif '"op"' in cy:
@@ -353,8 +359,8 @@ def get_file_hits(size,order,f,cy):
             "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
             "<-[:BY]-(Visit:Case{node_type:'visit'})"
             "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
-            "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM]-(File) "
-            "RETURN Project,File,Sample.id ORDER BY %s %s SKIP %s LIMIT %s"
+            "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
+            "RETURN DISTINCT Project,File,Sample.id ORDER BY %s %s SKIP %s LIMIT %s"
         )
         cquery = cquery % (order[0],order[1].upper(),f-1,size)
     elif '"op"' in cy:
@@ -378,10 +384,10 @@ def get_file_data(file_id):
         "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
         "<-[:BY]-(Visit:Case{node_type:'visit'})"
         "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
-        "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM]-(File) "
+        "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
         "WHERE File.id=\"%s\" RETURN Project,Subject,Sample,pf,File"
     )
-    cquery = "MATCH (n:File) WHERE n.id=\"%s\" RETURN n.node_type AS type" % (file_id)
+    cquery = cquery % (file_id)
     res = graph.data(cquery)
     furl = extract_url(res[0]['File']) 
     sample_bs = extract_body_site(res[0]['Sample'])
@@ -390,7 +396,6 @@ def get_file_data(file_id):
     al.append(AssociatedEntities(entityId=res[0]['pf']['id'],caseId=res[0]['Sample']['id'],entityType=res[0]['pf']['node_type']))
     fl.append(IndivFiles(fileId=res[0]['File']['id']))
     a = Analysis(updatedDatetime="null",workflowType=wf,analysisId="null",inputFiles=fl) # can add analysis ID once node is present or remove if deemed unnecessary
-    node = res[0]['type']
     return FileHits(dataType=res[0]['File']['node_type'],fileName=furl,md5sum=res[0]['File']['checksums'],dataFormat=res[0]['File']['format'],submitterId="null",state="submitted",access="open",fileId=res[0]['File']['id'],dataCategory=res[0]['File']['node_type'],experimentalStrategy=res[0]['File']['study'],fileSize=res[0]['File']['size'],cases=cl,associatedEntities=al,analysis=a)
 
 def get_url_for_download(id):
