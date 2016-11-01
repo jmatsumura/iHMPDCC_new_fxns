@@ -119,3 +119,10 @@ for x in docList:
             breaks += 1000
 
 print "Finished. Attached a total of %s edges." % (tot)
+
+print "Now removing test data based on those linked to the 'Test Project' node..."
+
+cstr = "MATCH (P:Case{node_type:'project'})<-[*..20]-(n) WHERE P.project_name='test' DETACH DELETE n,P"
+cypher.run(cstr)
+
+print "All done!"

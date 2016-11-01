@@ -125,6 +125,8 @@ for x in docList:
         props = ""
         y = 0 # track how many props are being added
         for key,value in res.iteritems():
+            if key == 'fma_body_site':
+                key = 'body_site' # standardize body site and fma_body_site across iHMP and HMP
             if y > 0: # add comma for every subsequent key/value pair
                 props += ',' 
             if isinstance(value, int) or isinstance(value, float):
