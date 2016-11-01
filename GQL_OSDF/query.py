@@ -21,6 +21,7 @@ def convert_gdc_to_osdf(inp_str):
     inp_str = inp_str.replace("cases.SubjectGender","Subject.gender")
     inp_str = inp_str.replace("project.primary_site","Sample.body_site")
     inp_str = inp_str.replace("subject.gender","Subject.gender")
+    inp_str = inp_str.replace("file.format","File.format")
     inp_str = inp_str.replace("files.file_id","File.id")
     # Next two lines guarantee URL encoding (seeing errors with urllib)
     inp_str = inp_str.replace('"','|')
@@ -69,7 +70,7 @@ def build_facet_where(inp):
 # following return ends in "counts", then it is for a pie chart. The first two are for
 # cases/files tabs and the last is for the total size. 
 returns = {
-    'cases': "RETURN DISTINCT Project.name, Project.subtype, Sample.body_site, Sample.id, Study.name",
+    'cases': "RETURN DISTINCT Project.name, Project.subtype, Sample.body_site, Sample.id, Study.subtype",
     'files': "RETURN Project, File, Sample.id",
     'name': "RETURN Project.name as prop, count(Project.name) as counts",
     'name_detailed': "RETURN Project.name as prop, count(Project.name) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
@@ -81,6 +82,7 @@ returns = {
     'gender_detailed': "RETURN Subject.gender as prop, count(Subject.gender) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
     'race': "RETURN Subject.race as prop, count(Subject.race) as counts",
     'format': "RETURN File.format as prop, count(File.format) as counts",
+    'format_detailed': "RETURN File.format as prop, count(File.format) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
     'size': "RETURN (SUM(toInt(File.size))) as tot",
     'f_pagination': "RETURN (count(File)) AS tot",
     'c_pagination': "RETURN (count(DISTINCT(Sample))) AS tot"

@@ -339,7 +339,7 @@ def get_case_hits(size,order,f,cy):
             "<-[:BY]-(Visit:Case{node_type:'visit'})"
             "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
             "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
-            "RETURN DISTINCT Project.name,Sample.id,Project.subtype,Sample.body_site ORDER BY %s %s SKIP %s LIMIT %s"
+            "RETURN DISTINCT Project.name,Study.subtype,Sample.id,Project.subtype,Sample.body_site ORDER BY %s %s SKIP %s LIMIT %s"
         )
         cquery = cquery % (order[0],order[1].upper(),f-1,size)
     elif '"op"' in cy:
@@ -348,12 +348,11 @@ def get_case_hits(size,order,f,cy):
         cquery = build_adv_cypher(match,cy,order,f,size,"cases")
     res = graph.data(cquery)
     for x in range(0,len(res)):
-        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.body_site'],name=res[x]['Project.name'],diseaseType="demo"),caseId=res[x]['Sample.id'])
+        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.body_site'],name=res[x]['Project.name'],diseaseType=res[x]['Study.subtype']),caseId=res[x]['Sample.id'])
         hits.append(cur)
     return hits
 
-# Function to return file values to populate the table, note that this will just return first 30 values arbitrarily for the moment
-# Note that the way this is performed, guaranteed a trimmed set from a raw set so pulling 15 and pulling one file from each node (=30)
+# Function to return file values to populate the table.
 def get_file_hits(size,order,f,cy):
     hits = []
     f = int(f / 2) + (f % 2 > 0)
