@@ -275,15 +275,17 @@ def get_ui_search_summary():
         "%7BSampleFmabodysite(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D"
         "ProjectName(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D"
         "SubjectGender(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D"
-        "FileFormat(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D%2C"
-        "fs(cy%3A%22%22)%7Bvalue%7D%7D"
+        "FileFormat(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D"
+        "FileSubtype(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D"
+        "%2Cfs(cy%3A%22%22)%7Bvalue%7D%7D"
         )
     p1 = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite(cy%3A%22" # inject Cypher into body site query
     p2 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DProjectName(cy%3A%22" # inject Cypher into project name query
     p3 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DSubjectGender(cy%3A%22" # inject Cypher into subject gender query
     p4 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DFileFormat(cy%3A%22" # inject Cypher into file format query
-    p5 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7Dfs(cy%3A%22" # inject Cypher into file size query
-    p6 = "%22)%7Bvalue%7D%7D"
+    p5 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DFileSubtype(cy%3A%22" # inject Cypher into file subtype query
+    p6 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D%2Cfs(cy%3A%22" # inject Cypher into file size query
+    p7 = "%22)%7Bvalue%7D%7D"
     filters = request.get_data()
     url = ""
     if filters: # only modify call if filters arg is present
@@ -291,7 +293,7 @@ def get_ui_search_summary():
         filters = filters[11:]
         filters = convert_gdc_to_osdf(filters)
         if len(filters) > 2: # need actual content in the JSON, not empty
-            url = "%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,filters,p3,filters,p4,filters,p5,filters,p6) 
+            url = "%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,filters,p3,filters,p4,filters,p5,filters,p6,filters,p7) 
         else:
             url = empty_cy # no Cypher parameters entered
     else:

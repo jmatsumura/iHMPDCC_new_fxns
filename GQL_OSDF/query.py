@@ -22,6 +22,7 @@ def convert_gdc_to_osdf(inp_str):
     inp_str = inp_str.replace("project.primary_site","Sample.body_site")
     inp_str = inp_str.replace("subject.gender","Subject.gender")
     inp_str = inp_str.replace("file.format","File.format")
+    inp_str = inp_str.replace("file.category","File.subtype") # note the conversion
     inp_str = inp_str.replace("files.file_id","File.id")
     # Next two lines guarantee URL encoding (seeing errors with urllib)
     inp_str = inp_str.replace('"','|')
@@ -83,6 +84,7 @@ returns = {
     'race': "RETURN Subject.race as prop, count(Subject.race) as counts",
     'format': "RETURN File.format as prop, count(File.format) as counts",
     'format_detailed': "RETURN File.format as prop, count(File.format) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
+    'subtype_detailed': "RETURN File.subtype as prop, count(File.subtype) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
     'size': "RETURN (SUM(toInt(File.size))) as tot",
     'f_pagination': "RETURN (count(File)) AS tot",
     'c_pagination': "RETURN (count(DISTINCT(Sample))) AS tot"
