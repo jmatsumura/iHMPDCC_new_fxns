@@ -11,7 +11,7 @@
 
 import json, sys, re
 from py2neo import Graph
-from dicts_for_flattened_couchdb2neo4j import nodes, edges
+from accs_for_flattened_couchdb2neo4j import nodes, edges, mod_quotes
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
@@ -27,12 +27,6 @@ cypher = graph
 def build_constraint_index(node,prop):
     cstr = "CREATE CONSTRAINT ON (x:%s) ASSERT x.%s IS UNIQUE" % (node,prop)
     cypher.run(cstr)
-
-def mod_quotes(val):
-    if isinstance(val, str):
-        val = val.replace("'","\\'")
-        val = val.replace('"','\\"')
-    return val
 
 build_constraint_index('Case','id')
 build_constraint_index('File','id')
@@ -143,7 +137,7 @@ for x in docList:
         if 'node_type' in res: # if no node type, need to ignore     
             cstr = "CREATE (node:`%s` { %s })" % (nodes[res['node_type']],props) # create should make this faster, trust CouchDB to guarantee unique
             cypher.run(cstr)
-        if n % 500 == 0:
+        if n % 1000 == 0:
             print "%s documents converted into nodes and in Neo4j" % (n)
         n += 1
 

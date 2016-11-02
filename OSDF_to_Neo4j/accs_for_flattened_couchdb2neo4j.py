@@ -1,6 +1,23 @@
 #!/usr/bin/python
 #
-# Contains dictionaries to convert from OSDF syntax to what will be loaded in Neo4j.
+# Contains accessories (1 function and some dicts) to convert from OSDF syntax to what will be loaded in Neo4j.
+
+# Shared function across phases for modifying quotes in values.
+# This function takes in a unicode value found in the couch dump and will replace quotes,
+# either single or double, with literal quotes so that these can be passed to a Cypher 
+# statement without escaping out early. May seem a bit round-about, but essentially 
+# each unicode value needs to turn into a string in order to do replacement of quotes
+# and must be sent back to unicode for Python processing into an eventual Cypher query.
+def mod_quotes(val):
+    if isinstance(val, unicode):
+        val = val.encode('utf-8')
+        val = val.replace("'",r"\'")
+        val = val.replace('"',r'\"')
+        val = val.decode('utf-8')
+        # In order to search the DB as you would expect, convert number only strings to digits
+        if val.isdigit():
+            val = float(val) # float just in case
+    return val
 
 # This dictionary simply reformats aspects like capitalization for Neo4j. 
 nodes = {

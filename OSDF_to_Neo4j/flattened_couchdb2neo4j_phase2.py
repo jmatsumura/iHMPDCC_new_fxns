@@ -9,7 +9,7 @@
 
 import json, sys, re
 from py2neo import Graph
-from dicts_for_flattened_couchdb2neo4j import nodes, edges, definitive_edges
+from accs_for_flattened_couchdb2neo4j import nodes, edges, definitive_edges, mod_quotes
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
@@ -73,7 +73,7 @@ regexForPropValue = r"(.*):(.*)"
 # Some terminal feedback
 print "Beginning to add the edges to all docs within the file '%s'. Total number of docs (including _hist) is = %s" % (sys.argv[1],len(docList))
 tot = 0 # count total number of edges for verification
-breaks = 1000 # break up the output
+breaks = 5000 # break up the output
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j.
 for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None: # ignore history documents
@@ -95,20 +95,24 @@ for x in docList:
         if 'tags' in res: # some nodes may be missing this. 
             tg = res['tags']
             for tag in tg:
+                tag = mod_quotes(tag)
                 build_edge(nodes[nt],id,edges['has_tag'],nodes['tags'],'term',tag)
         
         for mim in mm:
             p = re.search(regexForPropValue,mim).group(1)
             v = re.search(regexForPropValue,mim).group(2)
+            v = mod_quotes(v)
             build_edge(nodes[nt],id,edges['has_mimarks'],nodes['mimarks'],p,v)
 
         for mix in mx:
             p = re.search(regexForPropValue,mix).group(1)
             v = re.search(regexForPropValue,mix).group(2)
+            v = mod_quotes(v)
             build_edge(nodes[nt],id,edges['has_mixs'],nodes['mixs'],p,v)
 
         for links in lk:
             for x in links[1]:
+                x = mod_quotes(x)
                 if links[0] in definitive_edges:
                     build_edge(nodes[nt],id,edges[links[0]],definitive_edges[links[0]],'id',x)
                 else: # know that we aren't dealing with case or other labels
@@ -117,7 +121,7 @@ for x in docList:
         tot += (1+len(tg)+len(mm)+len(mx)+len(lk)/2) 
         if tot > breaks:
             print "%s\t\tedges added." % (breaks)
-            breaks += 1000
+            breaks += 5000
 
 print "Finished. Attached a total of %s edges." % (tot)
 
