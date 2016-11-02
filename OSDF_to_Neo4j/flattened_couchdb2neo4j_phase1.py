@@ -28,6 +28,12 @@ def build_constraint_index(node,prop):
     cstr = "CREATE CONSTRAINT ON (x:%s) ASSERT x.%s IS UNIQUE" % (node,prop)
     cypher.run(cstr)
 
+def mod_quotes(val):
+    if isinstance(val, str):
+        val = val.replace("'","\\'")
+        val = val.replace('"','\\"')
+    return val
+
 build_constraint_index('Case','id')
 build_constraint_index('File','id')
 build_constraint_index('Tags','term')
@@ -53,6 +59,7 @@ def traverse_json(x, snode):
                 # Tags (list), MIMARKS (dict), and mixs (dict), should be individual nodes so add now
                 if k == "tags": # new node for each new tag in this list
                     for tag in v:
+                        tag = mod_quotes(tag)
                         cstr = "MERGE (node:Tags { term:'%s' })" % (tag)
                         cypher.run(cstr)
                 elif k == "mimarks" or k == 'mixs':
@@ -62,15 +69,11 @@ def traverse_json(x, snode):
                         else:
                             if isinstance(value, list): # some of the values in mixs/MIMARKS are lists
                                 for z in value:
-                                    if isinstance(z, str):
-                                        z = z.replace("'","\'")
-                                        z = z.replace('"','\"')
+                                    z = mod_quotes(z)
                                     cstr = "MERGE (node:%s { %s:'%s' })" % (nodes[k],key,z)
                                     cypher.run(cstr)
                             else:
-                                if isinstance(value, str):
-                                    value = value.replace("'","\'")
-                                    value = value.replace('"','\"')
+                                value = mod_quotes(value)
                                 cstr = "MERGE (node:%s { %s:'%s' })" % (nodes[k],key,value)
                                 cypher.run(cstr)
 
@@ -83,7 +86,7 @@ def traverse_json(x, snode):
                         v = v[0]
                     elif k == "checksums":
                         v = v['md5']
-                    elif k == "contact": # Note, building a single string out of potentially many here for now
+                    elif k == "contact": # Note, building a single string of contacts out of potentially many
                         contacts = []
                         for i in v:
                             if "@" in i:
@@ -127,13 +130,14 @@ for x in docList:
         for key,value in res.iteritems():
             if key == 'fma_body_site':
                 key = 'body_site' # standardize body site and fma_body_site across iHMP and HMP
+                # need to change value here when I have the map from Heather
             if y > 0: # add comma for every subsequent key/value pair
                 props += ',' 
             if isinstance(value, int) or isinstance(value, float):
                 props += '`%s`:%s' % (key,value)
                 y += 1
             else:
-                value = value.replace('"',"'")
+                value = mod_quotes(value)
                 props += '`%s`:"%s"' % (key,value)
                 y += 1
         if 'node_type' in res: # if no node type, need to ignore     

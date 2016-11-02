@@ -108,10 +108,11 @@ for x in docList:
             build_edge(nodes[nt],id,edges['has_mixs'],nodes['mixs'],p,v)
 
         for links in lk:
-            if links[0] in definitive_edges:
-                build_edge(nodes[nt],id,edges[links[0]],definitive_edges[links[0]],'id',[links[1]][0][0])
-            else: # know that we aren't dealing with case or other labels
-                build_edge(nodes[nt],id,edges[links[0]],'File','id',[links[1]][0][0]) 
+            for x in links[1]:
+                if links[0] in definitive_edges:
+                    build_edge(nodes[nt],id,edges[links[0]],definitive_edges[links[0]],'id',x)
+                else: # know that we aren't dealing with case or other labels
+                    build_edge(nodes[nt],id,edges[links[0]],'File','id',x) 
 
         tot += (1+len(tg)+len(mm)+len(mx)+len(lk)/2) 
         if tot > breaks:
