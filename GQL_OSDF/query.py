@@ -75,6 +75,8 @@ returns = {
     'files': "RETURN Project, File, Sample.id",
     'name': "RETURN Project.name as prop, count(Project.name) as counts",
     'name_detailed': "RETURN Project.name as prop, count(Project.name) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
+    'sname': "RETURN Study.name as prop, count(Study.name) as counts",
+    'sname_detailed': "RETURN Study.name as prop, count(Study.name) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
     'body_site': "RETURN Sample.body_site as prop, count(Sample.body_site) as counts",
     'body_site_detailed': "RETURN Sample.body_site as prop, count(Sample.body_site) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",    
     'fma_body_site': "RETURN Sample.fma_body_site as prop, count(Sample.fma_body_site) as counts",

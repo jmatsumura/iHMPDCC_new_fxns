@@ -8,6 +8,7 @@ samFMA = get_buckets("Sample.body_site","yes","")
 subGender = get_buckets("Subject.gender","yes","")
 fileFormat = get_buckets("File.format","yes","")
 fileSubtype = get_buckets("File.subtype","yes","")
+studyName = get_buckets("Study.name","yes","")
 fs = FileSize(value=get_total_file_size(""))
 
 class Query(graphene.ObjectType):
@@ -17,6 +18,7 @@ class Query(graphene.ObjectType):
     SubjectGender = graphene.Field(SBucketCounter, cy=graphene.String(description='Cypher WHERE parameters'))
     FileFormat = graphene.Field(SBucketCounter, cy=graphene.String(description='Cypher WHERE parameters'))
     FileSubtype = graphene.Field(SBucketCounter, cy=graphene.String(description='Cypher WHERE parameters'))
+    StudyName = graphene.Field(SBucketCounter, cy=graphene.String(description='Cypher WHERE parameters'))
     fs = graphene.Field(FileSize, cy=graphene.String(description='Cypher WHERE parameters'))
 
     def resolve_SampleFmabodysite(self, args, context, info):
@@ -54,6 +56,13 @@ class Query(graphene.ObjectType):
             return fileSubtype
         else:
             return get_buckets("File.subtype","yes",cy)
+
+    def resolve_StudyName(self, args, context, info):
+        cy = args['cy'].replace("|",'"') 
+        if cy == "":
+            return studyName
+        else:
+            return get_buckets("Study.name","yes",cy)
 
     def resolve_fs(self, args, context, info):
         cy = args['cy'].replace("|",'"') 

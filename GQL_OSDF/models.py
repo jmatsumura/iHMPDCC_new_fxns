@@ -291,9 +291,13 @@ def count_props_and_files(node, prop, cy):
         )
         cquery = cquery % (node, prop, node, prop)
     elif '"op"' in cy:
+        if node == 'Study' and prop == 'name': # Need to differentiate between Project name and Study name for facet search
+            prop = 'sname' 
         prop_detailed = "%s_detailed" % (prop)
         cquery = build_cypher(match,cy,"null","null","null",prop_detailed)
     else:
+        if node == 'Study' and prop == 'name':
+            prop = 'sname' 
         prop_detailed = "%s_detailed" % (prop)
         cquery = build_adv_cypher(match,cy,"null","null","null",prop_detailed)
     return graph.data(cquery)
