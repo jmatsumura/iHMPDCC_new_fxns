@@ -11,7 +11,7 @@
 
 import json, sys, re
 from py2neo import Graph
-from accs_for_flattened_couchdb2neo4j import nodes, edges, mod_quotes
+from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, mod_quotes
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
@@ -119,12 +119,28 @@ for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None: # ignore history documents
         singleNode = {} # reinitialize dict at each new document
         res = traverse_json(x, singleNode)
+        fma = False # don't know whether or not it has FMA body site property
         props = ""
         y = 0 # track how many props are being added
         for key,value in res.iteritems():
             if key == 'fma_body_site':
-                key = 'body_site' # standardize body site and fma_body_site across iHMP and HMP
-                # need to change value here when I have the map from Heather
+                props += '`%s`:"%s"' % (key,body_site_dict[value])
+                fma = True
+                pass # pass makes sure we don't add more than one fma_body_site property
+            elif key == 'body_site':
+                if fma == True: # already seen FMA body site, forget body_site
+                    pass
+                else: # need check all other keys to make sure FMA body site isn't in the future
+                    for key,value in res.iteritems():
+                        if key == 'fma_body_site':
+                            fma == True
+                            break
+                    if fma == False: # if no FMA present, use body site to map
+                        props += '`%s`:"%s"' % ('fma_body_site',body_site_dict[value])
+                        pass
+                    else: # FMA will be found later, use that and skip body_site prop
+                        pass
+
             if y > 0: # add comma for every subsequent key/value pair
                 props += ',' 
             if isinstance(value, int) or isinstance(value, float):
@@ -134,7 +150,7 @@ for x in docList:
                 value = mod_quotes(value)
                 props += '`%s`:"%s"' % (key,value)
                 y += 1
-        if 'node_type' in res: # if no node type, need to ignore     
+        if 'node_type' in res: # if no node type, need to ignore   
             cstr = "CREATE (node:`%s` { %s })" % (nodes[res['node_type']],props) # create should make this faster, trust CouchDB to guarantee unique
             cypher.run(cstr)
         if n % 1000 == 0:

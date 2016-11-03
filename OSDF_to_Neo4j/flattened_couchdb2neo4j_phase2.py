@@ -97,18 +97,21 @@ for x in docList:
             for tag in tg:
                 tag = mod_quotes(tag)
                 build_edge(nodes[nt],id,edges['has_tag'],nodes['tags'],'term',tag)
+                tot += 1
         
         for mim in mm:
             p = re.search(regexForPropValue,mim).group(1)
             v = re.search(regexForPropValue,mim).group(2)
             v = mod_quotes(v)
             build_edge(nodes[nt],id,edges['has_mimarks'],nodes['mimarks'],p,v)
+            tot += 1
 
         for mix in mx:
             p = re.search(regexForPropValue,mix).group(1)
             v = re.search(regexForPropValue,mix).group(2)
             v = mod_quotes(v)
             build_edge(nodes[nt],id,edges['has_mixs'],nodes['mixs'],p,v)
+            tot += 1
 
         for links in lk:
             for x in links[1]:
@@ -117,17 +120,22 @@ for x in docList:
                     build_edge(nodes[nt],id,edges[links[0]],definitive_edges[links[0]],'id',x)
                 else: # know that we aren't dealing with case or other labels
                     build_edge(nodes[nt],id,edges[links[0]],'File','id',x) 
+                tot += 1
 
-        tot += (1+len(tg)+len(mm)+len(mx)+len(lk)/2) 
         if tot > breaks:
             print "%s\t\tedges added." % (breaks)
             breaks += 5000
 
 print "Finished. Attached a total of %s edges." % (tot)
-
 print "Now removing test data based on those linked to the 'Test Project' node..."
 
 cstr = "MATCH (P:Case{node_type:'project'})<-[*..20]-(n) WHERE P.project_name='test' DETACH DELETE n,P"
+cypher.run(cstr)
+
+print "Done."
+print "Now removing the demo HMP study as this is redundant and all downstream files accounted for by individual studies..."
+
+cstr = "MATCH (S:Case{node_type:'study'}) WHERE S.name='Human microbiome project demonstration projects.' DETACH DELETE S"
 cypher.run(cstr)
 
 print "All done!"
