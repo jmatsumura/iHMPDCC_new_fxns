@@ -123,13 +123,18 @@ for x in docList:
         props = ""
         y = 0 # track how many props are being added
         for key,value in res.iteritems():
+
+            if y > 0: # add comma for every subsequent key/value pair
+                props += ',' 
+
             if key == 'fma_body_site':
                 props += '`%s`:"%s"' % (key,body_site_dict[value])
+                y += 1
                 fma = True
-                pass # pass makes sure we don't add more than one fma_body_site property
+                continue # pass makes sure we don't add more than one fma_body_site property
             elif key == 'body_site':
                 if fma == True: # already seen FMA body site, forget body_site
-                    pass
+                    continue
                 else: # need check all other keys to make sure FMA body site isn't in the future
                     for key,value in res.iteritems():
                         if key == 'fma_body_site':
@@ -137,12 +142,11 @@ for x in docList:
                             break
                     if fma == False: # if no FMA present, use body site to map
                         props += '`%s`:"%s"' % ('fma_body_site',body_site_dict[value])
-                        pass
+                        y += 1
+                        continue
                     else: # FMA will be found later, use that and skip body_site prop
-                        pass
+                        continue
 
-            if y > 0: # add comma for every subsequent key/value pair
-                props += ',' 
             if isinstance(value, int) or isinstance(value, float):
                 props += '`%s`:%s' % (key,value)
                 y += 1
