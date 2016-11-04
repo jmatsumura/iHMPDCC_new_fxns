@@ -46,9 +46,9 @@ def traverse_json(x, snode):
 
         for k,v in x.iteritems():
             if v == "" or not v: # check for empty string/list 
-                pass
+                continue
             elif k in skip or k in e: # skip info we don't want to transfer and edge info for now
-                pass
+                continue
             else: 
                 # Tags (list), MIMARKS (dict), and mixs (dict), should be individual nodes so add now
                 if k == "tags": # new node for each new tag in this list
@@ -59,7 +59,7 @@ def traverse_json(x, snode):
                 elif k == "mimarks" or k == 'mixs':
                     for key,value in v.iteritems():
                         if value == "" or not value: # check for empty string/list
-                            pass
+                            continue
                         else:
                             if isinstance(value, list): # some of the values in mixs/MIMARKS are lists
                                 for z in value:
@@ -132,7 +132,7 @@ for x in docList:
                 props += '`%s`:"%s"' % (key,body_site_dict[value])
                 y += 1
                 fma = True
-                continue # pass makes sure we don't add more than one fma_body_site property
+                continue # continue makes sure we don't add more than one fma_body_site property
             elif key == 'body_site':
                 if fma == True: # already seen FMA body site, forget body_site
                     continue

@@ -32,7 +32,7 @@ def traverse_json(x, snode):
 
         for k,v in x.iteritems():
             if v == "" or not v: 
-                pass
+                continue
             elif k == "node_type" or k == "tags" or k == "id":
                 if k not in snode:
                     snode[k] = v
@@ -42,21 +42,21 @@ def traverse_json(x, snode):
             elif k == "mimarks" or k == 'mixs':
                 for key,value in v.iteritems():
                     if value == "" or not value: # check for empty string/list
-                        pass
+                        continue
                     else:
                         if isinstance(value, list): # some of the values in mixs/MIMARKS are lists
                             for z in value:
                                 if isinstance(z, str):
                                     z = z.replace("'","\'")
                                     z = z.replace('"','\"')
-                                combined = "%s:%s" % (key,z)
+                                combined = "%s`````%s" % (key,z) # use this marking to make separation easy
                                 if combined not in snode[k]:
                                     snode[k].append(combined)
                         else:
                             if isinstance(value, str):
                                 value = value.replace("'","\'")
                                 value = value.replace('"','\"')
-                            combined = "%s:%s" % (key,value)
+                            combined = "%s`````%s" % (key,value)
                             if combined not in snode[k]:
                                 snode[k].append(combined)
 
@@ -68,7 +68,7 @@ def traverse_json(x, snode):
     return snode # give back the attributes of a single doc which will convert to a single node
 
 # Regex needed to extract prop+value combo from MIMARKS and mixs
-regexForPropValue = r"(.*):(.*)"
+regexForPropValue = r"(.*)`````(.*)"
 
 # Some terminal feedback
 print "Beginning to add the edges to all docs within the file '%s'. Total number of docs (including _hist) is = %s" % (sys.argv[1],len(docList))
