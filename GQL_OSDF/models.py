@@ -114,14 +114,6 @@ def extract_url(urls_node):
         fn = "No File Found."
     return fn
 
-def extract_body_site(sample_node):
-    bs = "N/A"
-    if 'body_site' in sample_node:
-        bs = sample_node['body_site']
-    elif 'fma_body_site' in sample_node:
-        bs = sample_node['fma_body_site']
-    return bs
-
 # Function to get file size from Neo4j. 
 # This current iteration should catch all the file data types EXCEPT for the *omes and the multi-step/repeat
 # edges like the two "computed_from" edges between abundance matrix and 16s_raw_seq_set. Should be
@@ -259,7 +251,7 @@ def get_all_proj_counts():
         "<-[:BY]-(Visit:Case{node_type:'visit'})"
         "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
         "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
-        "RETURN DISTINCT Project.id, Project.name, Sample.body_site, (COUNT(File)) as file_count"
+        "RETURN DISTINCT Project.id, Project.name, Sample.fma_body_site, (COUNT(File)) as file_count"
         )
     res = graph.data(cquery)
     return res
@@ -343,7 +335,7 @@ def get_case_hits(size,order,f,cy):
             "<-[:BY]-(Visit:Case{node_type:'visit'})"
             "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
             "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
-            "RETURN DISTINCT Project.name,Study.subtype,Sample.id,Project.subtype,Sample.body_site ORDER BY %s %s SKIP %s LIMIT %s"
+            "RETURN DISTINCT Project.name,Study.subtype,Sample.id,Project.subtype,Sample.fma_body_site ORDER BY %s %s SKIP %s LIMIT %s"
         )
         cquery = cquery % (order[0],order[1].upper(),f-1,size)
     elif '"op"' in cy:
@@ -352,7 +344,7 @@ def get_case_hits(size,order,f,cy):
         cquery = build_adv_cypher(match,cy,order,f,size,"cases")
     res = graph.data(cquery)
     for x in range(0,len(res)):
-        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.body_site'],name=res[x]['Project.name'],diseaseType=res[x]['Study.subtype']),caseId=res[x]['Sample.id'])
+        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.fma_body_site'],name=res[x]['Project.name'],diseaseType=res[x]['Study.subtype']),caseId=res[x]['Sample.id'])
         hits.append(cur)
     return hits
 
@@ -398,7 +390,7 @@ def get_file_data(file_id):
     cquery = cquery % (file_id)
     res = graph.data(cquery)
     furl = extract_url(res[0]['File']) 
-    sample_bs = extract_body_site(res[0]['Sample'])
+    sample_bs = res[0]['Sample']['fma_body_site']
     wf = "%s -> %s" % (sample_bs,res[0]['pf']['node_type'])
     cl.append(CaseHits(project=Project(projectId=res[0]['Project']['subtype']),caseId=res[0]['Subject']['id']))
     al.append(AssociatedEntities(entityId=res[0]['pf']['id'],caseId=res[0]['Sample']['id'],entityType=res[0]['pf']['node_type']))

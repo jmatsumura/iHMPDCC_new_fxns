@@ -4,7 +4,7 @@ from models import Pagination, CaseHits, Aggregations, get_buckets, get_case_hit
 # Can preload counts. These aggregations can remain stagnant so don't need to update
 # based on filters as these are used to give a total count of the data.
 proName = get_buckets("project.name","no","")
-samFMA = get_buckets("sample.body_site","no","")
+samFMA = get_buckets("sample.fma_body_site","no","")
 subGender = get_buckets("subject.gender","no","")
 
 class Query(graphene.ObjectType):

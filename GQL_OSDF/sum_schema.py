@@ -4,7 +4,7 @@ from models import SBucketCounter, FileSize, get_buckets, get_total_file_size
 # Can preload default counts for fast loading, user interaction with facets or
 # queries will then refine these counts.
 proName = get_buckets("Project.name","yes","")
-samFMA = get_buckets("Sample.body_site","yes","")
+samFMA = get_buckets("Sample.fma_body_site","yes","")
 subGender = get_buckets("Subject.gender","yes","")
 fileFormat = get_buckets("File.format","yes","")
 fileSubtype = get_buckets("File.subtype","yes","")
@@ -27,7 +27,7 @@ class Query(graphene.ObjectType):
         if cy == "":
             return samFMA
         else:
-            return get_buckets("Sample.body_site","yes",cy)
+            return get_buckets("Sample.fma_body_site","yes",cy)
 
     def resolve_ProjectName(self, args, context, info):
         cy = args['cy'].replace("|",'"') 

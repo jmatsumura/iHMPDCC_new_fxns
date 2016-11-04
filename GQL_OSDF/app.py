@@ -241,7 +241,7 @@ def get_project():
 
     for p in pd:
         proj_id = p["Project.name"]
-        psite = p["Sample.body_site"]
+        psite = p["Sample.fma_body_site"]
         n_files = p["file_count"]
         n_cases = n_files / 2
         if psite is None:
