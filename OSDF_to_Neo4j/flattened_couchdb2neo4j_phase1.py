@@ -166,4 +166,4 @@ for x in docList:
             print "%s documents converted into nodes and in Neo4j" % (n)
         n += 1
 
-print "Finished. Processed a total of %s documents." % (n)
+print "Finished phase 1. Processed a total of %s documents." % (n)

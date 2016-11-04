@@ -126,16 +126,15 @@ for x in docList:
             print "%s\t\tedges added." % (breaks)
             breaks += 5000
 
-print "Finished. Attached a total of %s edges." % (tot)
+print "Finished phase 2. Attached a total of %s edges." % (tot)
+
 print "Now removing test data based on those linked to the 'Test Project' node..."
+cypher.run("MATCH (P:Case{node_type:'project'})<-[*..20]-(n) WHERE P.project_name='test' DETACH DELETE n,P")
 
-cstr = "MATCH (P:Case{node_type:'project'})<-[*..20]-(n) WHERE P.project_name='test' DETACH DELETE n,P"
-cypher.run(cstr)
-
-print "Done."
 print "Now removing the demo HMP study as this is redundant and all downstream files accounted for by individual studies..."
+cypher.run("MATCH (S:Case{node_type:'study'}) WHERE S.name='Human microbiome project demonstration projects.' DETACH DELETE S")
 
-cstr = "MATCH (S:Case{node_type:'study'}) WHERE S.name='Human microbiome project demonstration projects.' DETACH DELETE S"
-cypher.run(cstr)
+print "Now removing additional test node artifacts from OSDF..."
+cypher.run("MATCH (n:Case{node_type:'sample'}) WHERE n.fma_body_site='test' DETACH DELETE n")
 
 print "All done!"
