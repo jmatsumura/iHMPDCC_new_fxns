@@ -155,6 +155,10 @@ for x in docList:
                 props += '`%s`:"%s"' % (key,value)
                 y += 1
         if 'node_type' in res: # if no node type, need to ignore   
+            # handle the case where the final prop is a body site and an FMA body site
+            # already exists so the end of the prop:val string is a trailing comma
+            if props[-1:] == ",": 
+                props = props[:-1]
             cstr = "CREATE (node:`%s` { %s })" % (nodes[res['node_type']],props) # create should make this faster, trust CouchDB to guarantee unique
             cypher.run(cstr)
         if n % 1000 == 0:
