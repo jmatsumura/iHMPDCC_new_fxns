@@ -125,7 +125,8 @@ for x in docList:
         for key,value in res.iteritems():
 
             if y > 0: # add comma for every subsequent key/value pair
-                props += ',' 
+                if props[-1:] != ",": # ensure no comma follows another, can arise from body site skip
+                    props += ',' 
 
             if key == 'fma_body_site':
                 props += '`%s`:"%s"' % (key,body_site_dict[value])
