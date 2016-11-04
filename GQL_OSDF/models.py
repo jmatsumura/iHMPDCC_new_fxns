@@ -256,7 +256,7 @@ def get_all_proj_counts():
     res = graph.data(cquery)
     return res
 
-cases_dict = ["project","sample","subject","sisit","study"] # all are lower case in Neo4j, might as well pass this syntax in ac_schema
+cases_dict = ["project","sample","subject","visit","study"] # all are lower case in Neo4j, might as well pass this syntax in ac_schema
 
 # Cypher query to count the amount of each distinct property
 def count_props(node, prop, cy):
@@ -272,16 +272,19 @@ def count_props(node, prop, cy):
 
 # Cypher query to count the amount of each distinct property
 def count_props_and_files(node, prop, cy):
-    cquery = ""
+    cquery,with_distinct = ("" for i in range (2))
     if cy == "":
         cquery = ("MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})"
             "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
             "<-[:BY]-(Visit:Case{node_type:'visit'})"
             "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
             "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
+            "WITH DISTINCT File%s "
             "RETURN %s.%s as prop, count(%s.%s) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot"
         )
-        cquery = cquery % (node, prop, node, prop)
+        if node != "file":
+            with_distinct = ",%s" % (node) # append value to WITH DISTINCT clause if node is not File
+        cquery = cquery % (with_distinct, node, prop, node, prop) # fill in WITH and RETURN clauses
     elif '"op"' in cy:
         if node == 'Study' and prop == 'name': # Need to differentiate between Project name and Study name for facet search
             prop = 'sname' 

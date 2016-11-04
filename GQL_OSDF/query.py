@@ -70,25 +70,36 @@ def build_facet_where(inp):
 
 # If the following return ends in "counts", then it is for a pie chart. The first two are for
 # cases/files tabs and the last is for the total size. 
+#
+# All of these returns are pre-pended with "WITH DISTINCT File.*". This is because there is 
+# some redundancy in the HMP data in that some nodes are iterated over multiple times. In order 
+# to get around this, need to just return each file that is seen only once and bundle any of the
+# other nodes alongside this single file. Meaning, "WITH DISTINCT File,Project" and only returning
+# aspects of 'Project' like Project.name or something is only counted once along a given path to a 
+# particular file. Note that each one has a fairly unique "WITH DISTINCT" clause, this is to help
+# optimize the query and ensure the distinct check is as simple as the return allows it to be. Also
+# you can't do something like WITH DISTINCT Project,Study,Sample,Visit....File because this statement
+# is already being performed by default. Need to be more specific than that in order to return correct 
+# numbers.
 returns = {
-    'cases': "RETURN DISTINCT Project.name, Project.subtype, Sample.fma_body_site, Sample.id, Study.subtype",
-    'files': "RETURN Project, File, Sample.id",
-    'name': "RETURN Project.name as prop, count(Project.name) as counts",
-    'name_detailed': "RETURN Project.name as prop, count(Project.name) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
-    'sname': "RETURN Study.name as prop, count(Study.name) as counts",
-    'sname_detailed': "RETURN Study.name as prop, count(Study.name) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
-    'fma_body_site': "RETURN Sample.fma_body_site as prop, count(Sample.fma_body_site) as counts",
-    'fma_body_site_detailed': "RETURN Sample.fma_body_site as prop, count(Sample.fma_body_site) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",    
-    'study': "RETURN Study.name as prop, count(Study.name) as counts",
-    'gender': "RETURN Subject.gender as prop, count(Subject.gender) as counts",
-    'gender_detailed': "RETURN Subject.gender as prop, count(Subject.gender) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
-    'race': "RETURN Subject.race as prop, count(Subject.race) as counts",
-    'format': "RETURN File.format as prop, count(File.format) as counts",
-    'format_detailed': "RETURN File.format as prop, count(File.format) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
-    'subtype_detailed': "RETURN File.subtype as prop, count(File.subtype) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
-    'size': "RETURN (SUM(toInt(File.size))) as tot",
-    'f_pagination': "RETURN (count(File)) AS tot",
-    'c_pagination': "RETURN (count(DISTINCT(Sample))) AS tot"
+    'cases': "WITH DISTINCT File,Project,Sample,Study RETURN Project.name, Project.subtype, Sample.fma_body_site, Sample.id, Study.subtype",
+    'files': "WITH DISTINCT File,Project,Sample RETURN Project, File, Sample.id",
+    'name': "WITH DISTINCT File,Project RETURN Project.name as prop, count(Project.name) as counts",
+    'name_detailed': "WITH DISTINCT File,Project RETURN Project.name as prop, count(Project.name) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
+    'sname': "WITH DISTINCT File,Study RETURN Study.name as prop, count(Study.name) as counts",
+    'sname_detailed': "WITH DISTINCT File,Study RETURN Study.name as prop, count(Study.name) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
+    'fma_body_site': "WITH DISTINCT File,Sample RETURN Sample.fma_body_site as prop, count(Sample.fma_body_site) as counts",
+    'fma_body_site_detailed': "WITH DISTINCT File,Sample RETURN Sample.fma_body_site as prop, count(Sample.fma_body_site) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",    
+    'study': "WITH DISTINCT File,Study RETURN Study.name as prop, count(Study.name) as counts",
+    'gender': "WITH DISTINCT File,Subject RETURN Subject.gender as prop, count(Subject.gender) as counts",
+    'gender_detailed': "WITH DISTINCT File,Subject RETURN Subject.gender as prop, count(Subject.gender) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
+    'race': "WITH DISTINCT File,Subject RETURN Subject.race as prop, count(Subject.race) as counts",
+    'format': "WITH DISTINCT File RETURN File.format as prop, count(File.format) as counts",
+    'format_detailed': "WITH DISTINCT File RETURN File.format as prop, count(File.format) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
+    'subtype_detailed': "WITH DISTINCT File RETURN File.subtype as prop, count(File.subtype) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
+    'size': "WITH DISTINCT File RETURN (SUM(toInt(File.size))) as tot",
+    'f_pagination': "WITH DISTINCT File RETURN (count(File)) AS tot",
+    'c_pagination': "WITH DISTINCT File,Sample RETURN (count(DISTINCT(Sample))) AS tot"
 }
 
 # Final function needed to build the entirety of the Cypher query taken from facet search. Accepts the following:
