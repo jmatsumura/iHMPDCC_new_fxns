@@ -82,7 +82,7 @@ def build_facet_where(inp):
 # is already being performed by default. Need to be more specific than that in order to return correct 
 # numbers.
 returns = {
-    'cases': "WITH DISTINCT File,Project,Sample,Study RETURN Project.name, Project.subtype, Sample.fma_body_site, Sample.id, Study.subtype",
+    'cases': "WITH DISTINCT Project,Sample,Study RETURN Project.name, Project.subtype, Sample.fma_body_site, Sample.id, Study.subtype",
     'files': "WITH DISTINCT File,Project,Sample RETURN Project, File, Sample.id",
     'name': "WITH DISTINCT File,Project RETURN Project.name as prop, count(Project.name) as counts",
     'name_detailed': "WITH DISTINCT File,Project RETURN Project.name as prop, count(Project.name) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
@@ -99,7 +99,7 @@ returns = {
     'subtype_detailed': "WITH DISTINCT File RETURN File.subtype as prop, count(File.subtype) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot",
     'size': "WITH DISTINCT File RETURN (SUM(toInt(File.size))) as tot",
     'f_pagination': "WITH DISTINCT File RETURN (count(File)) AS tot",
-    'c_pagination': "WITH DISTINCT File,Sample RETURN (count(DISTINCT(Sample))) AS tot"
+    'c_pagination': "WITH DISTINCT Sample RETURN (count(Sample.id)) AS tot"
 }
 
 # Final function needed to build the entirety of the Cypher query taken from facet search. Accepts the following:

@@ -99,6 +99,16 @@ class FileSize(graphene.ObjectType): # total aggregate file size of current set 
 
 graph = Graph("http://localhost:7474/db/data/")
 
+# Base Cypher for traversing the entirety of the schema
+full_traversal = ("MATCH (Project:Case{node_type:'project'})"
+    "<-[:PART_OF]-(Study:Case{node_type:'study'})"
+    "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
+    "<-[:BY]-(Visit:Case{node_type:'visit'})"
+    "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
+    "<-[:PREPARED_FROM]-(pf)"
+    "<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File)"
+)
+
 # Function to extract a file name and an HTTP URL given values from a urls property from an OSDF node
 def extract_url(urls_node):
     fn = ""
@@ -133,7 +143,7 @@ def get_total_file_size(cy):
 def pagination_calcs(total,start,size,c_or_f):
     pg,pgs,cnt,tot = (0 for i in range(4))
     if c_or_f == "c":
-        tot = int(total/2) # one case per two types of files currently
+        tot = int(total)
         sort = "case_id.raw:asc"      
     else:
         tot = int(total)
@@ -246,13 +256,8 @@ def get_all_proj_data():
     return res
 
 def get_all_proj_counts():
-    cquery = ("MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})"
-        "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
-        "<-[:BY]-(Visit:Case{node_type:'visit'})"
-        "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
-        "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
-        "RETURN DISTINCT Project.id, Project.name, Sample.fma_body_site, (COUNT(File)) as file_count"
-        )
+    retval = "RETURN DISTINCT Project.id, Project.name, Sample.fma_body_site, (COUNT(File)) as file_count"
+    cquery = "%s %s" % (full_traversal,retval)
     res = graph.data(cquery)
     return res
 
@@ -274,15 +279,9 @@ def count_props(node, prop, cy):
 def count_props_and_files(node, prop, cy):
     cquery,with_distinct = ("" for i in range (2))
     if cy == "":
-        cquery = ("MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})"
-            "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
-            "<-[:BY]-(Visit:Case{node_type:'visit'})"
-            "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
-            "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
-            "WITH DISTINCT File%s "
-            "RETURN %s.%s as prop, count(%s.%s) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot"
-        )
-        if node != "file":
+        retval = "WITH DISTINCT File%s RETURN %s.%s as prop, count(%s.%s) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot"
+        cquery = "%s %s" % (full_traversal,retval)
+        if node != "File":
             with_distinct = ",%s" % (node) # append value to WITH DISTINCT clause if node is not File
         cquery = cquery % (with_distinct, node, prop, node, prop) # fill in WITH and RETURN clauses
     elif '"op"' in cy:
@@ -333,13 +332,8 @@ def get_case_hits(size,order,f,cy):
     cquery = ""
     if cy == "":
         order = order.split(":")
-        cquery = ("MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})"
-            "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
-            "<-[:BY]-(Visit:Case{node_type:'visit'})"
-            "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
-            "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
-            "RETURN DISTINCT Project.name,Study.subtype,Sample.id,Project.subtype,Sample.fma_body_site ORDER BY %s %s SKIP %s LIMIT %s"
-        )
+        retval = "RETURN DISTINCT Project.name,Study.subtype,Sample.id,Project.subtype,Sample.fma_body_site ORDER BY %s %s SKIP %s LIMIT %s"
+        cquery = "%s %s" % (full_traversal,retval)
         cquery = cquery % (order[0],order[1].upper(),f-1,size)
     elif '"op"' in cy:
         cquery = build_cypher(match,cy,order,f,size,"cases")
@@ -358,13 +352,8 @@ def get_file_hits(size,order,f,cy):
     cquery = ""
     if cy == "":
         order = order.split(":")
-        cquery = ("MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})"
-            "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
-            "<-[:BY]-(Visit:Case{node_type:'visit'})"
-            "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
-            "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
-            "RETURN DISTINCT Project,File,Sample.id ORDER BY %s %s SKIP %s LIMIT %s"
-        )
+        retval = "RETURN DISTINCT Project,File,Sample.id ORDER BY %s %s SKIP %s LIMIT %s"
+        cquery = "%s %s" % (full_traversal,retval)
         cquery = cquery % (order[0],order[1].upper(),f-1,size)
     elif '"op"' in cy:
         cquery = build_cypher(match,cy,order,f,size,"files")
@@ -383,13 +372,8 @@ def get_file_hits(size,order,f,cy):
 # Pull all the data associated with a particular file ID. 
 def get_file_data(file_id):
     cl, al, fl = ([] for i in range(3))
-    cquery = ("MATCH (Project:Case{node_type:'project'})<-[:PART_OF]-(Study:Case{node_type:'study'})"
-        "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
-        "<-[:BY]-(Visit:Case{node_type:'visit'})"
-        "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
-        "<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "
-        "WHERE File.id=\"%s\" RETURN Project,Subject,Sample,pf,File"
-    )
+    retval = "WHERE File.id=\"%s\" RETURN Project,Subject,Sample,pf,File"
+    cquery = "%s %s" % (full_traversal,retval)
     cquery = cquery % (file_id)
     res = graph.data(cquery)
     furl = extract_url(res[0]['File']) 
