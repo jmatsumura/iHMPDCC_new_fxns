@@ -8,6 +8,7 @@ from ac_schema import ac_schema
 from files_schema import files_schema
 from table_schema import table_schema
 from indiv_files_schema import indiv_files_schema
+from indiv_cases_schema import indiv_cases_schema
 from models import get_url_for_download, convert_gdc_to_osdf,get_all_proj_data,get_all_proj_counts
 import graphene
 import urllib2
@@ -86,14 +87,23 @@ def get_cases():
 @app.route('/cases/<case_id>', methods=['GET','OPTIONS'])
 def get_case_files(case_id):
     id = '"%s"' % case_id
-    p1 = 'http://localhost:5000/files_schema?query=%7Bproject(id%3A'
-    p2 = ')%7Bproject_id%2Cname%7D%2Cfiles(id%3A'
-    p3 = ')%7Bdata_type%2Cfile_name%2Cdata_format%2Caccess%2Cfile_id%2Cfile_size%7D%2Ccase_id(id%3A'
-    p4 = ')%2Csubmitter_id%7D'
-    url = '%s%s%s%s%s%s%s' % (p1,id,p2,id,p3,id,p4) # inject ID into query
-    response = urllib2.urlopen(url)
-    r = response.read()
-    return ('%s, "warnings": {}}' % r[:-1])
+    if not request.args.get('expand'):
+        p1 = 'http://localhost:5000/files_schema?query=%7Bproject(id%3A'
+        p2 = ')%7Bproject_id%2Cname%7D%2Cfiles(id%3A'
+        p3 = ')%7Bdata_type%2Cfile_name%2Cdata_format%2Caccess%2Cfile_id%2Cfile_size%7D%2Ccase_id(id%3A'
+        p4 = ')%2Csubmitter_id%7D'
+        url = '%s%s%s%s%s%s%s' % (p1,id,p2,id,p3,id,p4) # inject ID into query
+        response = urllib2.urlopen(url)
+        r = response.read()
+        return ('%s, "warnings": {}}' % r[:-1])
+    else:
+        p1 = 'http://localhost:5000/indiv_cases_schema?query=%7Bcase_id(id%3A'
+        p2 = ')%2Cproject(id%3A'
+        p3 = ')%7Bproject_id%7D%7D'
+        url = '%s%s%s%s%s' % (p1,id,p2,id,p3)
+        response = urllib2.urlopen(url)
+        r = response.read()
+        return ('%s, "warnings": {}}' % r[:-1])
 
 @app.route('/files/<file_id>', methods=['GET','OPTIONS'])
 def get_file_metadata(file_id):
@@ -347,6 +357,15 @@ app.add_url_rule(
     view_func=GraphQLView.as_view(
         'indiv_files_graphql',
         schema=indiv_files_schema,
+        graphiql=True
+    )
+)
+
+app.add_url_rule(
+    '/indiv_cases_schema',
+    view_func=GraphQLView.as_view(
+        'indiv_cases_graphql',
+        schema=indiv_cases_schema,
         graphiql=True
     )
 )
