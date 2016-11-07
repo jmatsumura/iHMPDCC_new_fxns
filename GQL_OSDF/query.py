@@ -171,7 +171,9 @@ def build_adv_cypher(match,whereFilters,order,start,size,rtype):
     retval1 = returns[rtype] # actual RETURN portion of statement
     if rtype in ["cases","files"]: # pagination handling needed for these returns
         order = order.split(":")
-        retval2 = "ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),start-1,size) 
+        retval2 = "ORDER BY %s %s SKIP %s LIMIT %s" % (order[0],order[1].upper(),start-1,size)
+        if size == 0: # accounting for inconsistency where front-end asks for a 0 size return
+            retval2 = "ORDER BY %s %s" % (order[0],order[1].upper())
         return "%s %s %s %s" % (match,where,retval1,retval2)
     else:
         return "%s %s %s" % (match,where,retval1)

@@ -76,6 +76,16 @@ def get_cases():
         p8 = ")%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSubjectGender%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         if len(filters) < 3:
             url = "%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,p2,size,p3,from_num,p4,p5,size,p6,p7,from_num,p8)
+            if request.get_data():
+                f1 = request.get_data()
+                f2 = json.loads(f1)
+                filters = f2['filters']
+                from_num = f2['from']
+                order = f2['sort']
+                size = f2['size']
+                filters = json.dumps(filters)
+                filters = convert_gdc_to_osdf(filters)
+                url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,p7,from_num,p8)
         else:
             filters = convert_gdc_to_osdf(filters)
             url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
@@ -163,19 +173,11 @@ def get_files():
         if '"op"' in filters or "op" in filters:
             f1 = request.get_data()
             f2 = json.loads(f1)
-            filters = json.dumps(filters)
             from_num = f2['from']
             order = f2['sort']
             size = f2['size']
+            filters = json.dumps(filters)
             filters = convert_gdc_to_osdf(filters)
-            p1 = "http://localhost:5000/table_schema?query=%7Bpagination(cy%3A%22"
-            p2 = "%22%2Cs%3A"
-            p3 = "%2Cf%3A"
-            p4 = ")%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits(cy%3A%22"
-            p5 = "%22%2Cs%3A"
-            p6 = "%2Co%3A%22"
-            p7 = "%22%2Cf%3A"
-            p8 = ")%7Bdata_type%2Cfile_name%2Cdata_format%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cfile_size%2Ccases%7Bproject%7Bproject_id%2Cname%7D%2Ccase_id%7Dexperimental_strategy%7D%2Caggregations%7Bdata_type%7Bbuckets%7Bkey%2Cdoc_count%7D%7Ddata_format%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
             url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
     else:
         filters = convert_gdc_to_osdf(filters)
