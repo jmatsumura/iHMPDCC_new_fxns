@@ -21,6 +21,7 @@ def convert_gdc_to_osdf(inp_str):
     inp_str = inp_str.replace("cases.SubjectGender","Subject.gender")
     inp_str = inp_str.replace("project.primary_site","Sample.fma_body_site")
     inp_str = inp_str.replace("subject.gender","Subject.gender")
+    inp_str = inp_str.replace("study.name","Study.name")
     inp_str = inp_str.replace("file.format","File.format")
     inp_str = inp_str.replace("file.category","File.subtype") # note the conversion
     inp_str = inp_str.replace("files.file_id","File.id")
