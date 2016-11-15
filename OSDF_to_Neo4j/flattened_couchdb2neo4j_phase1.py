@@ -35,7 +35,7 @@ build_constraint_index('Tags','term')
 # Skip any nested dictionaries like those under 'doc' or 'meta'. 'linkage' is
 # skipped since this script is only concerned with creating nodes, not edges.
 # Also skip numerous CouchDB specific attributes (_rev, rev, key, _id). 
-skipUs = ['value','doc','meta','linkage','sequenced_from','acl','_rev','rev','key','_id','_search','ver']
+skipUs = ['value','doc','meta','linkage','sequenced_from','acl','_rev','rev','key','_id','_search']
 skip = set(skipUs) 
 e = set(edges)
 
@@ -114,6 +114,11 @@ def traverse_json(x, snode):
 # Some terminal feedback
 print "Approximate number of documents found in CouchDB (likely includes _hist entries which are ignored) = %s" % (len(docList))
 n = 0
+# Need a hash to catch updated versions of a doc since OSDF keeps a history of that
+versions = {}
+regex_for_id = r'`id`:"([a-zA-Z0-9]*)"'
+regex_for_ver = r'`ver`:(\d+)'
+
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j.
 for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None: # ignore history documents
@@ -155,13 +160,33 @@ for x in docList:
                 value = mod_quotes(value)
                 props += '`%s`:"%s"' % (key,value)
                 y += 1
+
         if 'node_type' in res: # if no node type, need to ignore   
             # handle the case where the final prop is a body site and an FMA body site
             # already exists so the end of the prop:val string is a trailing comma
             if props[-1:] == ",": 
                 props = props[:-1]
-            cstr = "CREATE (node:`%s` { %s })" % (nodes[res['node_type']],props) # create should make this faster, trust CouchDB to guarantee unique
-            cypher.run(cstr)
+
+            id = "" # to avoid test data crashing, need to check presence of id/ver
+            ver = 0
+            if re.search(regex_for_id,props):
+                id = re.search(regex_for_id,props).group(1)
+            if re.search(regex_for_ver,props):
+                ver = re.search(regex_for_ver,props).group(1)
+
+            if id not in versions: # if ID is not already present, assume it is the latest version
+                cstr = "CREATE (node:`%s` { %s })" % (nodes[res['node_type']],props) 
+                cypher.run(cstr)
+                versions[id] = ver
+
+            else:
+                if ver > versions[id]: # only if a new version is found, "update" (simply delete/create)
+                    cstr = "DELETE (n) WHERE n.id='%s'" % (id)
+                    cypher.run(cstr)
+                    cstr = "CREATE (node:`%s` { %s })" % (nodes[res['node_type']],props)
+                    cypher.run(cstr)
+                    versions[id] = ver
+
         if n % 1000 == 0:
             print "%s documents converted into nodes and in Neo4j" % (n)
         n += 1
