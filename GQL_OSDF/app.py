@@ -10,6 +10,7 @@ from table_schema import table_schema
 from indiv_files_schema import indiv_files_schema
 from indiv_cases_schema import indiv_cases_schema
 from models import get_url_for_download, convert_gdc_to_osdf,get_all_proj_data,get_all_proj_counts
+from autocomplete_map import gql_map
 import graphene
 import urllib2
 import sys
@@ -31,14 +32,13 @@ def add_cors_headers(response):
 
 app.after_request(add_cors_headers)
 
-sample_fma_body_site = {"description": "The FMA body site related to the sample", "doc_type": "cases", "field": "SampleFmabodysite", "full": "cases.SampleFmabodysite", "type": "string"}
-project_name = {"description": "The Project Name", "doc_type": "cases", "field": "ProjectName", "full": "cases.ProjectName", "type": "string"}
-subject_gender = {"description": "Gender of subject", "doc_type": "cases", "field": "SubjectGender", "full": "cases.SubjectGender", "type": "string"}
-
 @app.route('/gql/_mapping', methods=['GET'])
 def get_maps():
     add_cors_headers
-    res = jsonify({"cases.SampleFmabodysite": sample_fma_body_site, "cases.ProjectName": project_name, "cases.SubjectGender": subject_gender})
+    res = jsonify({"cases.Sample_fma_body_site": gql_map['sample_fma_body_site'], 
+        "cases.ProjectName": gql_map['project_name'], 
+        "cases.SubjectGender": gql_map['subject_gender']
+        })
     return res
 
 @app.route('/cases', methods=['GET','OPTIONS','POST'])
@@ -73,7 +73,7 @@ def get_cases():
         p5 = "%22%2Cs%3A"
         p6 = "%2Co%3A%22"
         p7 = "%22%2Cf%3A"
-        p8 = ")%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSubjectGender%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSampleFmabodysite%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+        p8 = ")%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSubjectGender%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSample_fma_body_site%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         if len(filters) < 3:
             url = "%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,p2,size,p3,from_num,p4,p5,size,p6,p7,from_num,p8)
             if request.get_data():

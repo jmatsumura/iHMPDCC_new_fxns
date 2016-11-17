@@ -25,6 +25,9 @@ def convert_gdc_to_osdf(inp_str):
     inp_str = inp_str.replace("file.format","File.format")
     inp_str = inp_str.replace("file.category","File.subtype") # note the conversion
     inp_str = inp_str.replace("files.file_id","File.id")
+    inp_str = inp_str.replace("cases.","")
+    if "." not in inp_str:
+        inp_str = inp_str.replace("_",".",1) # convert from GQL query underscores to node+prop
     # Next two lines guarantee URL encoding (seeing errors with urllib)
     inp_str = inp_str.replace('"','|')
     inp_str = inp_str.replace('\\','')
