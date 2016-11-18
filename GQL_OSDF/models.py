@@ -75,6 +75,14 @@ class Aggregations(graphene.ObjectType): # Collecting lists of buckets (BucketCo
     # Note that many of the "name" values are identical to the variable assigned to,
     # but all are explicitly named for clarity and to match syntax of more complex names
     Project_name = graphene.Field(BucketCounter, name="Project_name")
+
+    Study_subtype = graphene.Field(BucketCounter, name="Study_subtype")
+    Study_center = graphene.Field(BucketCounter, name="Study_center")
+    Study_name = graphene.Field(BucketCounter, name="Study_name")
+
+    Subject_gender = graphene.Field(BucketCounter, name="Subject_gender")
+    Subject_race = graphene.Field(BucketCounter, name="Subject_race")
+
     Sample_fmabodysite = graphene.Field(BucketCounter, name="Sample_fma_body_site")
     Sample_geolocname = graphene.Field(BucketCounter, name="Sample_geo_loc_name")
     Sample_sampcollectdevice = graphene.Field(BucketCounter, name="Sample_samp_collect_device")
@@ -83,7 +91,7 @@ class Aggregations(graphene.ObjectType): # Collecting lists of buckets (BucketCo
     Sample_feature = graphene.Field(BucketCounter, name="Sample_feature")
     Sample_material = graphene.Field(BucketCounter, name="Sample_material")
     Sample_biome = graphene.Field(BucketCounter, name="Sample_biome")
-    Subject_gender = graphene.Field(BucketCounter, name="Subject_gender")
+
     dataType = graphene.Field(BucketCounter, name="data_type")
     dataFormat = graphene.Field(BucketCounter, name="data_format")
 

@@ -36,6 +36,11 @@ app.after_request(add_cors_headers)
 def get_maps():
     add_cors_headers
     res = jsonify({"cases.Project_name": gql_map['project_name'],
+        "cases.Study_name": gql_map['study_name'],
+        "cases.Study_center": gql_map['study_center'],
+        "cases.Study_subtype": gql_map['study_subtype'],
+        "cases.Subject_gender": gql_map['subject_gender'],
+        "cases.Subject_race": gql_map['subject_race'],
         "cases.Sample_fma_body_site": gql_map['sample_fma_body_site'], 
         "cases.Sample_geo_loc_name": gql_map['sample_geo_loc_name'], 
         "cases.Sample_samp_collect_device": gql_map['sample_samp_collect_device'],
@@ -43,8 +48,7 @@ def get_maps():
         "cases.Sample_supersite": gql_map['sample_supersite'], 
         "cases.Sample_feature": gql_map['sample_feature'], 
         "cases.Sample_material": gql_map['sample_material'], 
-        "cases.Sample_biome": gql_map['sample_biome'], 
-        "cases.SubjectGender": gql_map['subject_gender']
+        "cases.Sample_biome": gql_map['sample_biome']
         })
     return res
 

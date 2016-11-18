@@ -5,12 +5,16 @@
 gql_map = {}
 
 # Project props
-gql_map['project_name'] = {"description": "The Project Name", "doc_type": "cases", "field": "project name", "full": "cases.Project_name", "type": "string"}
+gql_map['project_name'] = {"description": "The project name", "doc_type": "cases", "field": "project name", "full": "cases.Project_name", "type": "string"}
 
 # Study props
+gql_map['study_subtype'] = {"description": "The subtype of the study", "doc_type": "cases", "field": "study subtype", "full": "cases.Study_subtype", "type": "string"}
+gql_map['study_center'] = {"description": "The center/institute that conducted the study", "doc_type": "cases", "field": "study center", "full": "cases.Study_center", "type": "string"}
+gql_map['study_name'] = {"description": "The name of the study", "doc_type": "cases", "field": "study name", "full": "cases.Study_name", "type": "string"}
 
 # Subject props
-gql_map['subject_gender'] = {"description": "Gender of subject", "doc_type": "cases", "field": "subject gender", "full": "cases.SubjectGender", "type": "string"}
+gql_map['subject_gender'] = {"description": "The gender of the subject", "doc_type": "cases", "field": "subject gender", "full": "cases.Subject_gender", "type": "string"}
+gql_map['subject_race'] = {"description": "The race of the subject", "doc_type": "cases", "field": "subject race", "full": "cases.Subject_race", "type": "string"}
 
 # Visit props
 
