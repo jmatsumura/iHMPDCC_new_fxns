@@ -83,6 +83,10 @@ class Aggregations(graphene.ObjectType): # Collecting lists of buckets (BucketCo
     Subject_gender = graphene.Field(BucketCounter, name="Subject_gender")
     Subject_race = graphene.Field(BucketCounter, name="Subject_race")
 
+    Visit_number = graphene.Field(BucketCounter, name="Visit_number")
+    Visit_interval = graphene.Field(BucketCounter, name="Visit_interval")
+    Visit_date = graphene.Field(BucketCounter, name="Visit_date")
+
     Sample_fmabodysite = graphene.Field(BucketCounter, name="Sample_fma_body_site")
     Sample_geolocname = graphene.Field(BucketCounter, name="Sample_geo_loc_name")
     Sample_sampcollectdevice = graphene.Field(BucketCounter, name="Sample_samp_collect_device")

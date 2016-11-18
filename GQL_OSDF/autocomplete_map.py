@@ -17,6 +17,9 @@ gql_map['subject_gender'] = {"description": "The gender of the subject", "doc_ty
 gql_map['subject_race'] = {"description": "The race of the subject", "doc_type": "cases", "field": "subject race", "full": "cases.Subject_race", "type": "string"}
 
 # Visit props
+gql_map['visit_number'] = {"description": "The number of the visit", "doc_type": "cases", "field": "visit number", "full": "cases.Visit_number", "type": "long"}
+gql_map['visit_interval'] = {"description": "The interval of the visits", "doc_type": "cases", "field": "visit interval", "full": "cases.Visit_interval", "type": "long"}
+gql_map['visit_date'] = {"description": "The date the visit occurred", "doc_type": "cases", "field": "visit date", "full": "cases.Visit_date", "type": "string"}
 
 # Sample props
 gql_map['sample_fma_body_site'] = {"description": "The FMA body site the sample was derived from", "doc_type": "cases", "field": "sample FMA body site", "full": "cases.Sample_fma_body_site", "type": "string"}
