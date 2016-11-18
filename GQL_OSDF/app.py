@@ -35,9 +35,15 @@ app.after_request(add_cors_headers)
 @app.route('/gql/_mapping', methods=['GET'])
 def get_maps():
     add_cors_headers
-    res = jsonify({"cases.Sample_fma_body_site": gql_map['sample_fma_body_site'], 
-        "cases.Sample_geo_loc_name": gql_map['sample_geo_loc_name'],
-        "cases.ProjectName": gql_map['project_name'], 
+    res = jsonify({"cases.Project_name": gql_map['project_name'],
+        "cases.Sample_fma_body_site": gql_map['sample_fma_body_site'], 
+        "cases.Sample_geo_loc_name": gql_map['sample_geo_loc_name'], 
+        "cases.Sample_samp_collect_device": gql_map['sample_samp_collect_device'],
+        "cases.Sample_env_package": gql_map['sample_env_package'], 
+        "cases.Sample_supersite": gql_map['sample_supersite'], 
+        "cases.Sample_feature": gql_map['sample_feature'], 
+        "cases.Sample_material": gql_map['sample_material'], 
+        "cases.Sample_biome": gql_map['sample_biome'], 
         "cases.SubjectGender": gql_map['subject_gender']
         })
     return res
@@ -74,7 +80,7 @@ def get_cases():
         p5 = "%22%2Cs%3A"
         p6 = "%2Co%3A%22"
         p7 = "%22%2Cf%3A"
-        p8 = ")%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProjectName%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSubjectGender%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSample_fma_body_site%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+        p8 = ")%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProject_name%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSubject_gender%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSample_fma_body_site%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         if len(filters) < 3:
             url = "%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,p2,size,p3,from_num,p4,p5,size,p6,p7,from_num,p8)
             if request.get_data():

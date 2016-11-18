@@ -1,11 +1,18 @@
 import graphene
 from models import Pagination, CaseHits, Aggregations, get_buckets, get_case_hits, get_pagination
 
-# Can preload counts. These aggregations can remain stagnant so don't need to update
+# Can preload counts by declaring these in this next block. 
+# These aggregations can remain stagnant so don't need to update
 # based on filters as these are used to give a total count of the data.
-proName = get_buckets("project.name","no","")
+proName = get_buckets("project.project_name","no","")
 samFMA = get_buckets("sample.fma_body_site","no","")
 samGLN = get_buckets("sample.geo_loc_name","no","")
+samSCD = get_buckets("sample.samp_collect_device","no","")
+samEP = get_buckets("sample.env_package","no","")
+samSS = get_buckets("sample.supersite","no","")
+samF = get_buckets("sample.feature","no","")
+samM = get_buckets("sample.material","no","")
+samB = get_buckets("sample.biome","no","")
 subGender = get_buckets("subject.gender","no","")
 
 class Query(graphene.ObjectType):
@@ -29,6 +36,7 @@ class Query(graphene.ObjectType):
 
     def resolve_aggregations(self, args, context, info):
         return Aggregations(Project_name=proName, Sample_fmabodysite=samFMA, Subject_gender=subGender,
-            Sample_geolocname=samGLN)
+            Sample_geolocname=samGLN,Sample_sampcollectdevice=samSCD,Sample_envpackage=samEP,
+            Sample_supersite=samSS,Sample_feature=samF,Sample_material=samM,Sample_biome=samB)
         
 ac_schema = graphene.Schema(query=Query)
