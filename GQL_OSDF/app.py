@@ -36,6 +36,7 @@ app.after_request(add_cors_headers)
 def get_maps():
     add_cors_headers
     res = jsonify({"cases.Sample_fma_body_site": gql_map['sample_fma_body_site'], 
+        "cases.Sample_geo_loc_name": gql_map['sample_geo_loc_name'],
         "cases.ProjectName": gql_map['project_name'], 
         "cases.SubjectGender": gql_map['subject_gender']
         })

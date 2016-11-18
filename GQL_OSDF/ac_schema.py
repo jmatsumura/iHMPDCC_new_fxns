@@ -5,6 +5,7 @@ from models import Pagination, CaseHits, Aggregations, get_buckets, get_case_hit
 # based on filters as these are used to give a total count of the data.
 proName = get_buckets("project.name","no","")
 samFMA = get_buckets("sample.fma_body_site","no","")
+samGLN = get_buckets("sample.geo_loc_name","no","")
 subGender = get_buckets("subject.gender","no","")
 
 class Query(graphene.ObjectType):
@@ -27,6 +28,7 @@ class Query(graphene.ObjectType):
             return get_case_hits(args['s'],o,args['f'],cy)
 
     def resolve_aggregations(self, args, context, info):
-        return Aggregations(Project_name=proName, Sample_fmabodysite=samFMA, Subject_gender=subGender)
+        return Aggregations(Project_name=proName, Sample_fmabodysite=samFMA, Subject_gender=subGender,
+            Sample_geolocname=samGLN)
         
 ac_schema = graphene.Schema(query=Query)
