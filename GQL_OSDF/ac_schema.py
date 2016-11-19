@@ -25,6 +25,8 @@ samSS = get_buckets("sample.supersite","no","")
 samF = get_buckets("sample.feature","no","")
 samM = get_buckets("sample.material","no","")
 samB = get_buckets("sample.biome","no","")
+fileF = get_buckets("File.format","no","")
+fileNT = get_buckets("File.node_type","no","")
 
 class Query(graphene.ObjectType):
 
@@ -50,7 +52,7 @@ class Query(graphene.ObjectType):
             Subject_gender=subG,Subject_race=subR,Visit_number=visVN,Visit_interval=visI,Visit_date=visD,
             Sample_fmabodysite=samFMA,Sample_geolocname=samGLN,Sample_sampcollectdevice=samSCD,
             Sample_envpackage=samEP,Sample_supersite=samSS,Sample_feature=samF,Sample_material=samM,
-            Sample_biome=samB
+            Sample_biome=samB,File_format=fileF,File_node_type=fileNT
             )
         
 ac_schema = graphene.Schema(query=Query)

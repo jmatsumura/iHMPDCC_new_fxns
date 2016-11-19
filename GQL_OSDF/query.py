@@ -34,6 +34,7 @@ def convert_gdc_to_osdf(inp_str):
     inp_str = inp_str.replace("SubjectAttr_","SubjectAttr.")
     inp_str = inp_str.replace("Visit_","Visit.")
     inp_str = inp_str.replace("VisitAttr_","VisitAttr.")
+    inp_str = inp_str.replace("File_","File.")
     # Next two lines guarantee URL encoding (seeing errors with urllib)
     inp_str = inp_str.replace('"','|')
     inp_str = inp_str.replace('\\','')

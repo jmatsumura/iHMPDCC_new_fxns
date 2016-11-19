@@ -32,3 +32,15 @@ gql_map['sample_material'] = {"description": "The sample material ENVO code", "d
 gql_map['sample_biome'] = {"description": "The sample biome ENVO code", "doc_type": "cases", "field": "sample biome ENVO", "full": "cases.Sample_biome", "type": "string"}
 
 # File props (includes everything below Sample node in OSDF schema)
+gql_map['file_format'] = {"description": "The format of the file", "doc_type": "cases", "field": "file format", "full": "cases.File_format", "type": "string"}
+gql_map['file_node_type'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}
+gql_map['file_sequencing_center'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}
+gql_map['file_annotation_pipeline'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}
+gql_map['file_seq_meth'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}
+gql_map['file_ncbi_taxon_id'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}
+gql_map['file_biome'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}
+gql_map['file_material'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}
+gql_map['file_comment'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}
+gql_map['file_samp_size'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}
+gql_map['file_feature'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}
+gql_map['file_matrix_type'] = {"description": "The node type of the file", "doc_type": "cases", "field": "file node type", "full": "cases.File_node_type", "type": "string"}

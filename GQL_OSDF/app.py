@@ -51,11 +51,13 @@ def get_maps():
         "cases.Sample_supersite": gql_map['sample_supersite'], 
         "cases.Sample_feature": gql_map['sample_feature'], 
         "cases.Sample_material": gql_map['sample_material'], 
-        "cases.Sample_biome": gql_map['sample_biome']
+        "cases.Sample_biome": gql_map['sample_biome'],
+        "cases.File_format": gql_map['file_format'],
+        "cases.File_node_type": gql_map['file_node_type']
         })
     return res
 
-@app.route('/cases', methods=['GET','OPTIONS','POST'])
+@app.route('/asdf', methods=['GET','OPTIONS','POST'])
 def get_cases():
     
     filters = request.args.get('filters')
