@@ -241,8 +241,6 @@ def get_files(sample_id):
     fl = []
     dt, fn, df, ac, fi = ("" for i in range(5))
     fs = 0
-    regex_for_http_urls = '\,\su(http.*data/(.*))\,'
-    pattern = re.compile(regex_for_http_urls)
     
     cquery = ("MATCH (Sample:Case{node_type:'sample'})"
         "<-[:PREPARED_FROM]-(p)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) "

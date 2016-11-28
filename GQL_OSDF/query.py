@@ -26,6 +26,8 @@ def convert_gdc_to_osdf(inp_str):
     inp_str = inp_str.replace("file.category","File.subtype") # note the conversion
     inp_str = inp_str.replace("files.file_id","File.id")
     inp_str = inp_str.replace("cases.","") # these replaces have to be catch alls to replace all instances throughout
+    inp_str = inp_str.replace("file.","")
+    inp_str = inp_str.replace("sample.","")
     inp_str = inp_str.replace("Project_","Project.")
     inp_str = inp_str.replace("Sample_","Sample.")
     inp_str = inp_str.replace("SampleAttr_","SampleAttr.")

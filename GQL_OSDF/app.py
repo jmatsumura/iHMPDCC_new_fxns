@@ -52,12 +52,15 @@ def get_maps():
         "cases.Sample_feature": gql_map['sample_feature'], 
         "cases.Sample_material": gql_map['sample_material'], 
         "cases.Sample_biome": gql_map['sample_biome'],
-        "cases.File_format": gql_map['file_format'],
-        "cases.File_node_type": gql_map['file_node_type']
+        "file.File_format": gql_map['file_format'],
+        "file.File_node_type": gql_map['file_node_type']
         })
     return res
 
-@app.route('/asdf', methods=['GET','OPTIONS','POST'])
+# Note the multiple endpoints going to the same "cases endpoint to accommodate GDC syntax"
+@app.route('/cases', methods=['GET','OPTIONS','POST'])
+@app.route('/sample', methods=['GET','OPTIONS','POST'], endpoint='sample_alt_ep')
+@app.route('/file', methods=['GET','OPTIONS','POST'], endpoint='file_alt_ep')
 def get_cases():
     
     filters = request.args.get('filters')
