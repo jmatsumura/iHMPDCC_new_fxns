@@ -130,6 +130,7 @@ print "Finished phase 2. Attached a total of %s edges." % (tot)
 
 print "Now removing test data based on those linked to the 'Test Project' node..."
 cypher.run("MATCH (P:Case{node_type:'project'})<-[*..20]-(n) WHERE P.project_name='test' DETACH DELETE n,P")
+cypher.run("MATCH (P:File{node_type:'16s_dna_prep'})<-[*..20]-(n) WHERE P.project_name='blah' DETACH DELETE n,P")
 
 print "Now removing the demo HMP study as this is redundant and all downstream files accounted for by individual studies..."
 cypher.run("MATCH (S:Case{node_type:'study'}) WHERE S.name='Human microbiome project demonstration projects.' DETACH DELETE S")
