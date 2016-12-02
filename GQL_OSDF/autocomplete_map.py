@@ -5,21 +5,21 @@
 gql_map = {}
 
 # Project props
-gql_map['project_name'] = {"description": "The name of the project within which the sequencing was organized", "doc_type": "cases", "field": "project name", "full": "sample.Project_name", "type": "string"}
-gql_map['project_subtype'] = {"description": "The subtype of the project: healthy_human, ihmp, or demo", "doc_type": "cases", "field": "project subtype", "full": "sample.Project_subtype", "type": "string"}
+gql_map['project_name'] = {"description": "The name of the project within which the sequencing was organized", "doc_type": "cases", "field": "Project_name", "full": "sample.Project_name", "type": "string"}
+gql_map['project_subtype'] = {"description": "The subtype of the project: healthy_human, ihmp, or demo", "doc_type": "cases", "field": "Project_subtype", "full": "sample.Project_subtype", "type": "string"}
 
 # Study props
-gql_map['study_center'] = {"description": "The study's sequencing center", "doc_type": "cases", "field": "study center", "full": "sample.Study_center", "type": "string"}
-gql_map['study_contact'] = {"description": "The study's primary contact at the sequencing center", "doc_type": "cases", "field": "study contact", "full": "sample.Study_contact", "type": "string"}
-gql_map['study_description'] = {"description": "A longer description of the study", "doc_type": "cases", "field": "study description", "full": "sample.Study_description", "type": "string"}
-gql_map['study_name'] = {"description": "The name of the study", "doc_type": "cases", "field": "study name", "full": "sample.Study_name", "type": "string"}
-gql_map['study_srp_id'] = {"description": "NCBI Sequence Read Archive (SRA) project ID", "doc_type": "cases", "field": "study SRP ID", "full": "sample.Study_srp_id", "type": "string"}
-gql_map['study_subtype'] = {"description": "The subtype of the study", "doc_type": "cases", "field": "study subtype", "full": "sample.Study_subtype", "type": "string"}
+gql_map['study_center'] = {"description": "The study's sequencing center", "doc_type": "cases", "field": "Study_center", "full": "sample.Study_center", "type": "string"}
+gql_map['study_contact'] = {"description": "The study's primary contact at the sequencing center", "doc_type": "cases", "field": "Study_contact", "full": "sample.Study_contact", "type": "string"}
+gql_map['study_description'] = {"description": "A longer description of the study", "doc_type": "cases", "field": "Study_description", "full": "sample.Study_description", "type": "string"}
+gql_map['study_name'] = {"description": "The name of the study", "doc_type": "cases", "field": "Study_name", "full": "sample.Study_name", "type": "string"}
+gql_map['study_srp_id'] = {"description": "NCBI Sequence Read Archive (SRA) project ID", "doc_type": "cases", "field": "Study_srp_id", "full": "sample.Study_srp_id", "type": "string"}
+gql_map['study_subtype'] = {"description": "The subtype of the study", "doc_type": "cases", "field": "Study_subtype", "full": "sample.Study_subtype", "type": "string"}
 
 # Subject props
-gql_map['subject_gender'] = {"description": "The subject's sex", "doc_type": "cases", "field": "subject gender", "full": "sample.Subject_gender", "type": "string"}
-gql_map['subject_race'] = {"description": "The subject's race/ethnicity", "doc_type": "cases", "field": "subject race", "full": "sample.Subject_race", "type": "string"}
-gql_map['subject_subtype'] = {"description": "The subtype of the subject", "doc_type": "cases", "field": "subject subtype", "full": "sample.Subject_subtype", "type": "string"}
+gql_map['subject_gender'] = {"description": "The subject's sex", "doc_type": "cases", "field": "Subject_gender", "full": "sample.Subject_gender", "type": "string"}
+gql_map['subject_race'] = {"description": "The subject's race/ethnicity", "doc_type": "cases", "field": "Subject_race", "full": "sample.Subject_race", "type": "string"}
+gql_map['subject_subtype'] = {"description": "The subtype of the subject", "doc_type": "cases", "field": "Subject_subtype", "full": "sample.Subject_subtype", "type": "string"}
 
 # Subject attribute props
 gql_map['subject_attr_aerobics'] = {"description": "What is patient's baseline aerobic exercise level; type, minutes/week", "doc_type": "cases", "field": "subject attr aerobics", "full": "sample.SubjectAttr_aerobics", "type": "string"}
@@ -51,11 +51,11 @@ gql_map['subject_attr_survey_id'] = {"description": "Center specific survey iden
 gql_map['subject_attr_tobacco'] = {"description": "What is patient's baseline tobacco use, measured as number of packs per day x years smoked", "doc_type": "cases", "field": "subject attr tobacco", "full": "sample.SubjectAttr_tobacco", "type": "string"}
 
 # Visit props
-gql_map['visit_date'] = {"description": "Date when the visit occurred", "doc_type": "cases", "field": "visit date", "full": "sample.Visit_date", "type": "string"}
-gql_map['visit_id'] = {"description": "The identifier used by the sequence center to uniquely identify the visit", "doc_type": "cases", "field": "visit ID", "full": "sample.Visit_visit_id", "type": "integer"}
-gql_map['visit_interval'] = {"description": "The amount of time since the last visit (in days)", "doc_type": "cases", "field": "visit interval", "full": "sample.Visit_interval", "type": "integer"}
-gql_map['visit_number'] = {"description": "A sequential number that is assigned as visits occur for that subject", "doc_type": "cases", "field": "visit number", "full": "sample.Visit_visit_number", "type": "integer"}
-gql_map['visit_subtype'] = {"description": "The subtype of the visit", "doc_type": "cases", "field": "visit subtype", "full": "sample.Visit_subtype", "type": "integer"}
+gql_map['visit_date'] = {"description": "Date when the visit occurred", "doc_type": "cases", "field": "Visit_date", "full": "sample.Visit_date", "type": "string"}
+gql_map['visit_id'] = {"description": "The identifier used by the sequence center to uniquely identify the visit", "doc_type": "cases", "field": "Visit_visit_id", "full": "sample.Visit_visit_id", "type": "integer"}
+gql_map['visit_interval'] = {"description": "The amount of time since the last visit (in days)", "doc_type": "cases", "field": "Visit_interval", "full": "sample.Visit_interval", "type": "integer"}
+gql_map['visit_number'] = {"description": "A sequential number that is assigned as visits occur for that subject", "doc_type": "cases", "field": "Visit_visit_number", "full": "sample.Visit_visit_number", "type": "integer"}
+gql_map['visit_subtype'] = {"description": "The subtype of the visit", "doc_type": "cases", "field": "Visit_subtype", "full": "sample.Visit_subtype", "type": "integer"}
 
 # Visit attribute props
 gql_map['visit_attr_clinical_patient'] = {"description": "Clinical patient data", "doc_type": "cases", "field": "visit attr clinical patient", "full": "sample.VisitAttr_clinical_patient", "type": "string"}

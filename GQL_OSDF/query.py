@@ -37,6 +37,11 @@ def convert_gdc_to_osdf(inp_str):
     inp_str = inp_str.replace("Visit_","Visit.")
     inp_str = inp_str.replace("VisitAttr_","VisitAttr.")
     inp_str = inp_str.replace("File_","File.")
+
+    # Handle facet searches from panel on left side
+    inp_str = inp_str.replace("data_type","File.node_type")
+    inp_str = inp_str.replace("data_format","File.format")
+
     # Next two lines guarantee URL encoding (seeing errors with urllib)
     inp_str = inp_str.replace('"','|')
     inp_str = inp_str.replace('\\','')
