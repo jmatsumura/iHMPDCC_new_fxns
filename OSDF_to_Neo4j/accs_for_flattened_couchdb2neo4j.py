@@ -105,6 +105,7 @@ body_site_dict = {
     'FMA:276108': 'right nasal cavity [FMA:276108]',
     'FMA:326482': 'urinary tract [FMA:326482]',
     'FMA:64183': 'feces [FMA:64183]',
+    'FMA:86713': 'peripheral blood mononuclear cell [FMA:86713]',
     'FMA:7842': 'angle of seventh rib [FMA:7842]',
     'foot': 'foot [FMA:9664]',
     'forearm': 'forearm [FMA:9663]',
