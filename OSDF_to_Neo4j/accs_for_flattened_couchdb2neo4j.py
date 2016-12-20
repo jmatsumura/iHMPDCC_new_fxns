@@ -1,8 +1,7 @@
 #!/usr/bin/python
 #
-# Contains accessories (1 function and some dicts) to convert from OSDF syntax to what will be loaded in Neo4j.
+# Contains accessories (Some functions and some dicts) to convert from OSDF syntax to what will be loaded in Neo4j.
 
-# Shared function across phases for modifying quotes in values.
 # This function takes in a unicode value found in the couch dump and will replace quotes,
 # either single or double, with literal quotes so that these can be passed to a Cypher 
 # statement without escaping out early. May seem a bit round-about, but essentially 

@@ -7,9 +7,9 @@
 # 1) Path to couchdb_changes_feed.json file
 #
 
-import json, sys, re
+import json, sys, re, urllib2
 from py2neo import Graph
-from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, mod_quotes
+from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, mod_quotes, traverse_json
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
@@ -24,6 +24,9 @@ cypher = graph
 # Also skip numerous CouchDB specific attributes (_rev, rev, key, _id). 
 skipUs = ['value','doc','meta','acl','_rev','rev','key','_id','_search']
 skip = set(skipUs) 
+
+regex_for_id = r'`id`:"([a-zA-Z0-9]*)"'
+regex_for_ver = r'`ver`:(\d+)'
 
 # Recurse through JSON object. Note that throughout this function many nodes are
 # likely to be created per document depending on the number of unique tags found.
@@ -95,21 +98,93 @@ def traverse_json(x, snode):
         
     return snode # give back the attributes of a single doc which will convert to a single node
 
-# Need a hash to catch updated versions of a doc since OSDF keeps a history of that
-versions = {}
-regex_for_id = r'`id`:"([a-zA-Z0-9]*)"'
-regex_for_ver = r'`ver`:(\d+)'
+def create_node(x):
+    singleNode = {} # reinitialize dict at each new document
+    res = traverse_json(x, singleNode)
+    fma = False # don't know whether or not it has FMA body site property
+    props = ""
+    y = 0 # track how many props are being added
+    for key,value in res.iteritems():
+
+        if y > 0: # add comma for every subsequent key/value pair
+            if props[-1:] != ",": # ensure no comma follows another, can arise from body site skip
+                props += ',' 
+
+        if key == 'fma_body_site':
+            props += '`%s`:"%s"' % (key,body_site_dict[value])
+            y += 1
+            fma = True
+            continue # continue makes sure we don't add more than one fma_body_site property
+        elif key == 'body_site':
+            if fma == True: # already seen FMA body site, forget body_site
+                continue
+            else: # need check all other keys to make sure FMA body site isn't in the future
+                for key,value in res.iteritems():
+                    if key == 'fma_body_site':
+                        fma == True
+                        break
+                if fma == False: # if no FMA present, use body site to map
+                    props += '`%s`:"%s"' % ('fma_body_site',body_site_dict[value])
+                    y += 1
+                    continue
+                else: # FMA will be found later, use that and skip body_site prop
+                    continue
+
+        if isinstance(value, int) or isinstance(value, float):
+            props += '`%s`:%s' % (key,value)
+            y += 1
+        else:
+            value = mod_quotes(value)
+            props += '`%s`:"%s"' % (key,value)
+            y += 1
+
+    if 'node_type' in res: # if no node type, need to ignore   
+        # handle the case where the final prop is a body site and an FMA body site
+        # already exists so the end of the prop:val string is a trailing comma
+        if props[-1:] == ",": 
+            props = props[:-1]
+
+        id = res['id']
+
+        # Know that ID is not present, treat it like the latest version
+            cstr = "CREATE (node:`%s` { %s })" % (nodes[res['node_type']],props) 
+            cypher.run(cstr)
 
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j.
 for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None and re.match(r'\_design.*', x['id']) is None: # ignore history/design documents
         if 'deleted' in x:
             if x['deleted'] == True:
-                cstr = "MATCH (n) WHERE n.id='%s' DETACH DELETE n" % (x['id'])
+                cstr = "MATCH (n{`id`:'%s'}) DETACH DELETE n" % (x['id'])
+                continue
                 #print cstr
-        if 'linkage' in x['doc']:
-            for edge in edges:
-                if edge in x['doc']['linkage']:
-                    cstr = "MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) CREATE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge])
-                    print cstr
+
+        # Only valid nodes have a version
+        if 'ver' in x['doc']:
+            # Grab the current live version and check if it needs an update
+            cquery = "MATCH ((n{`id`:'%s'})) RETURN n" % (x['id'])
+            node = graph.data(cquery)
+
+            # Node already is in the database
+            if node:
+                node = node[0] # subset since we know it is just one node
+                node = node['n']
+
+                # Only valid nodes have a version
+                if 'ver' in node:
+                    # Update if this is a newer version
+                    if int(x['doc']['ver']) > int(node['ver']):
+                        
+                        # Now that the node is created, make sure it has the correct edges
+                        if 'linkage' in x['doc']:
+                            for edge in edges:
+                                if edge in x['doc']['linkage']:
+                                    # Using "CREATE UNIQUE" will guarantee that
+                                    # the edge is only created if it is missing.
+                                    cstr = "MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) CREATE UNIQUE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge])
+                                    #print cstr
+
+            # Node doesn't exist yet, place in DB
+            else:
+                create_node(x)
                
