@@ -137,5 +137,7 @@ cypher.run("MATCH (S:Case{node_type:'study'}) WHERE S.name='Human microbiome pro
 
 print "Now removing additional test node artifacts from OSDF..."
 cypher.run("MATCH (n:Case{node_type:'sample'}) WHERE n.fma_body_site='test' DETACH DELETE n")
+cypher.run("MATCH (n{id:'610a4911a5ca67de12cdc1e4b40135fe'}) DETACH DELETE n")
+cypher.run("MATCH (n{id:'3fffbefb34d749c629dc9d147b238f67'}) DETACH DELETE n")
 
 print "All done!"
