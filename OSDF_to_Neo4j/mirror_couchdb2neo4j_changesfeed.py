@@ -30,7 +30,10 @@ regex_for_ver = r'`ver`:(\d+)'
 
 # Recurse through JSON object. Note that throughout this function many nodes are
 # likely to be created per document depending on the number of unique tags found.
-def traverse_json(x, snode):
+# Arguments:
+# x = JSON object
+# snode = Dictionary to pass through to extract all key/value pairs from JSON
+def traverse_json(x, snode, id):
     if type(x) is dict and x: # iterate over each dictionary
 
         for k,v in x.iteritems():
@@ -41,9 +44,17 @@ def traverse_json(x, snode):
                 if k == "tags": # new node for each new tag in this list
                     for tag in v:
                         tag = mod_quotes(tag)
-                        cstr = "MERGE (node:Tags { term:'%s' })" % (tag)
+                        cstr = "MERGE (node:Tags{term:'%s'})<-[:HAS_TAG]-(n{id:'%s'})" % (tag,id)
                         #cypher.run(cstr)
                 elif k == "mimarks" or k == 'mixs':
+
+                    # Need to establish this connection on the onset of node creation
+                    meta_edge = ""
+                    if k == "mimarks":
+                        meta_edge = "HAS_MIMARKS"
+                    else:
+                        meta_edge = "HAS_MIXS"
+
                     for key,value in v.iteritems():
                         if value == "" or not value: # check for empty string/list
                             continue
@@ -51,11 +62,11 @@ def traverse_json(x, snode):
                             if isinstance(value, list): # some of the values in mixs/MIMARKS are lists
                                 for z in value:
                                     z = mod_quotes(z)
-                                    cstr = "MERGE (node:%s { %s:'%s' })" % (nodes[k],key,z)
+                                    cstr = "MERGE (node:%s{%s:'%s'})<-[:%s]-(n{id:'%s'})" % (nodes[k],key,z,meta_edge,id)
                                     #cypher.run(cstr)
                             else:
                                 value = mod_quotes(value)
-                                cstr = "MERGE (node:%s { %s:'%s' })" % (nodes[k],key,value)
+                                cstr = "MERGE (node:%s{%s:'%s'})<-[:%s]-(n{id:'%s'})" % (nodes[k],key,value,meta_edge,id)
                                 #cypher.run(cstr)
 
                 else: # any attributes other than tags, mimarks, or mixs, process here
@@ -91,16 +102,19 @@ def traverse_json(x, snode):
                         if k not in snode and not isinstance(v, dict) and not isinstance(v, list): # reached single k/v pairs, add now
                             snode[k] = v
 
-        return max(traverse_json(x[a], snode) for a in x)
+        return max(traverse_json(x[a], snode, id) for a in x)
 
     if type(x) is list and x: # handle potential lists of dictionaries
-        return max(traverse_json(a, snode) for a in x)
+        return max(traverse_json(a, snode, id) for a in x)
         
     return snode # give back the attributes of a single doc which will convert to a single node
 
-def create_node(x):
+# Arguments:
+# x = JSON CouchDB doc
+# c_or_s = CREATE or SET these values? 
+def create_node(x,c_or_s,id):
     singleNode = {} # reinitialize dict at each new document
-    res = traverse_json(x, singleNode)
+    res = traverse_json(x, singleNode, id)
     fma = False # don't know whether or not it has FMA body site property
     props = ""
     y = 0 # track how many props are being added
@@ -144,11 +158,13 @@ def create_node(x):
         if props[-1:] == ",": 
             props = props[:-1]
 
-        id = res['id']
-
-        # Know that ID is not present, treat it like the latest version
+        # Know that ID is not present when this fxn is called treat it like the latest ver
+        if c_or_s == 'c':
             cstr = "CREATE (node:`%s` { %s })" % (nodes[res['node_type']],props) 
-            cypher.run(cstr)
+        else: # need to update/set, not create_node
+            cstr = "MATCH (n{`id`:'%s'}) SET n = { %s }" % (res['id'],props) 
+
+        cypher.run(cstr)
 
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j.
 for x in docList:
@@ -175,16 +191,27 @@ for x in docList:
                     # Update if this is a newer version
                     if int(x['doc']['ver']) > int(node['ver']):
                         
+                        # Drop the old metadata connections, make new later 
+                        # while extracting the new properties from the 
+                        # newer version of this node. 
+                        cstr = "MATCH (n{`id`:'%s'})-[r:HAS_TAG]->(x) DELETE r"
+                        cstr = "MATCH (n{`id`:'%s'})-[r:HAS_MIXS]->(x) DELETE r"
+                        cstr = "MATCH (n{`id`:'%s'})-[r:HAS_MIMARKS]->(x) DELETE r"
+
                         # Now that the node is created, make sure it has the correct edges
                         if 'linkage' in x['doc']:
                             for edge in edges:
                                 if edge in x['doc']['linkage']:
                                     # Using "CREATE UNIQUE" will guarantee that
                                     # the edge is only created if it is missing.
-                                    cstr = "MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) CREATE UNIQUE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge])
+                                    cstr = "MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge])
                                     #print cstr
 
             # Node doesn't exist yet, place in DB
             else:
-                create_node(x)
+                create_node(x,'c',x['id'])
+                if 'linkage' in x['doc']: # add edge for this new node if it is known
+                    for edge in edges:
+                        if edge in x['doc']['linkage']:
+                            cstr = "MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge])
                
