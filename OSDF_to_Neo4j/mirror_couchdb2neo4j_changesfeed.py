@@ -22,7 +22,7 @@ cypher = graph
 # Skip any nested dictionaries like those under 'doc' or 'meta'. 'linkage' is
 # skipped since this script is only concerned with creating nodes, not edges.
 # Also skip numerous CouchDB specific attributes (_rev, rev, key, _id). 
-skipUs = ['value','doc','meta','acl','_rev','rev','key','_id','_search']
+skipUs = ['value','doc','meta','changes','acl','_rev','rev','key','_id','_search']
 skip = set(skipUs) 
 
 regex_for_id = r'`id`:"([a-zA-Z0-9]*)"'
@@ -46,6 +46,7 @@ def traverse_json(x, snode, id):
                         tag = mod_quotes(tag)
                         cstr = "MERGE (node:Tags{term:'%s'})<-[:HAS_TAG]-(n{id:'%s'})" % (tag,id)
                         #cypher.run(cstr)
+
                 elif k == "mimarks" or k == 'mixs':
 
                     # Need to establish this connection on the onset of node creation
@@ -112,6 +113,7 @@ def traverse_json(x, snode, id):
 # Arguments:
 # x = JSON CouchDB doc
 # c_or_s = CREATE or SET these values? 
+# id = node ID
 def create_node(x,c_or_s,id):
     singleNode = {} # reinitialize dict at each new document
     res = traverse_json(x, singleNode, id)
@@ -158,7 +160,6 @@ def create_node(x,c_or_s,id):
         if props[-1:] == ",": 
             props = props[:-1]
 
-        # Know that ID is not present when this fxn is called treat it like the latest ver
         if c_or_s == 'c':
             cstr = "CREATE (node:`%s` { %s })" % (nodes[res['node_type']],props) 
         else: # need to update/set, not create_node
@@ -172,8 +173,8 @@ for x in docList:
         if 'deleted' in x:
             if x['deleted'] == True:
                 cstr = "MATCH (n{`id`:'%s'}) DETACH DELETE n" % (x['id'])
-                continue
-                #print cstr
+                cypher.run(cstr)
+                continue # delete and move on
 
         # Only valid nodes have a version
         if 'ver' in x['doc']:
@@ -191,21 +192,23 @@ for x in docList:
                     # Update if this is a newer version
                     if int(x['doc']['ver']) > int(node['ver']):
                         
-                        # Drop the old metadata connections, make new later 
-                        # while extracting the new properties from the 
+                        # Drop the old metadata connections, make new ones 
+                        # later while extracting the new properties from the 
                         # newer version of this node. 
-                        cstr = "MATCH (n{`id`:'%s'})-[r:HAS_TAG]->(x) DELETE r"
-                        cstr = "MATCH (n{`id`:'%s'})-[r:HAS_MIXS]->(x) DELETE r"
-                        cstr = "MATCH (n{`id`:'%s'})-[r:HAS_MIMARKS]->(x) DELETE r"
+                        cypher.run("MATCH (n{`id`:'%s'})-[r:HAS_TAG]->(x) DELETE r")
+                        cypher.run("MATCH (n{`id`:'%s'})-[r:HAS_MIXS]->(x) DELETE r")
+                        cypher.run("MATCH (n{`id`:'%s'})-[r:HAS_MIMARKS]->(x) DELETE r")
 
-                        # Now that the node is created, make sure it has the correct edges
+                        create_node(x,'s',x['id'])
+
+                        # Now that the node is updated, make sure it has the correct edges
                         if 'linkage' in x['doc']:
                             for edge in edges:
                                 if edge in x['doc']['linkage']:
                                     # Using "CREATE UNIQUE" will guarantee that
                                     # the edge is only created if it is missing.
                                     cstr = "MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge])
-                                    #print cstr
+                                    cypher.run(cstr)
 
             # Node doesn't exist yet, place in DB
             else:
@@ -214,4 +217,5 @@ for x in docList:
                     for edge in edges:
                         if edge in x['doc']['linkage']:
                             cstr = "MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge])
+                            cypher.run(cstr)
                
