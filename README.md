@@ -13,12 +13,6 @@ OSDF_to_Neo4j - Scripts for converting OSDF (CouchDB) into Neo4j.
 
 misc - Contains files like the conf for Neo4j that can be easily copied for personal use. 
 
-OSDF - (not currently used) Docker file to build OSDF and all of its dependencies.
-
-OSDF_API - (not currently used) An early back-end prototype for what is now GQL\_OSDF.
-
-docker-compose.yml - (not currently used)  Would attempt to build both GDC/OSDF Dockerfiles in conjunction.
-
 ## Original front-end/back-end implementations
 
 GDC: https://github.com/NCI-GDC/portal-ui
@@ -38,13 +32,4 @@ and local API not tested/supported) like so:
 
 		A) docker build . -t gdc
 
-		B) docker run --name gdc_con -p 80:80 -p 3000:3000 -p 3001:3001 -p 9876:9876 gdc
-
-(These steps not currently tested)
-If you are in a Linux environment, docker-compose is readily supported:
-
-	1) Move to the directory containing the docker-compose.yml file
-
-	2) Run the following commands:
-
-		A) docker-compose up -d
+		B) docker run --name gdc_con -p 3000:3000 -p 3001:3001 -p 9876:9876 gdc
