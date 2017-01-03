@@ -1,0 +1,17 @@
+Quick notes for what everything is in this directory and the versions within this directory...
+
+Note that under the directory osdf_mirror_backend is the schema for the expanded Neo4j instance
+that mirrors the OSDF backend. This current directory is working with a flattened database where
+nodes are only cases and files with particular node types. 
+
+app.py ~ Flask app, main endpoint that navigates to the various GQL schema
+
+models.py ~ Contains various functions for querying Neo4j and establishes all necessary GQL data types
+
+ac_schema.py ~ GQL schema used for populuating auto-complete in advanced query page and for populating cases tab in table
+
+files_schema.py ~ GQL schema used for extracting all file data tied to a given sample ID
+
+table_schema.py ~ GQL schema used for extracting data to populate table (cases/files tabs)
+
+sum_schema.py ~ GQL schema used for populating count/summation data for aspects like file charts

@@ -1,0 +1,17 @@
+version: '2'
+
+services:
+
+ APP:
+  build: ../../BE/Docker/.
+  image: app:latest
+  depends_on:
+   - Neo4j
+  ports:
+   - "5000:5000"
+
+ Neo4j:
+  build: ./OSDF/.
+  image: neo4j:latest
+  ports:
+   - "7474:7474"

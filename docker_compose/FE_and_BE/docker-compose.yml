@@ -1,0 +1,26 @@
+version: '2'
+
+services:
+
+ FE:
+  build: ../../FE/Docker/.
+  image: fe:latest
+  depends_on:
+   - BE
+  ports:
+   - "3000:3000"
+   - "3001:3001"
+   - "9876:9876"
+
+ BE:
+  build: ../../BE/Docker/.
+  image: be:latest
+  depends_on:
+   - Neo4j
+  ports:
+   - "5000:5000"
+
+ Neo4j:
+  image: neo4j:3.0.0
+  ports:
+   - "7474:7474"
