@@ -59,10 +59,8 @@ def traverse_json(x, snode, id):
                         tag = mod_quotes(tag)
                         cstr = "MERGE (n1:Tags{term:'%s'})" % (tag)
                         cypher.run(cstr)
-                        print cstr
                         cstr = "MATCH (n1:Tags{term:'%s'}),(n2{id:'%s'}) MERGE (n1)<-[:HAS_TAG]-(n2)" % (tag,id)
                         cypher.run(cstr)
-                        print cstr
 
                 elif k == "mimarks" or k == 'mixs':
 
@@ -80,16 +78,12 @@ def traverse_json(x, snode, id):
                             if isinstance(value, list): # some of the values in mixs/MIMARKS are lists
                                 for z in value:
                                     z = mod_quotes(z)
-                                    cstr = "MERGE (n1:%s{%s:'%s'})" % (nodes[k],key,z)
-                                    cypher.run(cstr)
-                                    cstr = "MATCH (n1:%s{%s:'%s'}),(n2{id:'%s'}) MERGE (n1)<-[:%s]-(n2)" % (nodes[k],key,z,id,meta_edge)
-                                    cypher.run(cstr)
+                                    cypher.run("MERGE (n1:%s{%s:'%s'})" % (nodes[k],key,z))
+                                    cypher.run("MATCH (n1:%s{%s:'%s'}),(n2{id:'%s'}) MERGE (n1)<-[:%s]-(n2)" % (nodes[k],key,z,id,meta_edge))
                             else:
                                 value = mod_quotes(value)
-                                cstr = "MERGE (n1:%s{%s:'%s'})" % (nodes[k],key,value)
-                                cypher.run(cstr)
-                                cstr = "MATCH (n1:%s{%s:'%s'}),(n2{id:'%s'}) MERGE (n1)<-[:%s]-(n2)" % (nodes[k],key,value,id,meta_edge)
-                                cypher.run(cstr)
+                                cypher.run("MERGE (n1:%s{%s:'%s'})" % (nodes[k],key,value))
+                                cypher.run("MATCH (n1:%s{%s:'%s'}),(n2{id:'%s'}) MERGE (n1)<-[:%s]-(n2)" % (nodes[k],key,value,id,meta_edge))
 
                 else: # any attributes other than tags, mimarks, or mixs, process here
 
@@ -137,9 +131,10 @@ def traverse_json(x, snode, id):
 def create_node(x,id):
     singleNode = {} # reinitialize dict at each new document
 
-    # Need to create an essentially blank node at the very least if the ID is present 
-    cstr = "MERGE (n{`id`:'%s'})" % (id) 
-    cypher.run(cstr)
+    # Need to create an essentially blank node at the very least if the ID is
+    # present. Note that  
+    cypher.run("MERGE (n:Case{`id`:'%s'})" % (id))
+    cypher.run("MERGE (n:File{`id`:'%s'})" % (id))
 
     res = traverse_json(x, singleNode, id)
     fma = False # don't know whether or not it has FMA body site property
@@ -185,7 +180,7 @@ def create_node(x,id):
         if props[-1:] == ",": 
             props = props[:-1]
 
-        cstr = "MATCH (n{`id`:'%s'}) SET n = { %s }" % (res['id'],props) 
+        cstr = "MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (nodes[res['node_type']],res['id'],props) 
         cypher.run(cstr)
 
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j.
@@ -193,8 +188,7 @@ for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None and re.match(r'\_design.*', x['id']) is None: # ignore history/design documents
         if 'deleted' in x:
             if x['deleted'] == True:
-                cstr = "MATCH (n{`id`:'%s'}) DETACH DELETE n" % (x['id'])
-                cypher.run(cstr)
+                cypher.run("MATCH (n{`id`:'%s'}) DETACH DELETE n" % (x['id']))
                 continue # delete and move on
 
         # Only valid nodes have a version
@@ -210,16 +204,17 @@ for x in docList:
 
                 # If the node has a version already, make sure only the newest is kept
                 if 'ver' in node:
-                    print node
                     # Update if this is a newer version
                     if int(x['doc']['ver']) > int(node['ver']):
                         
-                        # Drop the old metadata connections, make new ones 
-                        # later while extracting the new properties from the 
-                        # newer version of this node. 
-                        cypher.run("MATCH (n{`id`:'%s'})-[r:HAS_TAG]->(x) DELETE r")
-                        cypher.run("MATCH (n{`id`:'%s'})-[r:HAS_MIXS]->(x) DELETE r")
-                        cypher.run("MATCH (n{`id`:'%s'})-[r:HAS_MIMARKS]->(x) DELETE r")
+                        # Drop the old tags/metadata connections as well as where
+                        # this node points to upstream. Note that this will not Drop
+                        # any relationship going to this node as we cannot know if
+                        # that has been changed. 
+                        cypher.run("MATCH (n{`id`:'%s'})-[r]->(x) DELETE r" % (id))
+
+                        # Drop all properties EXCEPT for ID from this node. 
+                        # This helps maintain old edge connections.
 
                         create_node(x,x['id'])
 
