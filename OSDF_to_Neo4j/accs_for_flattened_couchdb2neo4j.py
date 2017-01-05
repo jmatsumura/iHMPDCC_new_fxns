@@ -74,6 +74,7 @@ edges = {
     'has_mixs': 'HAS_MIXS'
 }
 
+# Known edges used in the dump scripts
 definitive_edges = {
     'part_of': 'Case',
     'subset_of': 'Case',
@@ -85,6 +86,18 @@ definitive_edges = {
     'has_tag': 'Tags',
     'has_mimarks': 'MIMARKS',
     'has_mixs': 'Mixs'
+}
+
+# Known edges used in the mirror script
+definitive_edges2 = {
+    'part_of': 'Case',
+    'subset_of': 'Case',
+    'participates_in': 'Case',
+    'by': 'Case',
+    'associated_with': 'Case',
+    'collected_during': 'Case',
+    'prepared_from': 'Case', 
+    'computed_from': 'File' 
 }
 
 # Need this to add consistency to the body sites for query purposes. 

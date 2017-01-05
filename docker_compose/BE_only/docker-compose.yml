@@ -15,3 +15,10 @@ services:
   ports:
    - "7474:7474"
    - "7687:7687"
+  volumes:
+   - "./data:/data"
+  expose:
+   - 7474
+   - 7687
+  environment:
+   NEO4J_AUTH: none 

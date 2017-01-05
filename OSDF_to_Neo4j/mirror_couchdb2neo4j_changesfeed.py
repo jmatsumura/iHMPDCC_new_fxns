@@ -1,7 +1,15 @@
 #!/usr/bin/python
 #
-# Script to go through a CouchDB changes feed of OSDF data update the respective
-# nodes in Neo4j.
+# Script to go through a CouchDB changes feed of OSDF data to update the 
+# respective Neo4j instance. This script is meant to be fairly resilient 
+# and should be able to run against any relevant set of the CouchDB feed. 
+# It makes sure only the newest version of a node is kept and uses MERGE 
+# on node/edge creation so that no duplicates should be present (e.g. 
+# you could run this multiple times against the exact same CouchDB feed 
+# and it shouldn't change anything in the database after the first 
+# iteration). This also means it can be run against a live database as 
+# it won't disrupt any aspect of an up-to-date node but it will 
+# incorporate any of the changes noted in the feed.
 #
 # Accepts the following parameter:
 # 1) Path to couchdb_changes_feed.json file
@@ -9,7 +17,8 @@
 
 import json, sys, re, urllib2
 from py2neo import Graph
-from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, mod_quotes
+from collections import defaultdict
+from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, mod_quotes, definitive_edges2
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
@@ -129,7 +138,9 @@ def create_node(x,id):
     singleNode = {} # reinitialize dict at each new document
 
     # Need to create an essentially blank node at the very least if the ID is
-    # present. Note that  
+    # present. Note that  two nodes are created here because we do not yet 
+    # know whether this is a Case or File node. Create both and then
+    # delete the one once we extract and have this info. 
     cypher.run("MERGE (n:Case{`id`:'%s'})" % (id))
     cypher.run("MERGE (n:File{`id`:'%s'})" % (id))
 
@@ -177,16 +188,25 @@ def create_node(x,id):
         if props[-1:] == ",": 
             props = props[:-1]
 
+        # Identify whether this is a Case or File node using the mapping from
+        # accs_for_flattened_couchdb2neo4j
         case_or_file = nodes[res['node_type']]
 
+        # Delete the irrelevant node type. When iterating over all the properties
+        # if any metadata is present (tags/mixs/MIMARKS) then these relationships
+        # were created. Thus, need to make sure to use DETACH DELETE. 
         if case_or_file != 'Case':
-            cypher.run("MATCH (n:Case{`id`:'%s'}) DELETE n" % (id))
+            cypher.run("MATCH (n:Case{`id`:'%s'}) DETACH DELETE n" % (id))
         elif case_or_file != 'File':
-            cypher.run("MATCH (n:File{`id`:'%s'}) DELETE n" % (id))
+            cypher.run("MATCH (n:File{`id`:'%s'}) DETACH DELETE n" % (id))
 
-        cypher.run("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (nodes[res['node_type']],res['id'],props))
+        cypher.run("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (case_or_file,res['id'],props))
 
-# Iterate over each doc from CouchDB and insert the nodes into Neo4j.
+print "CouchDB feed imported. Now inserting/deleting nodes..."
+
+# Iterate over each doc from CouchDB and insert the nodes into Neo4j. While this
+# happens, note which edges need to be created and add them in after. 
+edge_dict = defaultdict(list)
 for x in docList:
     if re.match(r'\w+\_hist', x['id']) is None and re.match(r'\_design.*', x['id']) is None: # ignore history/design documents
         if 'deleted' in x:
@@ -230,9 +250,9 @@ for x in docList:
                         if 'linkage' in x['doc']:
                             for edge in edges:
                                 if edge in x['doc']['linkage']:
-                                    # Using "MERGE" will guarantee that
-                                    # the edge is only created if it is missing.
-                                    cypher.run("MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge]))
+                                    # Capture the ID:edge values that this node links to.
+                                    relationship = "%s:%s" % (x['doc']['linkage'][edge][0],edges[edge])
+                                    edge_dict[x['id']].append(relationship)
 
             # Node doesn't exist yet, place in DB
             else:
@@ -240,4 +260,40 @@ for x in docList:
                 if 'linkage' in x['doc']: # add edge for this new node if it is known
                     for edge in edges:
                         if edge in x['doc']['linkage']:
-                            cypher.run("MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge]))
+                            # Capture the ID:edge values that this node links to.
+                            relationship = "%s:%s" % (x['doc']['linkage'][edge][0],edges[edge])
+                            edge_dict[x['id']].append(relationship)
+
+print "Node creation/deletion complete, adding edges..."
+
+# All the nodes have been created, add the edges now. Doing it in this order 
+# bypasses any issue of node creation order in the feed so it will readily handle
+# when a downstream node is inserted before an upstream node. 
+for n1,rels in edge_dict.items():
+
+    # Iterate over all edges outgoing from this particular node. In most cases
+    # this will just be one relationship but cases like the 'omes have multiple.
+    for relationship in rels:
+        vals = relationship.split(':')
+        n2 = vals[0]
+        edge = vals[1]
+
+        # Using "MERGE" will guarantee that
+        # the edge is only created if it is missing.
+        cypher.run("MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (n1,n2,edge))
+
+print "Now purging test/redundant/irrelevant data (see comments in code for specifics)..."
+# Removing test data based on those linked to the 'Test Project' node.
+cypher.run("MATCH (P:Case{node_type:'project'})<-[*..20]-(n) WHERE P.project_name='test' DETACH DELETE n,P")
+cypher.run("MATCH (P:File{node_type:'16s_dna_prep'})<-[*..20]-(n) WHERE P.project_name='blah' DETACH DELETE n,P")
+# Removing the demo HMP study as this is redundant and all downstream files accounted for by individual studies.
+cypher.run("MATCH (S:Case{node_type:'study'}) WHERE S.name='Human microbiome project demonstration projects.' DETACH DELETE S")
+# Removing additional test node artifacts from OSDF.
+cypher.run("MATCH (n:Case{node_type:'sample'}) WHERE n.fma_body_site='test' DETACH DELETE n")
+cypher.run("MATCH (n{id:'610a4911a5ca67de12cdc1e4b40135fe'}) DETACH DELETE n")
+cypher.run("MATCH (n{id:'3fffbefb34d749c629dc9d147b238f67'}) DETACH DELETE n")
+# Removing any nodes which have no relationships, should not ever be the case.
+cypher.run("MATCH (n) WHERE size((n)--())=0 DELETE n")
+
+print "Neo4j database now up-to-date with the given CouchDB changes feed."
+        
