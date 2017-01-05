@@ -23,8 +23,7 @@ cypher = graph
 # the lookup phase. Accepts the name of a node (possible values in dicts_for_couchdb2neo4j)
 # and the property that that node ought to be indexed by. 
 def build_constraint_index(node,prop):
-    cstr = "CREATE CONSTRAINT ON (x:%s) ASSERT x.%s IS UNIQUE" % (node,prop)
-    cypher.run(cstr)
+    cypher.run("CREATE CONSTRAINT ON (x:%s) ASSERT x.%s IS UNIQUE" % (node,prop))
 
 build_constraint_index('Case','id')
 build_constraint_index('File','id')
@@ -57,10 +56,8 @@ def traverse_json(x, snode, id):
                 if k == "tags": # new node for each new tag in this list
                     for tag in v:
                         tag = mod_quotes(tag)
-                        cstr = "MERGE (n1:Tags{term:'%s'})" % (tag)
-                        cypher.run(cstr)
-                        cstr = "MATCH (n1:Tags{term:'%s'}),(n2{id:'%s'}) MERGE (n1)<-[:HAS_TAG]-(n2)" % (tag,id)
-                        cypher.run(cstr)
+                        cypher.run("MERGE (n1:Tags{term:'%s'})" % (tag))
+                        cypher.run("MATCH (n1:Tags{term:'%s'}),(n2{id:'%s'}) MERGE (n1)<-[:HAS_TAG]-(n2)" % (tag,id))
 
                 elif k == "mimarks" or k == 'mixs':
 
@@ -180,8 +177,14 @@ def create_node(x,id):
         if props[-1:] == ",": 
             props = props[:-1]
 
-        cstr = "MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (nodes[res['node_type']],res['id'],props) 
-        cypher.run(cstr)
+        case_or_file = nodes[res['node_type']]
+
+        if case_or_file != 'Case':
+            cypher.run("MATCH (n:Case{`id`:'%s'}) DELETE n" % (id))
+        elif case_or_file != 'File':
+            cypher.run("MATCH (n:File{`id`:'%s'}) DELETE n" % (id))
+
+        cypher.run("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (nodes[res['node_type']],res['id'],props))
 
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j.
 for x in docList:
@@ -214,7 +217,12 @@ for x in docList:
                         cypher.run("MATCH (n{`id`:'%s'})-[r]->(x) DELETE r" % (id))
 
                         # Drop all properties EXCEPT for ID from this node. 
-                        # This helps maintain old edge connections.
+                        # This helps maintain old edge connections while still
+                        # allowing only the new properties to be added to the
+                        # node. 
+                        for prop in node:
+                            if prop != 'id':
+                                cypher.run("MATCH (n{`id`:'%s'}) REMOVE n.%s" % (id,prop))
 
                         create_node(x,x['id'])
 
@@ -224,8 +232,7 @@ for x in docList:
                                 if edge in x['doc']['linkage']:
                                     # Using "MERGE" will guarantee that
                                     # the edge is only created if it is missing.
-                                    cstr = "MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge])
-                                    cypher.run(cstr)
+                                    cypher.run("MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge]))
 
             # Node doesn't exist yet, place in DB
             else:
@@ -233,6 +240,4 @@ for x in docList:
                 if 'linkage' in x['doc']: # add edge for this new node if it is known
                     for edge in edges:
                         if edge in x['doc']['linkage']:
-                            cstr = "MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge])
-                            cypher.run(cstr)
-               
+                            cypher.run("MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (x['id'],x['doc']['linkage'][edge][0],edges[edge]))
