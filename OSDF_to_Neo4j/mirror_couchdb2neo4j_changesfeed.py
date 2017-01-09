@@ -201,6 +201,7 @@ def create_node(x,id):
             cypher.run("MATCH (n:File{`id`:'%s'}) DETACH DELETE n" % (id))
 
         cypher.run("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (case_or_file,res['id'],props))
+        print("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (case_or_file,res['id'],props))
 
 print "CouchDB feed imported. Now inserting/deleting nodes..."
 
@@ -250,9 +251,10 @@ for x in docList:
                         if 'linkage' in x['doc']:
                             for edge in edges:
                                 if edge in x['doc']['linkage']:
-                                    # Capture the ID:edge values that this node links to.
-                                    relationship = "%s:%s" % (x['doc']['linkage'][edge][0],edges[edge])
-                                    edge_dict[x['id']].append(relationship)
+                                    for upstream in x['doc']['linkage'][edge]:
+                                        # Capture the ID:ID values that this edge is between.
+                                        relationship = "%s:%s" % (x['id'],upstream)
+                                        edge_dict[edges[edge]].append(relationship)
 
             # Node doesn't exist yet, place in DB
             else:
@@ -260,27 +262,26 @@ for x in docList:
                 if 'linkage' in x['doc']: # add edge for this new node if it is known
                     for edge in edges:
                         if edge in x['doc']['linkage']:
-                            # Capture the ID:edge values that this node links to.
-                            relationship = "%s:%s" % (x['doc']['linkage'][edge][0],edges[edge])
-                            edge_dict[x['id']].append(relationship)
+                            for upstream in x['doc']['linkage'][edge]:
+                                # Capture the ID:ID values that this edge is between.
+                                relationship = "%s:%s" % (x['id'],upstream)
+                                edge_dict[edges[edge]].append(relationship)
 
 print "Node creation/deletion complete, adding edges..."
 
 # All the nodes have been created, add the edges now. Doing it in this order 
 # bypasses any issue of node creation order in the feed so it will readily handle
 # when a downstream node is inserted before an upstream node. 
-for n1,rels in edge_dict.items():
+for edge,link_us in edge_dict.items():
 
     # Iterate over all edges outgoing from this particular node. In most cases
     # this will just be one relationship but cases like the 'omes have multiple.
-    for relationship in rels:
-        vals = relationship.split(':')
-        n2 = vals[0]
-        edge = vals[1]
-
-        # Using "MERGE" will guarantee that
-        # the edge is only created if it is missing.
+    for nodes in link_us:
+        vals = nodes.split(':')
+        n1 = vals[0]
+        n2 = vals[1]
         cypher.run("MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (n1,n2,edge))
+        print("MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (n1,n2,edge))
 
 print "Now purging test/redundant/irrelevant data (see comments in code for specifics)..."
 # Removing test data based on those linked to the 'Test Project' node.
