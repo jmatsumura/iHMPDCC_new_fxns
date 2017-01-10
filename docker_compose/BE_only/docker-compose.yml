@@ -11,9 +11,10 @@ services:
    - neo4j
   ports:
    - "15000:5000"
-  volumes:
-   - "./ihmp:/home/ihmp"
   restart: always
+  environment:
+   NEO4J_DB: neo4j:17474
+   FE_LOC: 127.0.0.1:3000
 
  neo4j:
   image: neo4j:3.0.0

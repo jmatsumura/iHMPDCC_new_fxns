@@ -3,6 +3,7 @@ import graphene
 from py2neo import Graph # Using py2neo v3 not v2
 from query import match, build_cypher, build_adv_cypher, convert_gdc_to_osdf
 import sys
+import os
 
 ###################
 # DEFINING MODELS #
@@ -120,8 +121,8 @@ class FileSize(graphene.ObjectType): # total aggregate file size of current set 
 ####################################
 
 # This section will have all the logic for populating the actual data in the schema (data from Neo4j)
-
-graph = Graph("0.0.0.0:17474/db/data/")
+neo4j_loc = os.environ["NEO4J_DB"]
+graph = Graph(neo4j_loc)
 
 # Base Cypher for traversing the entirety of the schema
 full_traversal = ("MATCH (Project:Case{node_type:'project'})"
