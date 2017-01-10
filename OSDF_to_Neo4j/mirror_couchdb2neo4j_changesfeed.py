@@ -18,7 +18,7 @@
 import json, sys, re, urllib2
 from py2neo import Graph
 from collections import defaultdict
-from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, mod_quotes, definitive_edges2
+from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, fma_free_body_site_dict, mod_quotes, definitive_edges2
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
@@ -155,7 +155,7 @@ def create_node(x,id):
                 props += ',' 
 
         if key == 'fma_body_site':
-            props += '`%s`:"%s"' % (key,body_site_dict[value])
+            props += '`%s`:"%s"' % (key,fma_free_body_site_dict[value])
             y += 1
             fma = True
             continue # continue makes sure we don't add more than one fma_body_site property
@@ -168,7 +168,7 @@ def create_node(x,id):
                         fma == True
                         break
                 if fma == False: # if no FMA present, use body site to map
-                    props += '`%s`:"%s"' % ('fma_body_site',body_site_dict[value])
+                    props += '`%s`:"%s"' % ('fma_body_site',fma_free_body_site_dict[value])
                     y += 1
                     continue
                 else: # FMA will be found later, use that and skip body_site prop
@@ -201,7 +201,7 @@ def create_node(x,id):
             cypher.run("MATCH (n:File{`id`:'%s'}) DETACH DELETE n" % (id))
 
         cypher.run("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (case_or_file,res['id'],props))
-        print("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (case_or_file,res['id'],props))
+        print(("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (case_or_file,res['id'],props)).encode('utf-8'))
 
 print "CouchDB feed imported. Now inserting/deleting nodes..."
 
