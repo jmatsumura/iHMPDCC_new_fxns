@@ -2,23 +2,25 @@ version: '2'
 
 services:
 
- BE:
+ be:
   build: ../../BE/Docker/.
   image: be:latest
   depends_on:
-   - Neo4j
+   - neo4j
+  links:
+   - neo4j
   ports:
-   - "5000:5000"
+   - "15000:5000"
+  volumes:
+   - "./ihmp:/home/ihmp"
+  restart: always
 
- Neo4j:
+ neo4j:
   image: neo4j:3.0.0
   ports:
-   - "7474:7474"
-   - "7687:7687"
+   - "17474:7474"
+   - "17687:7687"
   volumes:
    - "./data:/data"
-  expose:
-   - 7474
-   - 7687
   environment:
    NEO4J_AUTH: none 

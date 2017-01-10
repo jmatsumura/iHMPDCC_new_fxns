@@ -20,6 +20,7 @@ RUN pip install flask \
 # Install the backend of iHMP
 RUN mkdir -p /home/ihmp
 RUN git clone https://github.com/jmatsumura/iHMPDCC_new_fxns.git /home/ihmp
+RUN mv /home/ihmp/docker_compose/BE_only/models.py /home/ihmp/BE/.
 
 # Expose ports and start flask service
 EXPOSE 5000
