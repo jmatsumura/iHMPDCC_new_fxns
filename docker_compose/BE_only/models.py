@@ -1,9 +1,9 @@
 import re
 import graphene
-from py2neo import Graph # Using py2neo v3 not v2
-from query import match, build_cypher, build_adv_cypher, convert_gdc_to_osdf
 import sys
 import os
+from py2neo import Graph # Using py2neo v3 not v2
+from query import match, build_cypher, build_adv_cypher, convert_gdc_to_osdf
 
 ###################
 # DEFINING MODELS #
