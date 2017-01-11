@@ -12,16 +12,14 @@ from indiv_cases_schema import indiv_cases_schema
 from models import get_url_for_download, convert_gdc_to_osdf,get_all_proj_data,get_all_proj_counts
 from autocomplete_map import gql_map
 import graphene
-import urllib2
-import sys
-import json, re
+import urllib2, sys, json, re, os
 
 app = Flask(__name__)
 app.debug = True
 
 # Function to handle access control allow headers
 def add_cors_headers(response):
-    response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
+    response.headers['Access-Control-Allow-Origin'] = os.environ["FE_LOC"]
     response.headers['Access-Control-Allow-Credentials'] = 'true'
     if request.method == 'OPTIONS':
         response.headers['Access-Control-Allow-Methods'] = 'DELETE, GET, POST, PUT'

@@ -2,21 +2,7 @@ version: '2'
 
 services:
 
- be:
-  build: ../../BE/Docker/.
-  image: be:latest
-  depends_on:
-   - neo4j
-  links:
-   - neo4j
-  ports:
-   - "15000:5000"
-  restart: always
-  environment:
-   NEO4J_DB: neo4j:17474
-   FE_LOC: 127.0.0.1:3000
-
- neo4j:
+ db:
   image: neo4j:3.0.0
   ports:
    - "17474:7474"
@@ -25,3 +11,16 @@ services:
    - "./data:/data"
   environment:
    NEO4J_AUTH: none 
+
+ gql:
+  build: ../../BE/.
+  image: gql:latest
+  depends_on:
+   - db
+  links:
+   - db
+  ports:
+   - "15000:80"
+  environment:
+   NEO4J_DB: db:17474
+   FE_LOC: placeholder
