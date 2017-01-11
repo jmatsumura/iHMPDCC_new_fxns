@@ -2,25 +2,30 @@ version: '2'
 
 services:
 
- db:
-  image: neo4j:3.0.0
-  ports:
-   - "17474:7474"
-   - "17687:7687"
-  volumes:
-   - "./data:/data"
-  environment:
-   NEO4J_AUTH: none 
-
  gql:
   build: ../../BE/.
   image: gql:latest
+  restart: always
   depends_on:
    - db
   links:
    - db
   ports:
-   - "15000:80"
+   - 15000:80
   environment:
-   NEO4J_DB: db:17474
+   NEO4J_HOST: db
+   NEO4J_DB: 17474
+   NEO4J_BOLT: 17687
+   NEO4J_USER: neo4j
+   NEO4J_PASS: osdf1
    FE_LOC: placeholder
+
+ db:
+  image: neo4j:3.0
+  ports:
+   - 17474:7474
+   - 17687:7687
+  volumes:
+   - "./data:/data"
+  environment:
+   NEO4J_AUTH: neo4j/osdf1

@@ -14,8 +14,8 @@ from autocomplete_map import gql_map
 import graphene
 import urllib2, sys, json, re, os
 
-app = Flask(__name__)
-app.debug = True
+application = Flask(__name__)
+application.debug = True
 
 # Function to handle access control allow headers
 def add_cors_headers(response):
@@ -28,9 +28,9 @@ def add_cors_headers(response):
             response.headers['Access-Control-Allow-Headers'] = headers
     return response
 
-app.after_request(add_cors_headers)
+application.after_request(add_cors_headers)
 
-@app.route('/gql/_mapping', methods=['GET'])
+@application.route('/gql/_mapping', methods=['GET'])
 def get_maps():
     add_cors_headers
     res = jsonify({"sample.Project_name": gql_map['project_name'],
@@ -71,9 +71,9 @@ def get_maps():
     return res
 
 # Note the multiple endpoints going to the same "cases endpoint to accommodate GDC syntax"
-@app.route('/cases', methods=['GET','OPTIONS','POST'])
-@app.route('/sample', methods=['GET','OPTIONS','POST'], endpoint='sample_alt_ep')
-@app.route('/file', methods=['GET','OPTIONS','POST'], endpoint='file_alt_ep')
+@application.route('/cases', methods=['GET','OPTIONS','POST'])
+@application.route('/sample', methods=['GET','OPTIONS','POST'], endpoint='sample_alt_ep')
+@application.route('/file', methods=['GET','OPTIONS','POST'], endpoint='file_alt_ep')
 def get_cases():
     
     filters = request.args.get('filters')
@@ -126,7 +126,7 @@ def get_cases():
         return ('%s, "warnings": {}}' % r[:-1])
 
 # Route for specific cases endpoints that associates with various files
-@app.route('/cases/<case_id>', methods=['GET','OPTIONS'])
+@application.route('/cases/<case_id>', methods=['GET','OPTIONS'])
 def get_case_files(case_id):
     id = '"%s"' % case_id
     if not request.args.get('expand'):
@@ -147,7 +147,7 @@ def get_case_files(case_id):
         r = response.read()
         return ('%s, "warnings": {}}' % r[:-1])
 
-@app.route('/files/<file_id>', methods=['GET','OPTIONS'])
+@application.route('/files/<file_id>', methods=['GET','OPTIONS'])
 def get_file_metadata(file_id):
     beg = "http://localhost:5000/indiv_files_schema?query=%7BfileHit(id%3A%22"
     end = "%22)%7Bdata_type%2Cfile_name%2Cfile_size%2Cdata_format%2Canalysis%7Bupdated_datetime%2Cworkflow_type%2Canalysis_id%2Cinput_files%7Bfile_id%7D%7D%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cassociated_entities%7Bentity_id%2Ccase_id%2Centity_type%7D%2Ccases%7Bproject%7Bproject_id%7D%2Ccase_id%7D%2Cexperimental_strategy%7D%7D"
@@ -158,24 +158,24 @@ def get_file_metadata(file_id):
     final_r = trimmed_r[:-1]
     return ('%s, "warnings": {}}' % final_r[:-1])
 
-@app.route('/status', methods=['GET','OPTIONS'])
+@application.route('/status', methods=['GET','OPTIONS'])
 def get_status():
     return 'hi'
 
-@app.route('/status/user', methods=['OPTIONS'])
+@application.route('/status/user', methods=['OPTIONS'])
 def get_status_user():
     return 'hi'
 
-@app.route('/status/user', methods=['GET','OPTIONS','POST'])
+@application.route('/status/user', methods=['GET','OPTIONS','POST'])
 def get_status_user_unauthorized():
     abort(401)
 
-@app.route('/status/api/data', methods=['GET','OPTIONS','POST'])
+@application.route('/status/api/data', methods=['GET','OPTIONS','POST'])
 def get_status_api_data():
     id = request.form.get('ids')
     return redirect(get_url_for_download(id))
 
-@app.route('/files', methods=['GET','OPTIONS','POST'])
+@application.route('/files', methods=['GET','OPTIONS','POST'])
 def get_files():
     filters, url = ("" for i in range(2))
     if request.args.get('filters'):
@@ -226,7 +226,7 @@ def get_files():
     r = response.read()
     return ('%s, "warnings": {}}' % r[:-1])
 
-@app.route('/projects', methods=['GET','POST'])
+@application.route('/projects', methods=['GET','POST'])
 def get_project():
     facets = request.args.get('facets')
 
@@ -307,13 +307,13 @@ def get_project():
 
     return "{\"data\" : {\"aggregations\": %s, \"hits\" : %s, \"pagination\": %s}, \"warnings\": {}}" % (agg_str, hit_str, p_str)
 
-@app.route('/annotations', methods=['GET','OPTIONS'])
+@application.route('/annotations', methods=['GET','OPTIONS'])
 def get_annotation():
     return 'hi'
 
 # Calls sum_schema endpoint/GQL instance in order to return the necessary data
 # to populate the pie charts
-@app.route('/ui/search/summary', methods=['GET','OPTIONS','POST'])
+@application.route('/ui/search/summary', methods=['GET','OPTIONS','POST'])
 def get_ui_search_summary():
     empty_cy = ("http://localhost:5000/sum_schema?query="
         "%7BSampleFmabodysite(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D"
@@ -350,7 +350,7 @@ def get_ui_search_summary():
     r2 = r1[:-1]
     return r2
 
-app.add_url_rule(
+application.add_url_rule(
     '/sum_schema',
     view_func=GraphQLView.as_view(
         'sum_graphql',
@@ -359,7 +359,7 @@ app.add_url_rule(
     )
 )
 
-app.add_url_rule(
+application.add_url_rule(
     '/ac_schema',
     view_func=GraphQLView.as_view(
         'ac_graphql',
@@ -368,7 +368,7 @@ app.add_url_rule(
     )
 )
 
-app.add_url_rule(
+application.add_url_rule(
     '/files_schema',
     view_func=GraphQLView.as_view(
         'files_graphql',
@@ -377,7 +377,7 @@ app.add_url_rule(
     )
 )
 
-app.add_url_rule(
+application.add_url_rule(
     '/table_schema',
     view_func=GraphQLView.as_view(
         'table_graphql',
@@ -386,7 +386,7 @@ app.add_url_rule(
     )
 )
 
-app.add_url_rule(
+application.add_url_rule(
     '/indiv_files_schema',
     view_func=GraphQLView.as_view(
         'indiv_files_graphql',
@@ -395,7 +395,7 @@ app.add_url_rule(
     )
 )
 
-app.add_url_rule(
+application.add_url_rule(
     '/indiv_cases_schema',
     view_func=GraphQLView.as_view(
         'indiv_cases_graphql',
@@ -405,4 +405,4 @@ app.add_url_rule(
 )
 
 if __name__ == '__main__':
-    app.run(threaded=True)
+    application.run(threaded=True)

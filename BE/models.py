@@ -119,9 +119,7 @@ class FileSize(graphene.ObjectType): # total aggregate file size of current set 
 ####################################
 
 # This section will have all the logic for populating the actual data in the schema (data from Neo4j)
-
-neo4j_db = "http://%s/db/data/" % (os.environ["NEO4J_DB"])
-graph = Graph(neo4j_db)
+graph = Graph(host="172.19.0.1",bolt_port=17687,http_port=17474,user=os.environ["NEO4J_USER"],password=os.environ["NEO4J_PASS"])
 
 # Base Cypher for traversing the entirety of the schema
 full_traversal = ("MATCH (Project:Case{node_type:'project'})"
