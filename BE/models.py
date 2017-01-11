@@ -1,4 +1,4 @@
-import re, os, sys
+import re, os, sys, socket
 import graphene
 from py2neo import Graph # Using py2neo v3 not v2
 from query import match, build_cypher, build_adv_cypher, convert_gdc_to_osdf
@@ -118,8 +118,18 @@ class FileSize(graphene.ObjectType): # total aggregate file size of current set 
 # FUNCTIONS FOR GETTING NEO4J DATA #
 ####################################
 
+# Work around Docker's inconsistent functionality here. Trim the final number of
+# the gateway, replace with 1 and good to go. 
+ip = socket.gethostbyname(os.environ["NEO4J_HOST"])
+mod_ip = ip[:-1]
+mod_ip = "%s1" % mod_ip
+bolt = int(os.environ["NEO4J_BOLT"])
+http = int(os.environ["NEO4J_HTTP"])
+un = os.environ["NEO4J_USER"]
+pw = os.environ["NEO4J_PASS"]
+
 # This section will have all the logic for populating the actual data in the schema (data from Neo4j)
-graph = Graph(host="172.19.0.1",bolt_port=17687,http_port=17474,user=os.environ["NEO4J_USER"],password=os.environ["NEO4J_PASS"])
+graph = Graph(host=mod_ip,bolt_port=bolt,http_port=http,user=un,password=pw)
 
 # Base Cypher for traversing the entirety of the schema
 full_traversal = ("MATCH (Project:Case{node_type:'project'})"
