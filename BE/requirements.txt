@@ -1,0 +1,4 @@
+Flask
+Flask-GraphQL
+graphene>=1.0
+py2neo
