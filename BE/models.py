@@ -285,9 +285,17 @@ def get_all_proj_data():
     res = graph.data(cquery)
     return res
 
+# This function is a bit unique as it's only called to populate the bar chart on the home page
 def get_all_proj_counts():
-    retval = "RETURN DISTINCT Project.id, Project.name, Sample.fma_body_site, (COUNT(File)) as file_count"
-    cquery = "%s %s" % (full_traversal,retval)
+    cquery = ("MATCH (Project:Case{node_type:'project'})"
+        "<-[:PART_OF]-(Study:Case{node_type:'study'})"
+        "<-[:PARTICIPATES_IN]-(Subject:Case{node_type:'subject'})"
+        "<-[:BY]-(Visit:Case{node_type:'visit'})"
+        "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
+        "<-[:PREPARED_FROM]-(pf)"
+        "<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File)"
+        " RETURN DISTINCT Project.id, Project.name, Sample.fma_body_site, COUNT(DISTINCT Sample) as case_count, (COUNT(DISTINCT File)) as file_count"
+        )
     res = graph.data(cquery)
     return res
 

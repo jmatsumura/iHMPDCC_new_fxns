@@ -58,8 +58,11 @@ nodes = {
 }
 
 # These are all the different edge types present in the schema. 
+# Note that 'subset_of' will be removed after loading in order to 
+# comply with iHMP schema.
 edges = {
     'part_of': 'PART_OF',
+    'subset_of': 'SUBSET_OF',
     'participates_in': 'PARTICIPATES_IN',
     'associated_with': 'ASSOCIATED_WITH',
     'by': 'BY',

@@ -287,7 +287,7 @@ def get_project():
         proj_id = p["Project.name"]
         psite = p["Sample.fma_body_site"]
         n_files = p["file_count"]
-        n_cases = n_files / 2
+        n_cases = p["case_count"]
         if psite is None:
             psite = "None"
         if psite in counts:
