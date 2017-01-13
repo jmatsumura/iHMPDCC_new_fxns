@@ -13,7 +13,6 @@
 #
 # Accepts the following parameter:
 # 1) Path to couchdb_changes_feed.json file
-#
 
 import json, sys, re, urllib2
 from py2neo import Graph
@@ -23,6 +22,8 @@ from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, fma_f
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
 docList = json_data['results']
+
+print "CouchDB feed imported. Now inserting/deleting nodes..."
 
 neo4j_password = "neo4j" # Neo4j setup
 graph = Graph(password = neo4j_password)
@@ -41,7 +42,7 @@ build_constraint_index('Tags','term')
 # Skip any nested dictionaries like those under 'doc' or 'meta'. 'linkage' is
 # skipped since this script is only concerned with creating nodes, not edges.
 # Also skip numerous CouchDB specific attributes (_rev, rev, key, _id). 
-skipUs = ['value','doc','meta','changes','acl','_rev','rev','key','_id','_search']
+skipUs = ['value','doc','meta','changes','acl','_rev','rev','key','_id','_search','seq']
 skip = set(skipUs) 
 
 regex_for_id = r'`id`:"([a-zA-Z0-9]*)"'
@@ -53,6 +54,7 @@ regex_for_ver = r'`ver`:(\d+)'
 # x = JSON object
 # snode = Dictionary to pass through to extract all key/value pairs from JSON
 def traverse_json(x, snode, id):
+
     if type(x) is dict and x: # iterate over each dictionary
 
         for k,v in x.iteritems():
@@ -131,10 +133,13 @@ def traverse_json(x, snode, id):
         
     return snode # give back the attributes of a single doc which will convert to a single node
 
+
+# Function to create or revise a node. 
 # Arguments:
 # x = JSON CouchDB doc
 # id = node ID
 def create_node(x,id):
+
     singleNode = {} # reinitialize dict at each new document
 
     # Need to create an essentially blank node at the very least if the ID is
@@ -182,11 +187,20 @@ def create_node(x,id):
             props += '`%s`:"%s"' % (key,value)
             y += 1
 
-    if 'node_type' in res: # if no node type, need to ignore   
+    # If no node type, something has gone awry with an earlier check either here
+    # or OSDF so should ignore   
+    if 'node_type' in res: 
+
         # handle the case where the final prop is a body site and an FMA body site
         # already exists so the end of the prop:val string is a trailing comma
         if props[-1:] == ",": 
             props = props[:-1]
+
+        # If a version was never established, include one now so that this
+        # can be easily compared with future iterations of the node in this
+        # changes feed loader. 
+        if 'ver' not in res:
+            props += ',`ver`:1'
 
         # Identify whether this is a Case or File node using the mapping from
         # accs_for_flattened_couchdb2neo4j
@@ -203,7 +217,38 @@ def create_node(x,id):
         cypher.run("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (case_or_file,res['id'],props))
         print(("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (case_or_file,res['id'],props)).encode('utf-8'))
 
-print "CouchDB feed imported. Now inserting/deleting nodes..."
+
+# Function to build an edge dictionary that will build all edges once all
+# new changes are up-to-date. A dictionary needs to be built here because,
+# unlike CouchDB, in the Neo4j version of the DB we need to ensure all
+# nodes are already present before adding edges. 
+# Arguments:
+# edge_dict = a defaultdict(list) that will denote all the edges, other than 
+# those tied to metadata, that need to be added.
+# doc = document from CouchDB that has edges which need to be added
+def create_edge(edge_dict,doc):
+
+    if 'linkage' in doc['doc']:
+        # Cover all valid edges tied to the linkage key
+        for edge in edges:
+            if edge in doc['doc']['linkage']:
+                # Occasionally there are multiple nodes to be linked to given
+                # a single edge type ('~omes'). Distinguish between that and
+                # a single value.
+                if type(doc['doc']['linkage'][edge]) is list:
+                    for upstream in doc['doc']['linkage'][edge]:
+                        # Capture the ID:ID values that this edge is between.
+                        relationship = "%s:%s" % (doc['id'],upstream)
+                        print relationship
+                        edge_dict[edges[edge]].append(relationship)
+                # The more common case, just one node
+                else:
+                    relationship = "%s:%s" % (doc['id'],doc['doc']['linkage'][edge])
+                    print relationship
+                    edge_dict[edges[edge]].append(relationship)
+
+    return edge_dict
+
 
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j. While this
 # happens, note which edges need to be created and add them in after. 
@@ -215,57 +260,54 @@ for x in docList:
                 cypher.run("MATCH (n{`id`:'%s'}) DETACH DELETE n" % (x['id']))
                 continue # delete and move on
 
-        # Only valid nodes have a version
+        # If node has 'ver' we know that it is likely already in the database
+        # since version is explicitly added only when a revision occurs 
+        # (although users can manually enter version 1)
         if 'ver' in x['doc']:
+
             # Grab the current live version and check if it needs an update
             cquery = "MATCH ((n{`id`:'%s'})) RETURN n" % (x['id'])
             node = graph.data(cquery)
 
-            # Node already is in the database
+            # If someone manually entered version 1, or this is the first time 
+            # loading the changes feed, then this check will fail.
             if node:
                 node = node[0] # subset since we know it is just one node
                 node = node['n']
 
-                # If the node has a version already, make sure only the newest is kept
-                if 'ver' in node:
-                    # Update if this is a newer version
-                    if int(x['doc']['ver']) > int(node['ver']):
+                # If the node is already in the database, then we need to compare
+                # versions and make sure that only the latest data is kept.
+                if int(x['doc']['ver']) > int(node['ver']):
                         
-                        # Drop the old tags/metadata connections as well as where
-                        # this node points to upstream. Note that this will not Drop
-                        # any relationship going to this node as we cannot know if
-                        # that has been changed. 
-                        cypher.run("MATCH (n{`id`:'%s'})-[r]->(x) DELETE r" % (id))
+                    # Drop the old tags/metadata connections as well as where
+                    # this node points to upstream. Note that this will not Drop
+                    # any relationship going to this node as we cannot know if
+                    # that has been changed. 
+                    cypher.run("MATCH (n{`id`:'%s'})-[r]->(x) DELETE r" % (id))
 
-                        # Drop all properties EXCEPT for ID from this node. 
-                        # This helps maintain old edge connections while still
-                        # allowing only the new properties to be added to the
-                        # node. 
-                        for prop in node:
-                            if prop != 'id':
-                                cypher.run("MATCH (n{`id`:'%s'}) REMOVE n.%s" % (id,prop))
+                    # Drop all properties EXCEPT for ID from this node. 
+                    # This helps maintain old edge connections while still
+                    # allowing only the new properties to be added to the
+                    # node. 
+                    for prop in node:
+                        if prop != 'id':
+                            cypher.run("MATCH (n{`id`:'%s'}) REMOVE n.%s" % (id,prop))
 
-                        create_node(x,x['id'])
+                    create_node(x,x['id'])
+                    edge_dict = create_edge(edge_dict,x)
 
-                        # Now that the node is updated, make sure it has the correct edges
-                        if 'linkage' in x['doc']:
-                            for edge in edges:
-                                if edge in x['doc']['linkage']:
-                                    for upstream in x['doc']['linkage'][edge]:
-                                        # Capture the ID:ID values that this edge is between.
-                                        relationship = "%s:%s" % (x['id'],upstream)
-                                        edge_dict[edges[edge]].append(relationship)
-
-            # Node doesn't exist yet, place in DB
+            # Need to make sure nodes that are designated as version 1 are
+            # indeed added as well as the initial loading of any nodes
+            # with a version greater than 1. 
             else:
                 create_node(x,x['id'])
-                if 'linkage' in x['doc']: # add edge for this new node if it is known
-                    for edge in edges:
-                        if edge in x['doc']['linkage']:
-                            for upstream in x['doc']['linkage'][edge]:
-                                # Capture the ID:ID values that this edge is between.
-                                relationship = "%s:%s" % (x['id'],upstream)
-                                edge_dict[edges[edge]].append(relationship)
+                edge_dict = create_edge(edge_dict,x)
+
+        # Node is a first iteration, hasn't been placed in the DB yet, and lacks
+        # an explicit version 1.
+        else:
+            create_node(x,x['id'])
+            edge_dict = create_edge(edge_dict,x)
 
 print "Node creation/deletion complete, adding edges..."
 
