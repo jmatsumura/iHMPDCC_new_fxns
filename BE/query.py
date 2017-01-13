@@ -46,6 +46,17 @@ def convert_gdc_to_osdf(inp_str):
     inp_str = inp_str.replace('"','|')
     inp_str = inp_str.replace('\\','')
     inp_str = inp_str.replace(" ","%20")
+
+    # While the DB is to be set at read-only, in the case this toggle is 
+    # forgotten do some checks to make sure nothing fishy is happening.
+    potentially_malicious = set([";"," delete "," create "," detach "," set ",
+                                " return "," match "," merge "," where "," with ",
+                                " import "," remove "," union "])
+    check_str = inp_str.lower()
+    for word in check_str:
+        if word in potentially_malicious:
+            break
+
     return inp_str
 
 # This is a recursive function originally used to traverse and find the depth 
