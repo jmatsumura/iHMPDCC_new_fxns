@@ -11,42 +11,36 @@
 # it won't disrupt any aspect of an up-to-date node but it will 
 # incorporate any of the changes noted in the feed.
 #
+# This script is broken into two sections: FUNCTIONS and DB CREATION
+#
 # Accepts the following parameter:
-# 1) Path to couchdb_changes_feed.json file
+#
+# Path to conf file with content in the following format (one on each line):
+# COUCHDB_HOST=http://osdf-ihmp.igs.umaryland.edu
+# COUCHDB_PORT=5984
+# COUCHDB_OSDF_DB=OSDF
+# CHANGES_SINCE=1
+# NEO4J_PASS=example
+# 
+# 
+# If you this is the first run, make sure CHANGES_SINCE=0.
+# Note that this script will overwrite the value of CHANGES_SINCE in this file
+# so that it can use the same one to determine where it needs to pick up.
 
 import json, sys, re, urllib2
 from py2neo import Graph
 from collections import defaultdict
 from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, fma_free_body_site_dict, mod_quotes, definitive_edges2
 
-i = open(sys.argv[1], 'r') # couchdb dump json is the input
-json_data = json.load(i) 
-docList = json_data['results']
-
-print "CouchDB feed imported. Now inserting/deleting nodes..."
-
-neo4j_password = "neo4j" # Neo4j setup
-graph = Graph(password = neo4j_password)
-cypher = graph
+#############
+# FUNCTIONS #
+#############
 
 # Function to build an index in Neo4j to make edge connection a bit faster during
 # the lookup phase. Accepts the name of a node (possible values in dicts_for_couchdb2neo4j)
 # and the property that that node ought to be indexed by. 
 def build_constraint_index(node,prop):
     cypher.run("CREATE CONSTRAINT ON (x:%s) ASSERT x.%s IS UNIQUE" % (node,prop))
-
-build_constraint_index('Case','id')
-build_constraint_index('File','id')
-build_constraint_index('Tags','term')
-
-# Skip any nested dictionaries like those under 'doc' or 'meta'. 'linkage' is
-# skipped since this script is only concerned with creating nodes, not edges.
-# Also skip numerous CouchDB specific attributes (_rev, rev, key, _id). 
-skipUs = ['value','doc','meta','changes','acl','_rev','rev','key','_id','_search','seq']
-skip = set(skipUs) 
-
-regex_for_id = r'`id`:"([a-zA-Z0-9]*)"'
-regex_for_ver = r'`ver`:(\d+)'
 
 # Recurse through JSON object. Note that throughout this function many nodes are
 # likely to be created per document depending on the number of unique tags found.
@@ -133,14 +127,13 @@ def traverse_json(x, snode, id):
         
     return snode # give back the attributes of a single doc which will convert to a single node
 
-
 # Function to create or revise a node. 
 # Arguments:
 # x = JSON CouchDB doc
 # id = node ID
 def create_node(x,id):
 
-    singleNode = {} # reinitialize dict at each new document
+    single_node = {} # reinitialize dict at each new document
 
     # Need to create an essentially blank node at the very least if the ID is
     # present. Note that  two nodes are created here because we do not yet 
@@ -149,7 +142,7 @@ def create_node(x,id):
     cypher.run("MERGE (n:Case{`id`:'%s'})" % (id))
     cypher.run("MERGE (n:File{`id`:'%s'})" % (id))
 
-    res = traverse_json(x, singleNode, id)
+    res = traverse_json(x, single_node, id)
     fma = False # don't know whether or not it has FMA body site property
     props = ""
     y = 0 # track how many props are being added
@@ -215,8 +208,6 @@ def create_node(x,id):
             cypher.run("MATCH (n:File{`id`:'%s'}) DETACH DELETE n" % (id))
 
         cypher.run("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (case_or_file,res['id'],props))
-        print(("MATCH (n:%s{`id`:'%s'}) SET n = { %s }" % (case_or_file,res['id'],props)).encode('utf-8'))
-
 
 # Function to build an edge dictionary that will build all edges once all
 # new changes are up-to-date. A dictionary needs to be built here because,
@@ -239,26 +230,78 @@ def create_edge(edge_dict,doc):
                     for upstream in doc['doc']['linkage'][edge]:
                         # Capture the ID:ID values that this edge is between.
                         relationship = "%s:%s" % (doc['id'],upstream)
-                        print relationship
                         edge_dict[edges[edge]].append(relationship)
                 # The more common case, just one node
                 else:
                     relationship = "%s:%s" % (doc['id'],doc['doc']['linkage'][edge])
-                    print relationship
                     edge_dict[edges[edge]].append(relationship)
 
     return edge_dict
 
+###############
+# DB CREATION #
+###############
+
+conf_dict = {}
+
+# Parse through the input conf file and extract
+with open(sys.argv[1],'r') as conf:
+    for line in conf:
+        line = line.rstrip()
+        ele = line.split('=')
+        conf_dict[ele[0]] = ele[1]
+
+host = conf_dict["COUCHDB_HOST"]
+port = conf_dict["COUCHDB_PORT"]
+osdf = conf_dict["COUCHDB_OSDF_DB"]
+since = conf_dict["CHANGES_SINCE"]
+neo4jpass = conf_dict["NEO4J_PASS"]
+
+# Establish connection to Neo4j
+graph = Graph(password = neo4jpass)
+cypher = graph
+
+# Identify the beginning and end document numbers designated by the value of
+# the 'seq' key in CouchDB.
+beg_doc = "%s:%s/%s/_changes?since=1&limit=1" % (host,port,osdf)
+beg_num = json.load(urllib2.urlopen(beg_doc))['last_seq']
+end_doc = "%s:%s/%s/_changes?descending=true&limit=1" % (host,port,osdf)
+end_num = json.load(urllib2.urlopen(end_doc))['last_seq']
+
+# If we are already up-to-date, leave.
+if int(since) == int(end_num):
+    exit(0)
+
+# If we are starting at or before the first document, the DB should be blank.
+# Thus, build indices.
+if int(since) <= int(beg_num):
+    build_constraint_index('Case','id')
+    build_constraint_index('File','id')
+    build_constraint_index('Tags','term')
+
+# Skip any nested dictionaries like those under 'doc' or 'meta'. 'linkage' is
+# skipped since this script is only concerned with creating nodes, not edges.
+# Also skip numerous CouchDB specific attributes (_rev, rev, key, _id). 
+skipUs = ['value','doc','meta','changes','acl','_rev','rev','key','_id','_search','seq']
+skip = set(skipUs) 
+
+# Regex to skip irrelevant documents for Neo4j's purposes.
+regex_for_id = r'`id`:"([a-zA-Z0-9]*)"'
+regex_for_ver = r'`ver`:(\d+)'
+
+url = "%s:%s/%s/_changes?since=%s&include_docs=true" % (host,port,osdf,since)
+doc_list = json.load(urllib2.urlopen(url))['results']
 
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j. While this
 # happens, note which edges need to be created and add them in after. 
 edge_dict = defaultdict(list)
-for x in docList:
+for x in doc_list:
+
     if re.match(r'\w+\_hist', x['id']) is None and re.match(r'\_design.*', x['id']) is None: # ignore history/design documents
         if 'deleted' in x:
             if x['deleted'] == True:
                 cypher.run("MATCH (n{`id`:'%s'}) DETACH DELETE n" % (x['id']))
-                continue # delete and move on
+                continue # delete and move on to next document
 
         # If node has 'ver' we know that it is likely already in the database
         # since version is explicitly added only when a revision occurs 
@@ -309,8 +352,6 @@ for x in docList:
             create_node(x,x['id'])
             edge_dict = create_edge(edge_dict,x)
 
-print "Node creation/deletion complete, adding edges..."
-
 # All the nodes have been created, add the edges now. Doing it in this order 
 # bypasses any issue of node creation order in the feed so it will readily handle
 # when a downstream node is inserted before an upstream node. 
@@ -323,9 +364,7 @@ for edge,link_us in edge_dict.items():
         n1 = vals[0]
         n2 = vals[1]
         cypher.run("MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (n1,n2,edge))
-        print("MATCH (n1{`id`:'%s'}),(n2{`id`:'%s'}) MERGE (n1)-[:%s]->(n2)" % (n1,n2,edge))
 
-print "Now purging test/redundant/irrelevant data (see comments in code for specifics)..."
 # Removing test data based on those linked to the 'Test Project' node.
 cypher.run("MATCH (P:Case{node_type:'project'})<-[*..20]-(n) WHERE P.project_name='test' DETACH DELETE n,P")
 cypher.run("MATCH (P:File{node_type:'16s_dna_prep'})<-[*..20]-(n) WHERE P.project_name='blah' DETACH DELETE n,P")
@@ -336,7 +375,16 @@ cypher.run("MATCH (n:Case{node_type:'sample'}) WHERE n.fma_body_site='test' DETA
 cypher.run("MATCH (n{id:'610a4911a5ca67de12cdc1e4b40135fe'}) DETACH DELETE n")
 cypher.run("MATCH (n{id:'3fffbefb34d749c629dc9d147b238f67'}) DETACH DELETE n")
 # Removing any nodes which have no relationships, should not ever be the case.
+# This will catch those metadata nodes which are now stragglers due to a 
+# particular case/file node associated with them being deleted. 
 cypher.run("MATCH (n) WHERE size((n)--())=0 DELETE n")
 
-print "Neo4j database now up-to-date with the given CouchDB changes feed."
-        
+# Finally, overwrite the initial conf to reflect the last document updated so
+# that this script will resume from that point next time. 
+with open(sys.argv[1],'w') as conf:
+    conf.write("COUCHDB_HOST=%s\n" % host)
+    conf.write("COUCHDB_PORT=%s\n" % port)
+    conf.write("COUCHDB_OSDF_DB=%s\n" % osdf)
+    conf.write("CHANGES_SINCE=%s\n" % end_num)
+    conf.write("NEO4J_PASS=%s\n" % neo4jpass)
+    
