@@ -292,6 +292,8 @@ regex_for_ver = r'`ver`:(\d+)'
 url = "%s:%s/%s/_changes?since=%s&include_docs=true" % (host,port,osdf,since)
 doc_list = json.load(urllib2.urlopen(url))['results']
 
+print "Feed obtained."
+
 # Iterate over each doc from CouchDB and insert the nodes into Neo4j. While this
 # happens, note which edges need to be created and add them in after. 
 edge_dict = defaultdict(list)
@@ -354,11 +356,34 @@ for x in doc_list:
 
 # All the nodes have been created, add the edges now. Doing it in this order 
 # bypasses any issue of node creation order in the feed so it will readily handle
-# when a downstream node is inserted before an upstream node. 
+# when a downstream node is inserted before an upstream node. Before the edges
+# are actually added, we want to make sure our changes feed caught a batch of 
+# changes that contain all the information to build a new set. Meaning, we want 
+# to ensure that for all the edges to add the upstream node has already been
+# created (don't want to catch the middle of a batch insertion).
+nodes_from_edges,all_nodes = (set() for i in range(2))
 for edge,link_us in edge_dict.items():
-
     # Iterate over all edges outgoing from this particular node. In most cases
     # this will just be one relationship but cases like the 'omes have multiple.
+    for nodes in link_us:
+        vals = nodes.split(':')
+        nodes_from_edges.add(vals[0])
+        nodes_from_edges.add(vals[1])
+
+# Extract all the nodes from Neo4j
+cquery = "MATCH (n) WHERE exists(n.id) RETURN n.id AS id"
+nodes = graph.data(cquery)
+for x in range(0,len(nodes)):
+    all_nodes.add(nodes[x]['id'])
+
+# If we find that all nodes for this particular set of edges are not present,
+# then simply leave early. This will leave the conf file where it was so that 
+# it picks up here again and eventually it will capture a timepoint with a
+# complete picture. 
+if not nodes_from_edges.issubset(all_nodes):
+    exit(0)
+
+for edge,link_us in edge_dict.items():
     for nodes in link_us:
         vals = nodes.split(':')
         n1 = vals[0]
