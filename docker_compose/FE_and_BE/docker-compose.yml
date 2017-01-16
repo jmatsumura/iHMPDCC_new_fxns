@@ -19,8 +19,8 @@ services:
    GQL_HOST: gql
    GQL_PORT: 15000
   entrypoint:
-   - bash
-   - /home/gdc/dp/start_FE.sh 
+   - python
+   - /home/gdc/dp/start_portal.py
 
  gql:
   build: ../../BE/.
