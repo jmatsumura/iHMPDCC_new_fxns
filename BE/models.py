@@ -372,7 +372,9 @@ def get_case_hits(size,order,f,cy):
         order = order.split(":")
         retval = "RETURN DISTINCT Project.name,Study.subtype,Sample.id,Project.subtype,Sample.fma_body_site ORDER BY %s %s SKIP %s LIMIT %s"
         cquery = "%s %s" % (full_traversal,retval)
-        cquery = cquery % (order[0],order[1].upper(),f-1,size)
+        if f != 0:
+            f = f-1
+        cquery = cquery % (order[0],order[1].upper(),f,size)
     elif '"op"' in cy:
         cquery = build_cypher(match,cy,order,f,size,"cases")
     else:
@@ -392,7 +394,9 @@ def get_file_hits(size,order,f,cy):
         order = order.split(":")
         retval = "RETURN DISTINCT Project,File,Sample.id ORDER BY %s %s SKIP %s LIMIT %s"
         cquery = "%s %s" % (full_traversal,retval)
-        cquery = cquery % (order[0],order[1].upper(),f-1,size)
+        if f != 0:
+            f = f-1
+        cquery = cquery % (order[0],order[1].upper(),f,size)
     elif '"op"' in cy:
         cquery = build_cypher(match,cy,order,f,size,"files")
     else:
