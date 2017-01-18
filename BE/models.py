@@ -388,7 +388,6 @@ def get_case_hits(size,order,f,cy):
 # Function to return file values to populate the table.
 def get_file_hits(size,order,f,cy):
     hits = []
-    f = int(f / 2) + (f % 2 > 0)
     cquery = ""
     if cy == "":
         order = order.split(":")
