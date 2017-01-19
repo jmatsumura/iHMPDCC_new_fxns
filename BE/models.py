@@ -148,6 +148,8 @@ def extract_url(urls_node):
         fn = urls_node['http']
     elif 'fasp' in urls_node:
         fn = urls_node['fasp']
+        # Do a replacement to just output http
+        fn = fn.replace("fasp://aspera","http://downloads")
     elif 'ftp' in urls_node:
         fn = urls_node['ftp']
     elif 's3' in urls_node:
