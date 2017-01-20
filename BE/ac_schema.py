@@ -8,7 +8,7 @@ from models import Pagination, CaseHits, Aggregations, get_buckets, get_case_hit
 # grabbed isn't exactly what the user sees on the site. For instance,
 # 'Project name' on the site actually searches for 'Project.project_name'.
 # This is to provide a more succint search parameter. 
-proN = get_buckets("project.project_name","no","") ###
+proN = get_buckets("project.name","no","") ###
 stuS = get_buckets("study.subtype","no","")
 stuC = get_buckets("study.center","no","")
 stuN = get_buckets("study.name","no","")
