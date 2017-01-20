@@ -362,6 +362,10 @@ def get_manifest():
 
     response = make_response(string)
 
+    # If we've processed the data, reset the cookie key for the cart.
+    cookie = request.form.get('downloadCookieKey')
+    response.set_cookie(cookie,'',expires=0)
+    
     response.headers["Content-Disposition"] = "attachment; filename=result.tsv"
     return response
 
