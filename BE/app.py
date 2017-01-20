@@ -1,6 +1,6 @@
 # simple app to allow GraphiQL interaction with the schema and verify it is
 # structured how it ought to be. 
-from flask import Flask, jsonify, request, abort, redirect
+from flask import Flask, jsonify, request, abort, redirect, make_response
 from flask_graphql import GraphQLView
 from flask.views import MethodView
 from sum_schema import sum_schema
@@ -9,7 +9,7 @@ from files_schema import files_schema
 from table_schema import table_schema
 from indiv_files_schema import indiv_files_schema
 from indiv_cases_schema import indiv_cases_schema
-from models import get_url_for_download, convert_gdc_to_osdf,get_all_proj_data,get_all_proj_counts
+from models import get_url_for_download, convert_gdc_to_osdf,get_all_proj_data,get_all_proj_counts,get_manifest_data
 from autocomplete_map import gql_map
 import graphene
 import urllib2, sys, json, re, os
@@ -19,7 +19,6 @@ application.debug = True
 
 # Function to handle access control allow headers
 def add_cors_headers(response):
-    
     ip = socket.gethostbyname(os.environ["FE_HOST"])
     od_ip = ip[:-1]
     mod_ip = "%s1" % mod_ip
@@ -166,15 +165,11 @@ def get_file_metadata(file_id):
 
 @application.route('/status', methods=['GET','OPTIONS'])
 def get_status():
-    return 'hi'
-
-@application.route('/status/user', methods=['OPTIONS'])
-def get_status_user():
-    return 'hi'
+    return 'OK'
 
 @application.route('/status/user', methods=['GET','OPTIONS','POST'])
 def get_status_user_unauthorized():
-    abort(401)
+    return 'OK'
 
 @application.route('/status/api/data', methods=['GET','OPTIONS','POST'])
 def get_status_api_data():
@@ -355,6 +350,20 @@ def get_ui_search_summary():
     r1 = response.read()[8:]
     r2 = r1[:-1]
     return r2
+
+@application.route('/status/api/manifest', methods=['GET','OPTIONS','POST'])
+def get_manifest():
+    string = 'id\tfilename\tmd5\tsize' # header
+    ids = request.form.getlist('ids')
+    data = get_manifest_data(ids) # get all the relevant properties for this file
+    
+    for result in data:
+        string += result
+
+    response = make_response(string)
+
+    response.headers["Content-Disposition"] = "attachment; filename=result.tsv"
+    return response
 
 application.add_url_rule(
     '/sum_schema',

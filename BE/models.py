@@ -432,3 +432,34 @@ def get_url_for_download(id):
     cquery = "MATCH (n:File) WHERE n.id=\"%s\" AND NOT n.node_type=~'.*prep' RETURN n" % (id)
     res = graph.data(cquery)
     return extract_url(res[0]['n'])
+
+def get_manifest_data(id_list):
+
+    ids = ""
+    mod_list = []
+
+    # Surround each value with quotes for Neo4j comparison
+    for id in id_list:
+        mod_list.append("'%s'" % (id))
+    # Separate by commas to make a Neo4j list
+    if len(mod_list) > 1:
+        ids = ",".join(mod_list)
+    else: # just a single ID
+        ids = mod_list[0]
+
+    # Surround in brackets to format list syntax
+    ids = "[%s]" % ids
+    cquery = "MATCH (n:File) WHERE n.id IN %s RETURN n" % ids
+    res = graph.data(cquery)
+
+    outlist = []
+
+    # Grab the ID, file URL, md5, and size
+    for entry in res:
+        id = entry['n']['id']
+        url = extract_url(entry['n'])
+        md5 = entry['n']['md5']
+        size = entry['n']['size']
+        outlist.append("\n%s\t%s\t%s\t%s" % (id,url,md5,size))
+
+    return outlist
