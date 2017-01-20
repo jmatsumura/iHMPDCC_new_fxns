@@ -73,6 +73,7 @@ gql_map['visit_attr_survey_id'] = {"description": "Center specific survey identi
 gql_map['visit_attr_tests'] = {"description": "Tests metadata", "doc_type": "cases", "field": "VisitAttr_tests", "full": "sample.VisitAttr_tests", "type": "string"}
 
 # Sample props. Note that this contains data within mixs nested JSON of OSDF.
+gql_map['sample_id'] = {"description": "The iHMP ID of the sample", "doc_type": "cases", "field": "Sample_id", "full": "sample.Sample_id", "type": "string"}
 gql_map['sample_biome'] = {"description": "Biomes are defined based on factors such as plant structures, leaf types, plant spacing, and other factors like climate", "doc_type": "cases", "field": "Sample_biome", "full": "sample.Sample_biome", "type": "string"}
 gql_map['sample_body_product'] = {"description": "Substance produced by the body, e.g. stool, mucus, where the sample was obtained from", "doc_type": "cases", "field": "Sample_body_product", "full": "sample.Sample_body_product", "type": "string"}
 gql_map['sample_collection_date'] = {"description": "The time of sampling, either as an instance (single point in time) or interval", "doc_type": "cases", "field": "Sample_collection_date", "full": "sample.Sample_collection_date", "type": "string"}
@@ -91,7 +92,8 @@ gql_map['sample_subtype'] = {"description": "The subtype of the sample", "doc_ty
 gql_map['sample_supersite'] = {"description": "Body supersite from which the sample was obtained", "doc_type": "cases", "field": "Sample_supersite", "full": "sample.Sample_supersite", "type": "string"}
 
 # File props (includes everything below Sample node in OSDF schema)
-gql_map['file_format'] = {"description": "The format of the file", "doc_type": "cases", "field": "File_format", "full": "sample.File_format", "type": "string"}
+gql_map['file_id'] = {"description": "The iHMP ID of the file", "doc_type": "cases", "field": "File_id", "full": "file.File_id", "type": "string"}
+gql_map['file_format'] = {"description": "The format of the file", "doc_type": "cases", "field": "File_format", "full": "file.File_format", "type": "string"}
 gql_map['file_node_type'] = {"description": "The node type of the file", "doc_type": "cases", "field": "File_node_type", "full": "file.File_node_type", "type": "string"}
 gql_map['file_annotation_pipeline'] = {"description": "The annotation pipeline used to generate the file", "doc_type": "cases", "field": "File_annotation_pipeline", "full": "sample.File_annotation_pipeline", "type": "string"}
 gql_map['file_matrix_type'] = {"description": "The type of matrix format present in the file", "doc_type": "cases", "field": "File_matrix_type", "full": "sample.File_matrix_type", "type": "string"}

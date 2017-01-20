@@ -54,6 +54,7 @@ def get_maps():
         "sample.Visit_interval": gql_map['visit_interval'],
         "sample.Visit_number": gql_map['visit_number'],
         "sample.Visit_subtype": gql_map['visit_subtype'],
+        "sample.Sample_id": gql_map['sample_id'], 
         "sample.Sample_fma_body_site": gql_map['sample_fma_body_site'], 
         "sample.Sample_biome": gql_map['sample_biome'],
         "sample.Sample_body_product": gql_map['sample_body_product'],
@@ -71,7 +72,8 @@ def get_maps():
         "sample.Sample_subtype": gql_map['sample_subtype'],
         "sample.Sample_supersite": gql_map['sample_supersite'], 
         "file.File_format": gql_map['file_format'],
-        "file.File_node_type": gql_map['file_node_type']
+        "file.File_node_type": gql_map['file_node_type'],
+        "file.File_id": gql_map['file_id']
         })
     return res
 
