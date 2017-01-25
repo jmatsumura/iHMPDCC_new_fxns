@@ -319,23 +319,29 @@ def count_props(node, prop, cy):
 
 # Cypher query to count the amount of each distinct property
 def count_props_and_files(node, prop, cy):
+
     cquery,with_distinct = ("" for i in range (2))
+    
     if cy == "":
-        retval = "WITH DISTINCT File%s RETURN %s.%s as prop, count(%s.%s) as ccounts, (count(File)) as dcounts, (SUM(toInt(File.size))) as tot"
-        cquery = "%s %s" % (full_traversal,retval)
-        if node != "File":
-            with_distinct = ",%s" % (node) # append value to WITH DISTINCT clause if node is not File
-        cquery = cquery % (with_distinct, node, prop, node, prop) # fill in WITH and RETURN clauses
-    elif '"op"' in cy:
-        if node == 'Study' and prop == 'name': # Need to differentiate between Project name and Study name for facet search
-            prop = 'sname' 
-        prop_detailed = "%s_detailed" % (prop)
-        cquery = build_cypher(match,cy,"null","null","null",prop_detailed)
+        retval = ("WITH (COUNT(DISTINCT(Sample))) as ccounts, "
+            "COUNT(DISTINCT(File)) AS dcounts, %s.%s AS prop, "
+            "collect(DISTINCT File) AS f UNWIND f AS fs "
+            "RETURN prop,ccounts,dcounts,SUM(toInt(fs.size)) as tot"
+            )
+
+        mod_retval = retval % (node,prop)
+        cquery = "%s %s" % (full_traversal,mod_retval)
+
     else:
         if node == 'Study' and prop == 'name':
-            prop = 'sname' 
+            prop = 'sname'
+
         prop_detailed = "%s_detailed" % (prop)
-        cquery = build_adv_cypher(match,cy,"null","null","null",prop_detailed)
+        if "op" in cy:
+            cquery = build_cypher(match,cy,"null","null","null",prop_detailed)
+        else:
+            cquery = build_adv_cypher(match,cy,"null","null","null",prop_detailed)
+
     return graph.data(cquery)
 
 # Formats the values from count_props & count_props_and_files functions above into GQL
