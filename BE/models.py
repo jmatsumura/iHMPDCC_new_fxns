@@ -416,6 +416,10 @@ def get_file_hits(size,order,f,cy):
         cur_case = CaseHits(project=Project(projectId=res[x]['Project']['subtype'],name=res[x]['Project']['name']),caseId=res[x]['Sample.id'])
         case_hits.append(cur_case)
         furl = extract_url(res[x]['File']) # File name is our URL
+        if '.hmpdacc' in furl: # HMP endpoint
+            furl = re.search(r'/data/(.*)',furl).group(1)
+        elif '.ihmpdcc':
+            furl = re.search(r'.org/(.*)',furl).group(1)
         cur_file = FileHits(dataType=res[x]['File']['subtype'],fileName=furl,dataFormat=res[x]['File']['format'],submitterId="null",access="open",state="submitted",fileId=res[x]['File']['id'],dataCategory=res[x]['File']['node_type'],experimentalStrategy=res[x]['File']['subtype'],fileSize=res[x]['File']['size'],cases=case_hits)
         hits.append(cur_file)    
     return hits
