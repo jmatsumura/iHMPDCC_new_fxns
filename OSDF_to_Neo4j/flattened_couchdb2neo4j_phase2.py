@@ -140,4 +140,8 @@ cypher.run("MATCH (n:Case{node_type:'sample'}) WHERE n.fma_body_site='test' DETA
 cypher.run("MATCH (n{id:'610a4911a5ca67de12cdc1e4b40135fe'}) DETACH DELETE n")
 cypher.run("MATCH (n{id:'3fffbefb34d749c629dc9d147b238f67'}) DETACH DELETE n")
 
+print "Now fixing some names and acronyms remaining in OSDF..."
+cypher.run("MATCH (n) WHERE n.node_type='project' AND n.name='iHMP' SET n.name=n.project_name")
+# Still need to switch acronyms here for studies once they're approved.
+
 print "All done!"

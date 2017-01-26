@@ -403,6 +403,9 @@ cypher.run("MATCH (n{id:'3fffbefb34d749c629dc9d147b238f67'}) DETACH DELETE n")
 # This will catch those metadata nodes which are now stragglers due to a 
 # particular case/file node associated with them being deleted. 
 cypher.run("MATCH (n) WHERE size((n)--())=0 DELETE n")
+# Renaming some names for the project and study nodes. 
+cypher.run("MATCH (n) WHERE n.node_type='project' AND n.name='iHMP' SET n.name=n.project_name")
+# Still need to switch acronyms here for studies once they're approved.
 
 # Finally, overwrite the initial conf to reflect the last document updated so
 # that this script will resume from that point next time. 
