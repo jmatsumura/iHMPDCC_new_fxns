@@ -303,14 +303,23 @@ def get_all_proj_counts():
     res = graph.data(cquery)
     return res
 
-cases_dict = ["project","sample","subject","visit","study"] # all are lower case in Neo4j, might as well pass this syntax in ac_schema
+# This populates the values in the side table of facet search. Want to let users
+# know how many samples per category in a given property. 
+count_props_dict = {
+    "project": "MATCH (n:Case{node_type:'project'})<-[:PART_OF]-(study)<-[:PARTICIPATES_IN]-(subject)<-[:BY]-(visit)<-[:COLLECTED_DURING]-(sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) WITH DISTINCT n,sample RETURN n.%s AS prop, count(sample) as counts",
+    "study": "MATCH (n:Case{node_type:'study'})<-[:PARTICIPATES_IN]-(subject)<-[:BY]-(visit)<-[:COLLECTED_DURING]-(sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) WITH DISTINCT n,sample RETURN n.%s AS prop, count(sample) as counts",
+    "subject": "MATCH (n:Case{node_type:'subject'})<-[:BY]-(visit)<-[:COLLECTED_DURING]-(sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) WITH DISTINCT n,sample RETURN n.%s AS prop, count(sample) as counts",
+    "visit": "MATCH (n:Case{node_type:'visit'})<-[:COLLECTED_DURING]-(sample)<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) WITH DISTINCT n,sample RETURN n.%s AS prop, count(sample) as counts",
+}
 
 # Cypher query to count the amount of each distinct property
 def count_props(node, prop, cy):
     cquery = ""
     if cy == "":
-        if node in cases_dict:
-            cquery = "MATCH (n:Case{node_type:'%s'}) RETURN n.%s as prop, count(n.%s) as counts" % (node, prop, prop)
+        if node in count_props_dict:
+            cquery = count_props_dict[node] % (prop)
+        elif node == 'sample':
+            cquery = "MATCH (n:Case{node_type:'sample'})<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) RETURN n.%s AS prop, COUNT(n.%s) as counts" % (prop,prop)
         else:
             cquery = "Match (n:File) WHERE NOT n.node_type=~'.*prep' RETURN n.%s as prop, count(n.%s) as counts" % (prop, prop)
     else:
