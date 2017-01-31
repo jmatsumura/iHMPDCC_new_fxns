@@ -19,11 +19,7 @@ application.debug = True
 
 # Function to handle access control allow headers
 def add_cors_headers(response):
-    ip = socket.gethostbyname(os.environ["FE_HOST"])
-    od_ip = ip[:-1]
-    mod_ip = "%s1" % mod_ip
-    fe_url = "%s:%s" % (mod_ip,os.environ["FE_PORT"])
-
+    fe_url = "http://%s" % (os.environ["FE_HOST"])
     response.headers['Access-Control-Allow-Origin'] = fe_url
     response.headers['Access-Control-Allow-Credentials'] = 'true'
     if request.method == 'OPTIONS':
@@ -426,4 +422,4 @@ application.add_url_rule(
 )
 
 if __name__ == '__main__':
-    application.run(threaded=True)
+    application.run(host='0.0.0.0',port=5000,threaded=True)

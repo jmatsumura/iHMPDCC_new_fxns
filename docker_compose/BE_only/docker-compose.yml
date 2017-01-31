@@ -20,10 +20,9 @@ services:
    NEO4J_USER: neo4j
    NEO4J_PASS: osdf1
    FE_HOST: localhost
-   FE_PORT: 3000
 
  db:
-  image: neo4j:3.0.0
+  image: neo4j:3.0
   container_name: db
   ports:
    - 17473:7473
