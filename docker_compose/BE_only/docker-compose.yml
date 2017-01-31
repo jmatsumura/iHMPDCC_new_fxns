@@ -22,7 +22,7 @@ services:
    FE_HOST: localhost
 
  db:
-  image: neo4j:3.0
+  image: neo4j:3.0.0
   container_name: db
   ports:
    - 17473:7473
@@ -32,3 +32,5 @@ services:
    - "./data:/data"
   environment:
    NEO4J_AUTH: neo4j/osdf1
+   NEO4J_dbms_memory_pagecache_size: 2048M
+   NEO4J_dbms_memory_heap_maxSize: 2048
