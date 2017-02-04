@@ -87,7 +87,7 @@ def get_cases():
 
     # Processing autocomplete here as well as finding counts for the set category
     if(request.args.get('facets') and not request.args.get('expand')):
-        beg = "http://localhost:5000/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7B"
+        beg = "http://localhost:80/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7B"
         mid = request.args.get('facets')
         end = "%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         url = '%s%s%s' % (beg,mid,end)
@@ -101,7 +101,7 @@ def get_cases():
             size = 20
             from_num = 1
     #elif(request.args.get('expand') or request.args.get('filters')): # Here need to process simple/advanced queries, handling happens at GQL
-        p1 = "http://localhost:5000/ac_schema?query=%7Bpagination(cy%3A%22"
+        p1 = "http://localhost:80/ac_schema?query=%7Bpagination(cy%3A%22"
         p2 = "%22%2Cs%3A"
         p3 = "%2Cf%3A"
         p4 = ")%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits(cy%3A%22"
@@ -133,7 +133,7 @@ def get_cases():
 def get_case_files(case_id):
     id = '"%s"' % case_id
     if not request.args.get('expand'):
-        p1 = 'http://localhost:5000/files_schema?query=%7Bproject(id%3A'
+        p1 = 'http://localhost:80/files_schema?query=%7Bproject(id%3A'
         p2 = ')%7Bproject_id%2Cname%7D%2Cfiles(id%3A'
         p3 = ')%7Bdata_type%2Cfile_name%2Cdata_format%2Caccess%2Cfile_id%2Cfile_size%7D%2Ccase_id(id%3A'
         p4 = ')%2Csubmitter_id%7D'
@@ -142,7 +142,7 @@ def get_case_files(case_id):
         r = response.read()
         return ('%s, "warnings": {}}' % r[:-1])
     else:
-        p1 = 'http://localhost:5000/indiv_cases_schema?query=%7Bcase_id(id%3A'
+        p1 = 'http://localhost:80/indiv_cases_schema?query=%7Bcase_id(id%3A'
         p2 = ')%2Cproject(id%3A'
         p3 = ')%7Bproject_id%7D%7D'
         url = '%s%s%s%s%s' % (p1,id,p2,id,p3)
@@ -152,7 +152,7 @@ def get_case_files(case_id):
 
 @application.route('/files/<file_id>', methods=['GET','OPTIONS'])
 def get_file_metadata(file_id):
-    beg = "http://localhost:5000/indiv_files_schema?query=%7BfileHit(id%3A%22"
+    beg = "http://localhost:80/indiv_files_schema?query=%7BfileHit(id%3A%22"
     end = "%22)%7Bdata_type%2Cfile_name%2Cfile_size%2Cdata_format%2Canalysis%7Bupdated_datetime%2Cworkflow_type%2Canalysis_id%2Cinput_files%7Bfile_id%7D%7D%2Csubmitter_id%2Caccess%2Cstate%2Cfile_id%2Cdata_category%2Cassociated_entities%7Bentity_id%2Ccase_id%2Centity_type%7D%2Ccases%7Bproject%7Bproject_id%7D%2Ccase_id%7D%2Cexperimental_strategy%7D%7D"
     url = "%s%s%s" % (beg,file_id,end)
     response = urllib2.urlopen(url)
@@ -192,7 +192,7 @@ def get_files():
     size = request.args.get('size')
     order = request.args.get('sort')
     if len(filters) < 3:
-        p1 = "http://localhost:5000/table_schema?query=%7Bpagination(cy%3A%22"
+        p1 = "http://localhost:80/table_schema?query=%7Bpagination(cy%3A%22"
         p2 = "%22%2Cs%3A"
         p3 = "%2Cf%3A"
         p4 = ")%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits(cy%3A%22"
@@ -212,7 +212,7 @@ def get_files():
             url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
     else:
         filters = convert_gdc_to_osdf(filters)
-        p1 = "http://localhost:5000/table_schema?query=%7Bpagination(cy%3A%22"
+        p1 = "http://localhost:80/table_schema?query=%7Bpagination(cy%3A%22"
         p2 = "%22%2Cs%3A"
         p3 = "%2Cf%3A"
         p4 = ")%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits(cy%3A%22"
@@ -314,7 +314,7 @@ def get_annotation():
 # to populate the pie charts
 @application.route('/ui/search/summary', methods=['GET','OPTIONS','POST'])
 def get_ui_search_summary():
-    empty_cy = ("http://localhost:5000/sum_schema?query="
+    empty_cy = ("http://localhost:80/sum_schema?query="
         "%7BSampleFmabodysite(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D"
         "ProjectName(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D"
         "SubjectGender(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D"
@@ -323,7 +323,7 @@ def get_ui_search_summary():
         "StudyName(cy%3A%22%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7D"
         "%2Cfs(cy%3A%22%22)%7Bvalue%7D%7D"
         )
-    p1 = "http://localhost:5000/sum_schema?query=%7BSampleFmabodysite(cy%3A%22" # inject Cypher into ... body site query
+    p1 = "http://localhost:80/sum_schema?query=%7BSampleFmabodysite(cy%3A%22" # inject Cypher into ... body site query
     p2 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DProjectName(cy%3A%22" #     ... project name query
     p3 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DSubjectGender(cy%3A%22" #   ... subject gender query
     p4 = "%22)%7Bbuckets%7Bcase_count%2Cdoc_count%2Cfile_size%2Ckey%7D%7DFileFormat(cy%3A%22" #      ... file format query
@@ -422,4 +422,4 @@ application.add_url_rule(
 )
 
 if __name__ == '__main__':
-    application.run(host='0.0.0.0',port=5000,threaded=True)
+    application.run(host='0.0.0.0',port=80,threaded=True)
