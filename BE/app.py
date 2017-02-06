@@ -250,7 +250,7 @@ def get_project():
         proj_list = []
 
         for p in pdata:
-            proj_list.append({ "project_id": p["Project"]["name"], "primary_site": "multiple", "disease_type": "unknown", "released": True, "name": p["Project"]["name"] })
+            proj_list.append({ "project_id": p["n"]["name"], "primary_site": "multiple", "disease_type": p["n"]["description"], "released": True, "name": p["n"]["description"] })
 
         np = len(proj_list)
 
@@ -275,36 +275,41 @@ def get_project():
     # "warnings": {}}
 
     # HACK - should go through GQL endpoint
-    pd = get_all_proj_counts()
+    if facets == 'primary_site':
+        pd = get_all_proj_counts()
 
-    npd = len(pd)
-    p_str = "{ \"count\": %d, \"sort\": \"\", \"from\": 1, \"page\": 1, \"total\": %d, \"pages\": 1, \"size\": 100 }" % (npd, npd)
-    counts = {}
-    hit_list = []
+        npd = len(pd)
+        p_str = "{ \"count\": %d, \"sort\": \"\", \"from\": 1, \"page\": 1, \"total\": %d, \"pages\": 1, \"size\": 100 }" % (npd, npd)
+        counts = {}
+        hit_list = []
 
-    for p in pd:
-        proj_id = p["Project.name"]
-        psite = p["Sample.fma_body_site"]
-        n_files = p["file_count"]
-        n_cases = p["case_count"]
-        if psite is None:
-            psite = "None"
-        if psite in counts:
-            counts[psite] = counts[psite] + 1
-        else:
-            counts[psite] =  1
-        hit_list.append({"primary_site" : psite, "project_id": proj_id , "summary": { "case_count": n_cases, "file_count": n_files} })
+        for p in pd:
+            proj_id = p["Study.name"]
+            psite = p["Sample.fma_body_site"]
+            n_files = p["file_count"]
+            n_cases = p["case_count"]
+            if psite is None:
+                psite = "None"
+            if psite in counts:
+                counts[psite] = counts[psite] + 1
+            else:
+                counts[psite] =  1
+            hit_list.append({"primary_site" : psite, "project_id": proj_id , "summary": { "case_count": n_cases, "file_count": n_files} })
 
-    buckets_list = []
-    for ckey in counts:
-        ccount = counts[ckey]
-        buckets_list.append({ "key": ckey, "doc_count": ccount})
+        buckets_list = []
+        for ckey in counts:
+            ccount = counts[ckey]
+            buckets_list.append({ "key": ckey, "doc_count": ccount})
 
-    buckets_str = json.dumps(buckets_list)
-    hit_str = json.dumps(hit_list)
-    agg_str = "{ \"primary_site\": { \"buckets\": %s }}" % (buckets_str)
+        buckets_str = json.dumps(buckets_list)
+        hit_str = json.dumps(hit_list)
+        agg_str = "{ \"primary_site\": { \"buckets\": %s }}" % (buckets_str)
 
-    return "{\"data\" : {\"aggregations\": %s, \"hits\" : %s, \"pagination\": %s}, \"warnings\": {}}" % (agg_str, hit_str, p_str)
+        return "{\"data\" : {\"aggregations\": %s, \"hits\" : %s, \"pagination\": %s}, \"warnings\": {}}" % (agg_str, hit_str, p_str)
+
+    # Enter here if going to the projects tab
+    else:
+        return 'hi'
 
 @application.route('/annotations', methods=['GET','OPTIONS'])
 def get_annotation():

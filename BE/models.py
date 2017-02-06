@@ -285,7 +285,7 @@ def get_proj_data(sample_id):
     return Project(name=res[0]['Project']['name'],projectId=res[0]['Project']['subtype'])
 
 def get_all_proj_data():
-    cquery = "MATCH (Project:Case{node_type:'project'}) RETURN DISTINCT Project"
+    cquery = "MATCH (n:Case{node_type:'study'}) RETURN DISTINCT n"
     res = graph.data(cquery)
     return res
 
@@ -298,7 +298,7 @@ def get_all_proj_counts():
         "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
         "<-[:PREPARED_FROM]-(pf)"
         "<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File)"
-        " RETURN DISTINCT Project.id, Project.name, Sample.fma_body_site, COUNT(DISTINCT Sample) as case_count, (COUNT(DISTINCT File)) as file_count"
+        " RETURN DISTINCT Study.id, Study.name, Sample.fma_body_site, COUNT(DISTINCT Sample) as case_count, (COUNT(DISTINCT File)) as file_count"
         )
     res = graph.data(cquery)
     return res
@@ -319,7 +319,7 @@ def count_props(node, prop, cy):
         if node in count_props_dict:
             cquery = count_props_dict[node] % (prop)
         elif node == 'sample':
-            cquery = "MATCH (n:Case{node_type:'sample'})<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) RETURN n.%s AS prop, COUNT(n.%s) as counts" % (prop,prop)
+            cquery = "MATCH (n:Case{node_type:'sample'})<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) WITH DISTINCT n RETURN n.%s AS prop, COUNT(n.%s) as counts" % (prop,prop)
         else:
             cquery = "Match (n:File) WHERE NOT n.node_type=~'.*prep' RETURN n.%s as prop, count(n.%s) as counts" % (prop, prop)
     else:
