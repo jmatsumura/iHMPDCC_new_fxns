@@ -9,7 +9,7 @@ from files_schema import files_schema
 from table_schema import table_schema
 from indiv_files_schema import indiv_files_schema
 from indiv_cases_schema import indiv_cases_schema
-from models import get_url_for_download, convert_gdc_to_osdf,get_all_proj_data,get_all_proj_counts,get_manifest_data
+from models import get_url_for_download, convert_gdc_to_osdf,get_all_proj_data,get_all_proj_counts,get_manifest_data,get_all_study_data
 from autocomplete_map import gql_map
 import graphene
 import urllib2, sys, json, re, os
@@ -309,7 +309,18 @@ def get_project():
 
     # Enter here if going to the projects tab
     else:
-        return 'hi'
+        pdata = get_all_study_data()
+        proj_list = []
+        print pdata
+
+        for p in pdata:
+            print p
+            proj_list.append({ "project_id": p["Study.acro"], "disease_type": p["Study.name"], "project_name": p["Project.subtype"], "summary": { "case_count": p["case_count"], "file_count": p["file_count"]} })
+        np = len(proj_list)
+
+        p_str = "{ \"count\": %s, \"sort\": \"\", \"from\": 1, \"page\": 1, \"total\": %s, \"pages\": 1, \"size\": 100 }" % (np, np)
+        hit_str = json.dumps(proj_list)
+        return "{\"data\" : {\"hits\" :  %s , \"pagination\": %s}, \"warnings\": {}}" % (hit_str, p_str)
 
 @application.route('/annotations', methods=['GET','OPTIONS'])
 def get_annotation():
