@@ -17,6 +17,7 @@ subR = get_buckets("subject.race","no","")
 visVN = get_buckets("visit.visit_number","no","") ### 
 visI = get_buckets("visit.interval","no","") 
 visD = get_buckets("visit.date","no","")
+samBP = get_buckets("sample.body_product","no","")
 samFMA = get_buckets("sample.fma_body_site","no","")
 samGLN = get_buckets("sample.geo_loc_name","no","")
 samSCD = get_buckets("sample.samp_collect_device","no","")
@@ -52,7 +53,7 @@ class Query(graphene.ObjectType):
     def resolve_aggregations(self, args, context, info):
         return Aggregations(Project_name=proN,Study_subtype=stuS,Study_center=stuC,Study_name=stuN,
             Subject_gender=subG,Subject_race=subR,Visit_number=visVN,Visit_interval=visI,Visit_date=visD,
-            Sample_fmabodysite=samFMA,Sample_geolocname=samGLN,Sample_sampcollectdevice=samSCD,
+            Sample_bodyproduct=samBP,Sample_fmabodysite=samFMA,Sample_geolocname=samGLN,Sample_sampcollectdevice=samSCD,
             Sample_envpackage=samEP,Sample_supersite=samSS,Sample_feature=samF,Sample_material=samM,
             Sample_id=samID,Sample_biome=samB,File_format=fileF,File_node_type=fileNT,File_id=fileID
             )

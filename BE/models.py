@@ -86,6 +86,7 @@ class Aggregations(graphene.ObjectType): # Collecting lists of buckets (BucketCo
     Visit_interval = graphene.Field(BucketCounter, name="Visit_interval")
     Visit_date = graphene.Field(BucketCounter, name="Visit_date")
 
+    Sample_bodyproduct = graphene.Field(BucketCounter, name="Sample_body_product")
     Sample_fmabodysite = graphene.Field(BucketCounter, name="Sample_fma_body_site")
     Sample_geolocname = graphene.Field(BucketCounter, name="Sample_geo_loc_name")
     Sample_sampcollectdevice = graphene.Field(BucketCounter, name="Sample_samp_collect_device")
@@ -178,6 +179,7 @@ def get_total_file_size(cy):
 # Function for pagination calculations. Find the page, number of pages, and number of entries on a single page.
 def pagination_calcs(total,start,size,c_or_f):
     pg,pgs,cnt,tot = (0 for i in range(4))
+    sort = ""
     if c_or_f == "c":
         tot = int(total)
         sort = "case_id.raw:asc"      
