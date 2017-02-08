@@ -102,6 +102,62 @@ definitive_edges2 = {
     'computed_from': 'File' 
 }
 
+# Remap the study names using these values
+study_names_dict = {
+    'Human microbiome project 16S production phase I.':'16S-PP1',
+    'Human microbiome project 16S production phase II.':'16S-PP2',
+    'Skin Microbiome in Disease States: Atopic Dermatitis and Immunodeficiency.':'16S-SM-ADI',
+    'The Thrifty Microbiome: The Role of the Gut Microbiota in Obesity in the Amish.':'16S-GM-AO',
+    "Diet, Genetic Factors, and the Gut Microbiome in Crohn's Disease.":'16S-GM-CD2',
+    'Foregut Microbiome in Development of Esophageal Adenocarcinoma.':'16S-GM-EA',
+    'The Role of the Gut Microbiota in Ulcerative Colitis, Targeted Gene Survey.':'16S-GM-UC',
+    'The Human Microbiome in Pediatric Abdominal Pain and Intestinal Inflammation.':'16S-GM-CGD',
+    "Effect of Crohn's Disease Risk Alleles on Enteric Microbiota.":'16S-GM-CD',
+    'Evaluation of the Cutaneous Microbiome in Psoriasis.':'16S-SM-P',
+    'The Neonatal Microbiome and Necrotizing Enterocolitis.':'16S-GM-NE',
+    'The Microbial Ecology of Bacterial Vaginosis: A Fine Scale Resolution Metagenomic Study.':'16S-VM-BV',
+    'The Vaginal Microbiome: Disease, Genetics and the Environment, 16S Gene Survey.':'16S-VM-DGE',
+    'Urethral Microbiome of Adolescent Males.':'16S-UM-AD',
+    "Metagenomic Analysis of the Structure and Function of the Human Gut Microbiota in Crohn's Disease.":'WGS-GM-CD',
+    'The Role of the Gut Microbiota in Ulcerative Colitis, Whole Metagenome Sequencing Project.':'WGS-GM-UC',
+    'The Human Virome in Children And Its Relationship to Febrile Illness.':'WGS-VIR-FE',
+    'Human microbiome project WGS production phase II.':'WGS-PP2',
+    'Human microbiome project WGS production phase I.':'WGS-PP1',
+    'ibdmdb':'IBDMDB',
+    'momspi':'MOMS-PI',
+    'prediabetes':'T2D'
+}
+
+# Remap data format values 
+data_format_dict = {
+    'sff':'Standard Flowgram File',
+    'peptide_fsa':'Peptide FASTA',
+    'gff3':'GFF3',
+    'nucleotide_fsa':'Nucleotide FASTA',
+    'null':'null',
+    'fastq':'FASTQ',
+    'biom':'Biological Observation Matrix',
+    'fasta':'FASTA',
+    'mzXML':'Mass Spectroscopy Proteomics'
+}
+
+# Remap body product values
+body_product_dict = {
+    'null':'null',
+    'Feces [FMA:64183]':'feces',
+    'Saliva [FMA:59862]':'saliva',
+    'vaginal mucosa [UBERON:0004983]':'vaginal mucosa',
+    'Stool':'feces',
+    'stool':'feces',
+    'saliva [UBERON:0001836]':'saliva',
+    'cervical mucus [UBERON:0012248]':'cervical mucus',
+    'feces [UBERON:0001988]':'feces',
+    'blood':'blood',
+    'Nasal':'nasal',
+    'urinary_tract':'urinary tract',
+    'nasal':'nasal'
+}
+
 # Need this to add consistency to the body sites for query purposes. 
 body_site_dict = {
     'abdomen': 'abdomen [FMA:9577]',
