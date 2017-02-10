@@ -374,16 +374,17 @@ def get_buckets(inp,sum, cy):
     splits = inp.split('.') # parse for node/prop values to be counted by
     node = splits[0]
     prop = splits[1]
-    bucketl = []
+    bucketl,sortl = ([] for i in range(2)) # need two lists to sort these buckets by size
 
     if sum == "no": # not a full summary, just key and doc count need to be returned
         res = count_props(node, prop, cy)
         for x in range(0,len(res)):
             if res[x]['prop'] != "":
                 cur = Bucket(key=res[x]['prop'], docCount=res[x]['counts'])
+                sortl.append(int(res[x]['counts']))
                 bucketl.append(cur)
 
-        return BucketCounter(buckets=bucketl)
+        return BucketCounter(buckets=[bucket for(sort,bucket) in sorted(zip(sortl,bucketl),reverse=True)])
 
     else: # return full summary including case_count, doc_count, file_size, and key
         res = count_props_and_files(node, prop, cy)
