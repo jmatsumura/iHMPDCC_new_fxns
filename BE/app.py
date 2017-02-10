@@ -93,7 +93,8 @@ def get_cases():
         url = '%s%s%s' % (beg,mid,end)
         response = urllib2.urlopen(url)
         r = response.read()
-        return ('%s, "warnings": {}}' % r[:-1])
+        data = ('%s, "warnings": {}}' % r[:-1])
+        return make_json_response(data)
 
     else:
         if not filters:
@@ -126,7 +127,8 @@ def get_cases():
             url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
         response = urllib2.urlopen(url)
         r = response.read()
-        return ('%s, "warnings": {}}' % r[:-1])
+        data = ('%s, "warnings": {}}' % r[:-1])
+        return make_json_response(data)
 
 # Route for specific cases endpoints that associates with various files
 @application.route('/cases/<case_id>', methods=['GET','OPTIONS'])
@@ -140,7 +142,8 @@ def get_case_files(case_id):
         url = '%s%s%s%s%s%s%s' % (p1,id,p2,id,p3,id,p4) # inject ID into query
         response = urllib2.urlopen(url)
         r = response.read()
-        return ('%s, "warnings": {}}' % r[:-1])
+        data = ('%s, "warnings": {}}' % r[:-1])
+        return make_json_response(data)
     else:
         p1 = 'http://localhost:80/indiv_cases_schema?query=%7Bcase_id(id%3A'
         p2 = ')%2Cproject(id%3A'
@@ -148,7 +151,8 @@ def get_case_files(case_id):
         url = '%s%s%s%s%s' % (p1,id,p2,id,p3)
         response = urllib2.urlopen(url)
         r = response.read()
-        return ('%s, "warnings": {}}' % r[:-1])
+        data = ('%s, "warnings": {}}' % r[:-1])
+        return make_json_response(data)
 
 @application.route('/files/<file_id>', methods=['GET','OPTIONS'])
 def get_file_metadata(file_id):
@@ -159,7 +163,8 @@ def get_file_metadata(file_id):
     r = response.read()
     trimmed_r = r.replace(':{"fileHit"',"") # HACK for formatting
     final_r = trimmed_r[:-1]
-    return ('%s, "warnings": {}}' % final_r[:-1])
+    data = ('%s, "warnings": {}}' % final_r[:-1])
+    return make_json_response(data)
 
 @application.route('/status', methods=['GET','OPTIONS'])
 def get_status():
@@ -185,9 +190,9 @@ def get_files():
         filters = f2['filters']
     else: # beyond my understanding why this works at the moment
         if request.method == 'POST':
-            return 'hi'
+            return 'OK'
         elif request.method == 'OPTIONS':
-            return 'hi2'
+            return 'OK'
     from_num = request.args.get('from')
     size = request.args.get('size')
     order = request.args.get('sort')
@@ -223,7 +228,8 @@ def get_files():
         url = "%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,filters,p2,size,p3,from_num,p4,filters,p5,size,p6,order,p7,from_num,p8)
     response = urllib2.urlopen(url)
     r = response.read()
-    return ('%s, "warnings": {}}' % r[:-1])
+    data = ('%s, "warnings": {}}' % r[:-1])
+    return make_json_response(data)
 
 @application.route('/projects', methods=['GET','POST'])
 def get_project():
@@ -256,7 +262,8 @@ def get_project():
 
         p_str = "{ \"count\": %s, \"sort\": \"\", \"from\": 1, \"page\": 1, \"total\": %s, \"pages\": 1, \"size\": 100 }" % (np, np)
         hit_str = json.dumps(proj_list)
-        return "{\"data\" : {\"hits\" : [ %s ], \"pagination\": %s}, \"warnings\": {}}" % (hit_str, p_str)
+        data = ("{\"data\" : {\"hits\" : [ %s ], \"pagination\": %s}, \"warnings\": {}}" % (hit_str, p_str))
+        return make_json_response(data)
 
     # /projects request WITH facets parameter
     # 
@@ -305,7 +312,8 @@ def get_project():
         hit_str = json.dumps(hit_list)
         agg_str = "{ \"primary_site\": { \"buckets\": %s }}" % (buckets_str)
 
-        return "{\"data\" : {\"aggregations\": %s, \"hits\" : %s, \"pagination\": %s}, \"warnings\": {}}" % (agg_str, hit_str, p_str)
+        data = ("{\"data\" : {\"aggregations\": %s, \"hits\" : %s, \"pagination\": %s}, \"warnings\": {}}" % (agg_str, hit_str, p_str))
+        return make_json_response(data)
 
     # Enter here if going to the projects tab
     else:
@@ -320,7 +328,8 @@ def get_project():
 
         p_str = "{ \"count\": %s, \"sort\": \"\", \"from\": 1, \"page\": 1, \"total\": %s, \"pages\": 1, \"size\": 100 }" % (np, np)
         hit_str = json.dumps(proj_list)
-        return "{\"data\" : {\"hits\" :  %s , \"pagination\": %s}, \"warnings\": {}}" % (hit_str, p_str)
+        data = ("{\"data\" : {\"hits\" :  %s , \"pagination\": %s}, \"warnings\": {}}" % (hit_str, p_str))
+        return make_json_response(data)
 
 @application.route('/annotations', methods=['GET','OPTIONS'])
 def get_annotation():
@@ -363,7 +372,8 @@ def get_ui_search_summary():
     # another hack, remove "data" root from GQL results
     r1 = response.read()[8:]
     r2 = r1[:-1]
-    return r2
+    data = r1[:-1]
+    return make_json_response(data)
 
 @application.route('/status/api/manifest', methods=['GET','OPTIONS','POST'])
 def get_manifest():
@@ -381,6 +391,13 @@ def get_manifest():
     response.set_cookie(cookie,'',expires=0)
     
     response.headers["Content-Disposition"] = "attachment; filename=result.tsv"
+    return response
+
+# Function to add a JSON content type to the response, takes in the data that 
+# is to be returned
+def make_json_response(data):
+    response = make_response(data)
+    response.headers['Content-Type'] = 'application/json'
     return response
 
 application.add_url_rule(
