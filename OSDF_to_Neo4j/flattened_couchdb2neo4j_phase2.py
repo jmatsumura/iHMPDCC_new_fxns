@@ -9,7 +9,8 @@
 
 import json, sys, re
 from py2neo import Graph
-from accs_for_flattened_couchdb2neo4j import nodes, edges, definitive_edges, mod_quotes
+from accs_for_couchdb2neo4j import nodes, edges, definitive_edges, mod_quotes
+from accs_for_couchdb2neo4j import body_product_dict, study_name_dict, file_format_dict
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
@@ -142,6 +143,34 @@ cypher.run("MATCH (n{id:'3fffbefb34d749c629dc9d147b238f67'}) DETACH DELETE n")
 
 print "Now fixing some names and acronyms remaining in OSDF..."
 cypher.run("MATCH (n) WHERE n.node_type='project' AND n.name='iHMP' SET n.name=n.project_name")
-# Still need to switch acronyms here for studies once they're approved.
+cypher.run("MATCH (Project:Case{node_type:'project'}) WHERE Project.project_name='Integrative Human Microbiome Project (iHMP)' SET Project.subtype='iHMP'")
+cypher.run("MATCH (Project:Case{node_type:'project'}) WHERE Project.subtype='hmp' SET Project.subtype='HMP'")
+
+# Function to swap out values in OSDF for those that are more human readable
+# and better suited for the portal.
+# Arguments:
+# new_map - mapping of old to new values
+# node - node type to subset by
+# prop - property to change these values by
+def correct_values_via_dict(new_map,node,prop):
+
+    cstr = ""
+
+    if node=='study' and prop=='name':
+        cstr = "MATCH (n{node_type:'%s'}) SET n.full_name=n.%s" % (node,prop)
+        cypher.run(cstr)
+
+    for k,v in new_map.items():
+
+        if node != "File":
+            cstr = "MATCH (n{node_type:'%s'}) WHERE n.%s='%s' SET n.%s='%s'" % (node,prop,k,prop,v)
+            cypher.run(cstr)
+        else:
+            cstr = "MATCH (n:File) WHERE n.%s='%s' SET n.%s='%s'" % (prop,k,prop,v)
+            cypher.run(cstr)
+
+correct_values_via_dict(study_names_dict,'study','name')
+correct_values_via_dict(body_product_dict,'sample','body_product')
+correct_values_via_dict(file_format_dict,'File','format')
 
 print "All done!"

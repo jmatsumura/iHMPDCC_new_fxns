@@ -103,7 +103,7 @@ definitive_edges2 = {
 }
 
 # Remap the study names using these values
-study_names_dict = {
+study_name_dict = {
     'Human microbiome project 16S production phase I.':'16S-PP1',
     'Human microbiome project 16S production phase II.':'16S-PP2',
     'Skin Microbiome in Disease States: Atopic Dermatitis and Immunodeficiency.':'16S-SM-ADI',
@@ -129,7 +129,7 @@ study_names_dict = {
 }
 
 # Remap data format values 
-data_format_dict = {
+file_format_dict = {
     'sff':'Standard Flowgram File',
     'peptide_fsa':'Peptide FASTA',
     'gff3':'GFF3',

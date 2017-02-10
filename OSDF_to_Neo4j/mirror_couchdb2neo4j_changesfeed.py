@@ -30,7 +30,8 @@
 import json, sys, re, urllib2
 from py2neo import Graph
 from collections import defaultdict
-from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, fma_free_body_site_dict, mod_quotes, definitive_edges2
+from accs_for_couchdb2neo4j import nodes, edges, body_site_dict, fma_free_body_site_dict, mod_quotes, definitive_edges2
+from accs_for_couchdb2neo4j import body_product_dict, study_name_dict, file_format_dict
 
 #############
 # FUNCTIONS #

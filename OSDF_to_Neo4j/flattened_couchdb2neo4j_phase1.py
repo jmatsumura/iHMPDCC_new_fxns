@@ -11,7 +11,7 @@
 
 import json, sys, re
 from py2neo import Graph
-from accs_for_flattened_couchdb2neo4j import nodes, edges, body_site_dict, fma_free_body_site_dict, mod_quotes
+from accs_for_couchdb2neo4j import nodes, edges, body_site_dict, fma_free_body_site_dict, mod_quotes
 
 i = open(sys.argv[1], 'r') # couchdb dump json is the input
 json_data = json.load(i) 
