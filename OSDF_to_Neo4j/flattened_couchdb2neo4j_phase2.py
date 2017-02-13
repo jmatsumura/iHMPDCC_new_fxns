@@ -157,19 +157,19 @@ def correct_values_via_dict(new_map,node,prop):
     cstr = ""
 
     if node=='study' and prop=='name':
-        cstr = "MATCH (n{node_type:'%s'}) SET n.full_name=n.%s" % (node,prop)
+        cstr = 'MATCH (n{node_type:"%s"}) SET n.full_name=n.%s' % (node,prop)
         cypher.run(cstr)
 
     for k,v in new_map.items():
 
         if node != "File":
-            cstr = "MATCH (n{node_type:'%s'}) WHERE n.%s='%s' SET n.%s='%s'" % (node,prop,k,prop,v)
+            cstr = 'MATCH (n{node_type:"%s"}) WHERE n.%s="%s" SET n.%s="%s"' % (node,prop,k,prop,v)
             cypher.run(cstr)
         else:
-            cstr = "MATCH (n:File) WHERE n.%s='%s' SET n.%s='%s'" % (prop,k,prop,v)
+            cstr = 'MATCH (n:File) WHERE n.%s="%s" SET n.%s="%s"' % (prop,k,prop,v)
             cypher.run(cstr)
 
-correct_values_via_dict(study_names_dict,'study','name')
+correct_values_via_dict(study_name_dict,'study','name')
 correct_values_via_dict(body_product_dict,'sample','body_product')
 correct_values_via_dict(file_format_dict,'File','format')
 

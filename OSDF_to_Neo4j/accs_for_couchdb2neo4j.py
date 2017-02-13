@@ -143,7 +143,6 @@ file_format_dict = {
 
 # Remap body product values
 body_product_dict = {
-    'null':'null',
     'Feces [FMA:64183]':'feces',
     'Saliva [FMA:59862]':'saliva',
     'vaginal mucosa [UBERON:0004983]':'vaginal mucosa',

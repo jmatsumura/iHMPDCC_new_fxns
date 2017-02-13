@@ -87,7 +87,7 @@ def get_cases():
 
     # Processing autocomplete here as well as finding counts for the set category
     if(request.args.get('facets') and not request.args.get('expand')):
-        beg = "http://localhost:80/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%7Daggregations%7B"
+        beg = "http://localhost:80/ac_schema?query=%7Bpagination%7Bcount%2Csort%2Cfrom%2Cpage%2Ctotal%2Cpages%2Csize%7D%2Chits%7Bproject%7Bproject_id%2Cstudy_name%2Cstudy_full_name%2Cprimary_site%7D%7Daggregations%7B"
         mid = request.args.get('facets')
         end = "%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         url = '%s%s%s' % (beg,mid,end)
@@ -109,7 +109,7 @@ def get_cases():
         p5 = "%22%2Cs%3A"
         p6 = "%2Co%3A%22"
         p7 = "%22%2Cf%3A"
-        p8 = ")%7Bproject%7Bproject_id%2Cdisease_type%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProject_name%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSubject_gender%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSample_fma_body_site%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
+        p8 = ")%7Bproject%7Bproject_id%2Cstudy_name%2Cstudy_full_name%2Cprimary_site%7D%2Ccase_id%7Daggregations%7BProject_name%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSubject_gender%7Bbuckets%7Bkey%2Cdoc_count%7D%7DSample_fma_body_site%7Bbuckets%7Bkey%2Cdoc_count%7D%7D%7D%7D"
         if len(filters) < 3:
             url = "%s%s%s%s%s%s%s%s%s%s%s%s" % (p1,p2,size,p3,from_num,p4,p5,size,p6,p7,from_num,p8)
             if request.get_data():
@@ -323,7 +323,7 @@ def get_project():
 
         for p in pdata:
             print p
-            proj_list.append({ "project_id": p["Study.acro"], "disease_type": p["Study.name"], "project_name": p["Project.subtype"], "summary": { "case_count": p["case_count"], "file_count": p["file_count"]} })
+            proj_list.append({ "project_id": p["Study.name"], "disease_type": p["Study.full_name"], "project_name": p["Project.subtype"], "summary": { "case_count": p["case_count"], "file_count": p["file_count"]} })
         np = len(proj_list)
 
         p_str = "{ \"count\": %s, \"sort\": \"\", \"from\": 1, \"page\": 1, \"total\": %s, \"pages\": 1, \"size\": 100 }" % (np, np)

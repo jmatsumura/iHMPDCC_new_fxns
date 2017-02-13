@@ -13,7 +13,8 @@ class Project(graphene.ObjectType): # Graphene object for node
     projectId = graphene.String(name="project_id")
     primarySite = graphene.String(name="primary_site")
     name = graphene.String()
-    diseaseType = graphene.String(name="disease_type")
+    studyName = graphene.String(name="study_name")
+    studyFullName = graphene.String(name="study_full_name")
 
 class Pagination(graphene.ObjectType): # GDC expects pagination data for populating table
     count = graphene.Int()
@@ -299,7 +300,7 @@ def get_all_study_data():
         "<-[:COLLECTED_DURING]-(Sample:Case{node_type:'sample'})"
         "<-[:PREPARED_FROM]-(pf)"
         "<-[:SHORTCUT]-(File)"
-        " RETURN DISTINCT Study.acro, Project.subtype, Study.name, COUNT(DISTINCT Sample) as case_count, (COUNT(DISTINCT File)) as file_count"
+        " RETURN DISTINCT Study.name, Project.subtype, Study.full_name, COUNT(DISTINCT Sample) as case_count, (COUNT(DISTINCT File)) as file_count"
         )
     res = graph.data(cquery)
     return res
@@ -416,7 +417,7 @@ def get_case_hits(size,order,f,cy):
         cquery = build_adv_cypher(match,cy,order,f,size,"cases")
     res = graph.data(cquery)
     for x in range(0,len(res)):
-        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.fma_body_site'],name=res[x]['Project.name'],diseaseType=res[x]['Study.subtype']),caseId=res[x]['Sample.id'])
+        cur = CaseHits(project=Project(projectId=res[x]['Project.subtype'],primarySite=res[x]['Sample.fma_body_site'],name=res[x]['Project.name'],studyName=res[x]['Study.name'],studyFullName=res[x]['Study.full_name']),caseId=res[x]['Sample.id'])
         hits.append(cur)
     return hits
 
