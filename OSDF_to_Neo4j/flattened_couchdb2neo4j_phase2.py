@@ -90,8 +90,10 @@ for x in docList:
         tg = ""
         nt = ""
 
-        if 'node_type' in res: # must be a node if edges are to be added
+        if 'node_type' in res and res['node_type'] in nodes: # must be a node if edges are to be added
             nt = res['node_type']
+        else:
+            continue
         
         if 'tags' in res: # some nodes may be missing this. 
             tg = res['tags']
