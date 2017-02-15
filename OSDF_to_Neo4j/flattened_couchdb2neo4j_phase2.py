@@ -145,6 +145,7 @@ print "Now fixing some names and acronyms remaining in OSDF..."
 cypher.run("MATCH (n) WHERE n.node_type='project' AND n.name='iHMP' SET n.name=n.project_name")
 cypher.run("MATCH (Project:Case{node_type:'project'}) WHERE Project.project_name='Integrative Human Microbiome Project (iHMP)' SET Project.subtype='iHMP'")
 cypher.run("MATCH (Project:Case{node_type:'project'}) WHERE Project.subtype='hmp' SET Project.subtype='HMP'")
+cypher.run("MATCH (Sample:Case{node_type:'sample'})<-[:PREPARED_FROM]-(pf)<-[:SEQUENCED_FROM|DERIVED_FROM|COMPUTED_FROM*..4]-(File) WITH DISTINCT pf, File CREATE (pf)<-[r:SHORTCUT]-(File) return count(r)")
 
 # Function to swap out values in OSDF for those that are more human readable
 # and better suited for the portal.
