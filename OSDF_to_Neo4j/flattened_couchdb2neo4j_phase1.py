@@ -163,7 +163,7 @@ for x in docList:
                 props += '`%s`:"%s"' % (key,value)
                 y += 1
 
-        if 'node_type' in res and nodes[res['node_type']] != 'reference_genome_project_catalog_entry': # if no node type, need to ignore   
+        if 'node_type' in res and nodes[res['node_type']] in nodes: # if no node type, need to ignore   
             # handle the case where the final prop is a body site and an FMA body site
             # already exists so the end of the prop:val string is a trailing comma
             if props[-1:] == ",": 
