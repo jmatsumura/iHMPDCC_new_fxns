@@ -71,6 +71,50 @@ def _all_docs_by_page(db_url, page_size=10):
         last_key = last_key + u'\xff'
         view_arguments.update(startkey=json.dumps(last_key))
 
+# All of these _build*_doc functions take in a particular "File" node (which)
+# means anything below the "Prep" nodes and build a document containing all 
+# the information along the particular path to get to that node. Each will
+# have a new top of the structure called "File" where directly below this 
+# location will contain all the relevant data for that particular node. 
+# Everything else even with this level will be all the information contained
+# at prep and above. This will result in a heavily DEnormalized dataset.
+#
+# The arguments are the entire set of nodes and the particular node that is the
+# file representative. 
+def _build_16s_raw_seq_set_doc(all_nodes_dict,node):
+
+    doc = {}
+    
+    doc['main'] = node['doc']
+    doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
+    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
+
+    doc = _collect_visit_through_project(all_nodes_dict,doc)
+    return
+
+# This function takes in the dict of nodes from a particular node type, the name
+# of this type of node, the ID specified by the linkage to isolate the node,
+# and the doc that is being built. It returns the information of the particular
+# upstream node. 
+def _find_upstream_node(node_dict,node_name,link_id):
+    
+    # some test nodes have incorrect linkage styles.
+    if type(link_id) is list:
+        link_id = link_id[0]
+    if link_id in node_dict:
+        return node_dict[link_id]['doc']
+
+    print("Made it here, so node type {0} with ID {1} is missing upstream.".format(node_name,link_id))
+
+# This function collects visit-project nodes as these can consistently be 
+# retrieved in a similar manner.
+def _collect_visit_through_project(all_nodes_dict,doc):
+    
+    doc['visit'] = _find_upstream_node(all_nodes_dict['visit'],'visit',doc['sample']['linkage']['collected_during'])
+    doc['subject'] = _find_upstream_node(all_nodes_dict['subject'],'subject',doc['visit']['linkage']['by'])
+    doc['study'] = _find_upstream_node(all_nodes_dict['study'],'study',doc['subject']['linkage']['participates_in'])
+    doc['project'] = _find_upstream_node(all_nodes_dict['project'],'project',doc['study']['linkage']['part_of'])
+    return doc
 
 if __name__ == '__main__':
 
@@ -101,9 +145,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Create the Couchbase connection, and bail if it doesn't work
+    """
     cb = Couchbase.connect(host=args.couchbase_host,
                            bucket=args.couchbase_bucket,
                            password=args.couchbase_password)
+    """
 
     # Now just loop through and create documents. I like counters, so there's
     # one to tell me how much has been done. I also like timers, so there's one
@@ -111,36 +157,38 @@ if __name__ == '__main__':
     counter = 1
     start_time = time.time()
 
+    # Dictionaries for each nodes where it goes like {project{id{couch_db_doc}}} so that
+    # it is fast to look up IDs when traversing upstream.
     nodes = {
-        'project': [],
-        'study': [],
-        'subject': [],
-        'subject_attribute': [],
-        'visit': [],
-        'visit_attribute': [],
-        'sample': [],
-        'sample_attribute': [],
-        'wgs_dna_prep': [],
-        'host_seq_prep': [],
-        'wgs_raw_seq_set': [],
-        'wgs_raw_seq_set_private': [],
-        'host_wgs_raw_seq_set': [],
-        'microb_transcriptomics_raw_seq_set': [],
-        'host_transcriptomics_raw_seq_set': [],
-        'wgs_assembled_seq_set': [],
-        'viral_seq_set': [],
-        'annotation': [],
-        'clustered_seq_set': [],
-        '16s_dna_prep': [],
-        '16s_raw_seq_set': [],
-        '16s_trimmed_seq_set': [],
-        'microb_assay_prep': [],
-        'host_assay_prep': [],
-        'proteome': [],
-        'metabolome': [],
-        'lipidome': [],
-        'cytokine': [],
-        'abundance_matrix': []
+        'project': {},
+        'study': {},
+        'subject': {},
+        'subject_attribute': {},
+        'visit': {},
+        'visit_attribute': {},
+        'sample': {},
+        'sample_attribute': {},
+        'wgs_dna_prep': {},
+        'host_seq_prep': {},
+        'wgs_raw_seq_set': {},
+        'wgs_raw_seq_set_private': {},
+        'host_wgs_raw_seq_set': {},
+        'microb_transcriptomics_raw_seq_set': {},
+        'host_transcriptomics_raw_seq_set': {},
+        'wgs_assembled_seq_set': {},
+        'viral_seq_set': {},
+        'annotation': {},
+        'clustered_seq_set': {},
+        '16s_dna_prep': {},
+        '16s_raw_seq_set': {},
+        '16s_trimmed_seq_set': {},
+        'microb_assay_prep': {},
+        'host_assay_prep': {},
+        'proteome': {},
+        'metabolome': {},
+        'lipidome': {},
+        'cytokine': {},
+        'abundance_matrix': {}
     }
 
     files_only = {
@@ -194,7 +242,7 @@ if __name__ == '__main__':
 
         # Build a giant list of each node type
         if doc['doc']['node_type'] in nodes:
-            nodes[doc['doc']['node_type']].append(doc['doc'])
+            nodes[doc['doc']['node_type']][doc['id']] = doc
         else:
             print("Warning, skipping node with type: {0}".format(doc['doc']['node_type']))
 
@@ -211,6 +259,14 @@ if __name__ == '__main__':
         counter += 1
         sys.stderr.write(str(counter) + '\r')
         sys.stderr.flush()
+
+    for key in nodes:
+        if key in files_only:
+            if key == '16s_raw_seq_set':
+                for id in nodes[key]:
+                    _build_16s_raw_seq_set_doc(nodes,nodes[key][id])
+
+
 
     # A little final message
     sys.stderr.write("Done! {0} documents in {1} seconds!\n".format(
