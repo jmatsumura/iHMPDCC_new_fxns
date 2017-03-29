@@ -92,6 +92,18 @@ def _build_16s_raw_seq_set_doc(all_nodes_dict,node):
     doc = _collect_visit_through_project(all_nodes_dict,doc)
     return
 
+def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
+
+    doc = {}
+    
+    doc['main'] = node['doc']
+    doc['16s_raw_seq_set'] = _find_upstream_node(all_nodes_dict['16s_raw_seq_set'],'16s_raw_seq_set',doc['main']['linkage']['computed_from'])
+    doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
+    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
+
+    doc = _collect_visit_through_project(all_nodes_dict,doc)
+    return
+
 # This function takes in the dict of nodes from a particular node type, the name
 # of this type of node, the ID specified by the linkage to isolate the node,
 # and the doc that is being built. It returns the information of the particular
@@ -265,6 +277,10 @@ if __name__ == '__main__':
             if key == '16s_raw_seq_set':
                 for id in nodes[key]:
                     _build_16s_raw_seq_set_doc(nodes,nodes[key][id])
+
+            elif key == '16s_trimmed_seq_set':
+                for id in nodes[key]:
+                    _build_16s_trimmed_seq_set_doc(nodes,nodes[key][id])
 
 
 
