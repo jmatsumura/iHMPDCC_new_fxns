@@ -81,6 +81,7 @@ def _all_docs_by_page(db_url, page_size=10):
 #
 # The arguments are the entire set of nodes and the particular node that is the
 # file representative. 
+
 def _build_16s_raw_seq_set_doc(all_nodes_dict,node):
 
     doc = {}
@@ -100,6 +101,30 @@ def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
     doc['16s_raw_seq_set'] = _find_upstream_node(all_nodes_dict['16s_raw_seq_set'],'16s_raw_seq_set',doc['main']['linkage']['computed_from'])
     doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
+
+    doc = _collect_visit_through_project(all_nodes_dict,doc)
+    return
+
+def _build_omes_doc(all_nodes_dict,node):
+
+    doc = {}
+    
+    doc['main'] = node['doc']
+
+    link = doc['main']['linkaged']['derived_from']
+    if type(link) is list:
+        link = link[0]
+
+    which_prep = "" # can be microb or host
+    if link in all_nodes_dict['microb_assay_prep']:
+        which_prep = 'microb_assay_prep'
+    elif link in all_nodes_dict['host_assay_prep']:
+        which_prep = 'host_assay_prep'
+    else:
+        print("Made it here, so an ~ome node is missing an upstream ID of {0}.".format(link))
+
+    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,doc['main']['linkage']['derived_from'])
+    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
 
     doc = _collect_visit_through_project(all_nodes_dict,doc)
     return
@@ -282,7 +307,9 @@ if __name__ == '__main__':
                 for id in nodes[key]:
                     _build_16s_trimmed_seq_set_doc(nodes,nodes[key][id])
 
-
+            elif key.endswith("ome") or key == "cytokine":
+                for id in nodes[key]:
+                    _build_omes_doc(nodes,nodes[key][id])
 
     # A little final message
     sys.stderr.write("Done! {0} documents in {1} seconds!\n".format(
