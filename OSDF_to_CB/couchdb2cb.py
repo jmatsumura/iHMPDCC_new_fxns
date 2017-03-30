@@ -108,6 +108,8 @@ def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
 def _build_abundance_matrix_doc(all_nodes_dict,node):
 
     doc = {}
+    which_upstream,which_prep = ("" for i in range(2)) # can be many here
+    
     doc['main'] = node['doc']
 
     link = _refine_link(doc['main']['linkage']['computed_from'])
@@ -119,8 +121,6 @@ def _build_abundance_matrix_doc(all_nodes_dict,node):
         doc['abundance_matrix'] = _find_upstream_node(all_nodes_dict['abundance_matrix'],'abundance_matrix',link)
         # We now need to reset the link to be the other abundance_matrix
         link = _refine_link(doc['abundance_matrix']['linkage']['computed_from'])
-
-    which_upstream,which_prep = ("" for i in range(2)) # can be many here
 
     # process the middle pathway
     if link in all_nodes_dict['16s_trimmed_seq_set']:
@@ -193,11 +193,12 @@ def _build_abundance_matrix_doc(all_nodes_dict,node):
 def _build_omes_doc(all_nodes_dict,node):
 
     doc = {}
+    which_prep = "" # can be microb or host
+
     doc['main'] = node['doc']
 
     link = _refine_link(doc['main']['linkage']['derived_from'])
 
-    which_prep = "" # can be microb or host
     if link in all_nodes_dict['microb_assay_prep']:
         which_prep = 'microb_assay_prep'
     elif link in all_nodes_dict['host_assay_prep']:
@@ -214,11 +215,12 @@ def _build_omes_doc(all_nodes_dict,node):
 def _build_wgs_transcriptomics_doc(all_nodes_dict,node):
 
     doc = {}
+    which_prep = "" # can be wgs_dna or host_seq
+
     doc['main'] = node['doc']
 
     link = _refine_link(doc['main']['linkage']['sequenced_from'])
 
-    which_prep = "" # can be wgs_dna or host_seq
     if link in all_nodes_dict['wgs_dna_prep']:
         which_prep = 'wgs_dna_prep'
     elif link in all_nodes_dict['host_seq_prep']:
@@ -235,11 +237,11 @@ def _build_wgs_transcriptomics_doc(all_nodes_dict,node):
 def _build_wgs_assembled_or_viral_seq_set_doc(all_nodes_dict,node):
 
     doc = {}
+    which_upstream,which_prep = ("" for i in range(2))
+
     doc['main'] = node['doc'] 
 
     link = _refine_link(doc['main']['linkage']['computed_from'])
-    
-    which_upstream,which_prep = ("" for i in range(2))
 
     if link in all_nodes_dict['wgs_raw_seq_set']:
         which_upstream = 'wgs_raw_seq_set'
@@ -261,6 +263,89 @@ def _build_wgs_assembled_or_viral_seq_set_doc(all_nodes_dict,node):
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
 
     doc = _collect_visit_through_project(all_nodes_dict,doc)
+    return
+
+def _build_annotation_doc(all_nodes_dict,node):
+
+    doc = {}
+    which_upstream,which_prep = ("" for i in range(2))
+
+    doc['main'] = node['doc'] 
+
+    link = _refine_link(doc['main']['linkage']['computed_from'])
+
+    if link in all_nodes_dict['viral_seq_set']:
+        which_upstream = 'viral_seq_set'
+    elif link in all_nodes_dict['wgs_assembled_seq_set']:
+        which_upstream = 'wgs_assembled_seq_set'
+
+    doc[which_upstream] = _find_upstream_node(all_nodes_dict[which_upstream],which_upstream,link)
+    link = _refine_link(doc[which_upstream]['linkage']['computed_from'])
+
+    if link in all_nodes_dict['wgs_raw_seq_set']:
+        which_upstream = 'wgs_raw_seq_set'
+    elif link in all_nodes_dict['wgs_raw_seq_set_private']:
+        which_upstream = 'wgs_raw_seq_set_private'
+    elif link in all_nodes_dict['host_wgs_raw_seq_set']:
+        which_upstream = 'host_wgs_raw_seq_set'
+
+    doc[which_upstream] = _find_upstream_node(all_nodes_dict[which_upstream],which_upstream,link)
+    link = _refine_link(doc[which_upstream]['linkage']['sequenced_from'])
+
+    if link in all_nodes_dict['wgs_dna_prep']:
+        which_prep = 'wgs_dna_prep'
+    elif link in all_nodes_dict['host_seq_prep']:
+        which_prep = 'host_seq_prep'
+    else:
+        print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
+
+    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
+    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+
+    doc = _collect_visit_through_project(all_nodes_dict,doc)
+
+    return
+
+def _build_clustered_seq_set_doc(all_nodes_dict,node):
+
+    doc = {}
+    which_upstream,which_prep = ("" for i in range(2))
+
+    doc['main'] = node['doc'] 
+
+    doc['annotation'] = _find_upstream_node(all_nodes_dict['annotation'],'annotation',doc['main']['linkage']['computed_from'])
+    link = _refine_link(doc['annotation']['linkage']['computed_from'])
+
+    if link in all_nodes_dict['viral_seq_set']:
+        which_upstream = 'viral_seq_set'
+    elif link in all_nodes_dict['wgs_assembled_seq_set']:
+        which_upstream = 'wgs_assembled_seq_set'
+
+    doc[which_upstream] = _find_upstream_node(all_nodes_dict[which_upstream],which_upstream,link)
+    link = _refine_link(doc[which_upstream]['linkage']['computed_from'])
+
+    if link in all_nodes_dict['wgs_raw_seq_set']:
+        which_upstream = 'wgs_raw_seq_set'
+    elif link in all_nodes_dict['wgs_raw_seq_set_private']:
+        which_upstream = 'wgs_raw_seq_set_private'
+    elif link in all_nodes_dict['host_wgs_raw_seq_set']:
+        which_upstream = 'host_wgs_raw_seq_set'
+
+    doc[which_upstream] = _find_upstream_node(all_nodes_dict[which_upstream],which_upstream,link)
+    link = _refine_link(doc[which_upstream]['linkage']['sequenced_from'])
+
+    if link in all_nodes_dict['wgs_dna_prep']:
+        which_prep = 'wgs_dna_prep'
+    elif link in all_nodes_dict['host_seq_prep']:
+        which_prep = 'host_seq_prep'
+    else:
+        print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
+
+    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
+    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+
+    doc = _collect_visit_through_project(all_nodes_dict,doc)
+
     return
 
 # This function takes in the dict of nodes from a particular node type, the name
@@ -473,7 +558,13 @@ if __name__ == '__main__':
                 for id in nodes[key]:
                     _build_wgs_assembled_or_viral_seq_set_doc(nodes,nodes[key][id])
 
+            elif key == "annotation":
+                for id in nodes[key]:
+                    _build_annotation_doc(nodes,nodes[key][id])
 
+            elif key == "clustered_seq_set":
+                for id in nodes[key]:
+                    _build_clustered_seq_set_doc(nodes,nodes[key][id])
 
     # A little final message
     sys.stderr.write("Done! {0} documents in {1} seconds!\n".format(
