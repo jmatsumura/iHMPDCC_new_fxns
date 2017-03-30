@@ -90,8 +90,7 @@ def _build_16s_raw_seq_set_doc(all_nodes_dict,node):
     doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
 
-    doc = _collect_visit_through_project(all_nodes_dict,doc)
-    return
+    return _collect_visit_through_project(all_nodes_dict,doc)
 
 def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
 
@@ -102,14 +101,13 @@ def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
     doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set']['linkage']['sequenced_from'])
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
 
-    doc = _collect_visit_through_project(all_nodes_dict,doc)
-    return
+    return _collect_visit_through_project(all_nodes_dict,doc)
 
 def _build_abundance_matrix_doc(all_nodes_dict,node):
 
     doc = {}
     which_upstream,which_prep = ("" for i in range(2)) # can be many here
-    
+
     doc['main'] = node['doc']
 
     link = _refine_link(doc['main']['linkage']['computed_from'])
@@ -187,8 +185,7 @@ def _build_abundance_matrix_doc(all_nodes_dict,node):
         doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
         doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
 
-    doc = _collect_visit_through_project(all_nodes_dict,doc)
-    return
+    return _collect_visit_through_project(all_nodes_dict,doc)
 
 def _build_omes_doc(all_nodes_dict,node):
 
@@ -209,8 +206,7 @@ def _build_omes_doc(all_nodes_dict,node):
     doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
 
-    doc = _collect_visit_through_project(all_nodes_dict,doc)
-    return
+    return _collect_visit_through_project(all_nodes_dict,doc)
 
 def _build_wgs_transcriptomics_doc(all_nodes_dict,node):
 
@@ -231,8 +227,7 @@ def _build_wgs_transcriptomics_doc(all_nodes_dict,node):
     doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
 
-    doc = _collect_visit_through_project(all_nodes_dict,doc)
-    return
+    return _collect_visit_through_project(all_nodes_dict,doc)
 
 def _build_wgs_assembled_or_viral_seq_set_doc(all_nodes_dict,node):
 
@@ -262,8 +257,7 @@ def _build_wgs_assembled_or_viral_seq_set_doc(all_nodes_dict,node):
     doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
 
-    doc = _collect_visit_through_project(all_nodes_dict,doc)
-    return
+    return _collect_visit_through_project(all_nodes_dict,doc)
 
 def _build_annotation_doc(all_nodes_dict,node):
 
@@ -302,9 +296,7 @@ def _build_annotation_doc(all_nodes_dict,node):
     doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
 
-    doc = _collect_visit_through_project(all_nodes_dict,doc)
-
-    return
+    return _collect_visit_through_project(all_nodes_dict,doc)
 
 def _build_clustered_seq_set_doc(all_nodes_dict,node):
 
@@ -344,9 +336,7 @@ def _build_clustered_seq_set_doc(all_nodes_dict,node):
     doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
 
-    doc = _collect_visit_through_project(all_nodes_dict,doc)
-
-    return
+    return _collect_visit_through_project(all_nodes_dict,doc)
 
 # This function takes in the dict of nodes from a particular node type, the name
 # of this type of node, the ID specified by the linkage to isolate the node. 
@@ -369,7 +359,12 @@ def _collect_visit_through_project(all_nodes_dict,doc):
     doc['subject'] = _find_upstream_node(all_nodes_dict['subject'],'subject',doc['visit']['linkage']['by'])
     doc['study'] = _find_upstream_node(all_nodes_dict['study'],'study',doc['subject']['linkage']['participates_in'])
     doc['project'] = _find_upstream_node(all_nodes_dict['project'],'project',doc['study']['linkage']['part_of'])
-    return doc
+    
+    # Skip all the dummy data associated with the "Test Project"
+    if doc['project']['id'] == '610a4911a5ca67de12cdc1e4b40018e1':
+        return None
+    else:
+        return doc
 
 # This simply reformats a ID specified from a linkage to ensure it's a string 
 # and not a list. I haven't encountered any scenarios with multiple linkages 
@@ -381,6 +376,12 @@ def _refine_link(linkage):
         return linkage[0]
     else:
         return linkage
+
+# Function to insert into Couchbase. Takes in CB connection and a document.
+def _insert_into_cb(conn,doc):
+    if doc is not None:
+        conn.set(doc['main']['id'], doc)
+
 
 if __name__ == '__main__':
 
@@ -411,11 +412,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # Create the Couchbase connection, and bail if it doesn't work
-    """
     cb = Couchbase.connect(host=args.couchbase_host,
                            bucket=args.couchbase_bucket,
                            password=args.couchbase_password)
-    """
 
     # Now just loop through and create documents. I like counters, so there's
     # one to tell me how much has been done. I also like timers, so there's one
@@ -520,8 +519,6 @@ if __name__ == '__main__':
 
         key = counter
 
-        #cb.set(key, doc['doc'])
-
         counter += 1
         sys.stderr.write(str(counter) + '\r')
         sys.stderr.flush()
@@ -532,19 +529,19 @@ if __name__ == '__main__':
 
             if key == "16s_raw_seq_set":
                 for id in nodes[key]:
-                    _build_16s_raw_seq_set_doc(nodes,nodes[key][id])
+                    _insert_into_cb(cb,_build_16s_raw_seq_set_doc(nodes,nodes[key][id]))
 
             elif key == "16s_trimmed_seq_set":
                 for id in nodes[key]:
-                    _build_16s_trimmed_seq_set_doc(nodes,nodes[key][id])
+                    _insert_into_cb(cb,_build_16s_trimmed_seq_set_doc(nodes,nodes[key][id]))
 
             elif key.endswith("ome") or key == "cytokine":
                 for id in nodes[key]:
-                    _build_omes_doc(nodes,nodes[key][id])
+                    _insert_into_cb(cb,_build_omes_doc(nodes,nodes[key][id]))
 
             elif key == "abundance_matrix":
                 for id in nodes[key]:
-                    _build_abundance_matrix_doc(nodes,nodes[key][id])
+                    _insert_into_cb(cb,_build_abundance_matrix_doc(nodes,nodes[key][id]))
 
             elif (
                 key == "wgs_raw_seq_set" or key == "wgs_raw_seq_set_private" 
@@ -552,19 +549,19 @@ if __name__ == '__main__':
                 or key == "microb_transcriptomics_raw_seq_set"
                 ):
                 for id in nodes[key]:
-                    _build_wgs_transcriptomics_doc(nodes,nodes[key][id])
+                    _insert_into_cb(cb,_build_wgs_transcriptomics_doc(nodes,nodes[key][id]))
 
             elif key == "wgs_assembled_seq_set" or key == "viral_seq_set":
                 for id in nodes[key]:
-                    _build_wgs_assembled_or_viral_seq_set_doc(nodes,nodes[key][id])
+                    _insert_into_cb(cb,_build_wgs_assembled_or_viral_seq_set_doc(nodes,nodes[key][id]))
 
             elif key == "annotation":
                 for id in nodes[key]:
-                    _build_annotation_doc(nodes,nodes[key][id])
+                    _insert_into_cb(cb,_build_annotation_doc(nodes,nodes[key][id]))
 
             elif key == "clustered_seq_set":
                 for id in nodes[key]:
-                    _build_clustered_seq_set_doc(nodes,nodes[key][id])
+                    _insert_into_cb(cb,_build_clustered_seq_set_doc(nodes,nodes[key][id]))
 
     # A little final message
     sys.stderr.write("Done! {0} documents in {1} seconds!\n".format(
