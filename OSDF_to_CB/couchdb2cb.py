@@ -85,8 +85,8 @@ def _all_docs_by_page(db_url, page_size=10):
 def _build_16s_raw_seq_set_doc(all_nodes_dict,node):
 
     doc = {}
-    
     doc['main'] = node['doc']
+
     doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
 
@@ -96,11 +96,96 @@ def _build_16s_raw_seq_set_doc(all_nodes_dict,node):
 def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
 
     doc = {}
-    
     doc['main'] = node['doc']
+
     doc['16s_raw_seq_set'] = _find_upstream_node(all_nodes_dict['16s_raw_seq_set'],'16s_raw_seq_set',doc['main']['linkage']['computed_from'])
-    doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
+    doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set']['linkage']['sequenced_from'])
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
+
+    doc = _collect_visit_through_project(all_nodes_dict,doc)
+    return
+
+def _build_abundance_matrix_doc(all_nodes_dict,node):
+
+    doc = {}
+    doc['main'] = node['doc']
+
+    link = _refine_link(doc['main']['linkage']['computed_from'])
+
+    # Notice that this IF precedes a second set of ELSE/IF statements, that is because
+    # if this is an abundance_matrix derived from an abundance_matrix, we still build the
+    # upstream structure in the same manner either way.
+    if link in all_nodes_dict['abundance_matrix']:
+        doc['abundance_matrix'] = _find_upstream_node(all_nodes_dict['abundance_matrix'],'abundance_matrix',link)
+        # We now need to reset the link to be the other abundance_matrix
+        link = _refine_link(doc['abundance_matrix']['linkage']['computed_from'])
+
+    which_upstream,which_prep = ("" for i in range(2)) # can be many here
+
+    # process the middle pathway
+    if link in all_nodes_dict['16s_trimmed_seq_set']:
+        doc['16s_trimmed_seq_set'] = _find_upstream_node(all_nodes_dict['16s_trimmed_seq_set'],'16s_trimmed_seq_set',link)
+        doc['16s_raw_seq_set'] = _find_upstream_node(all_nodes_dict['16s_raw_seq_set'],'16s_raw_seq_set',doc['16s_trimmed_seq_set']['linkage']['computed_from'])
+        doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set']['linkage']['sequenced_from'])
+        doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
+
+    # process the left pathway
+    elif (
+        link in all_nodes_dict['microb_transcriptomics_raw_seq_set'] 
+        or link in all_nodes_dict['host_transcriptomics_raw_seq_set'] 
+        or link in all_nodes_dict['wgs_raw_seq_set'] 
+        or link in all_nodes_dict['host_wgs_raw_seq_set'] 
+        ):
+        if link in all_nodes_dict['microb_transcriptomics_raw_seq_set']:
+            which_upstream = 'microb_transcriptomics_raw_seq_set'
+        elif link in all_nodes_dict['host_transcriptomics_raw_seq_set']:
+            which_upstream = 'host_transcriptomics_raw_seq_set'
+        elif link in all_nodes_dict['wgs_raw_seq_set']:
+            which_upstream = 'wgs_raw_seq_set'
+        elif link in all_nodes_dict['host_wgs_raw_seq_set']:
+            which_upstream = 'host_wgs_raw_seq_set'
+
+        doc[which_upstream] = _find_upstream_node(all_nodes_dict[which_upstream],which_upstream,link)
+        link = _refine_link(doc[which_upstream]['linkage']['sequenced_from'])
+
+        if link in all_nodes_dict['wgs_dna_prep']:
+            which_prep = 'wgs_dna_prep'
+        elif link in all_nodes_dict['host_seq_prep']:
+            which_prep = 'host_seq_prep'
+        else:
+            print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
+
+        doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
+        doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+
+    # process the right pathway
+    elif (
+        link in all_nodes_dict['proteome']
+        or link in all_nodes_dict['metabolome']
+        or link in all_nodes_dict['lipidome']
+        or link in all_nodes_dict['cytokine']
+        ):
+        if link in all_nodes_dict['proteome']:
+            which_upstream = 'proteome'
+        elif link in all_nodes_dict['metabolome']:
+            which_upstream = 'metabolome'
+        elif link in all_nodes_dict['lipidome']:
+            which_upstream = 'lipidome'
+        elif link in all_nodes_dict['cytokine']:
+            which_upstream = 'cytokine'
+
+        doc[which_upstream] = _find_upstream_node(all_nodes_dict[which_upstream],which_upstream,link)
+        link = _refine_link(doc[which_upstream]['linkage']['derived_from'])
+
+        if link in all_nodes_dict['microb_assay_prep']:
+            which_prep = 'microb_assay_prep'
+        elif link in all_nodes_dict['host_assay_prep']:
+            which_prep = 'host_assay_prep'
+        else:
+            print("Made it here, so an ~ome node is missing an upstream ID of {0}.".format(link))
+
+        doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
+        doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
 
     doc = _collect_visit_through_project(all_nodes_dict,doc)
     return
@@ -108,12 +193,9 @@ def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
 def _build_omes_doc(all_nodes_dict,node):
 
     doc = {}
-    
     doc['main'] = node['doc']
 
-    link = doc['main']['linkaged']['derived_from']
-    if type(link) is list:
-        link = link[0]
+    link = _refine_link(doc['main']['linkage']['derived_from'])
 
     which_prep = "" # can be microb or host
     if link in all_nodes_dict['microb_assay_prep']:
@@ -123,21 +205,72 @@ def _build_omes_doc(all_nodes_dict,node):
     else:
         print("Made it here, so an ~ome node is missing an upstream ID of {0}.".format(link))
 
-    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,doc['main']['linkage']['derived_from'])
+    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
+    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+
+    doc = _collect_visit_through_project(all_nodes_dict,doc)
+    return
+
+def _build_wgs_transcriptomics_doc(all_nodes_dict,node):
+
+    doc = {}
+    doc['main'] = node['doc']
+
+    link = _refine_link(doc['main']['linkage']['sequenced_from'])
+
+    which_prep = "" # can be wgs_dna or host_seq
+    if link in all_nodes_dict['wgs_dna_prep']:
+        which_prep = 'wgs_dna_prep'
+    elif link in all_nodes_dict['host_seq_prep']:
+        which_prep = 'host_seq_prep'
+    else:
+        print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
+
+    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
+    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+
+    doc = _collect_visit_through_project(all_nodes_dict,doc)
+    return
+
+def _build_wgs_assembled_or_viral_seq_set_doc(all_nodes_dict,node):
+
+    doc = {}
+    doc['main'] = node['doc'] 
+
+    link = _refine_link(doc['main']['linkage']['computed_from'])
+    
+    which_upstream,which_prep = ("" for i in range(2))
+
+    if link in all_nodes_dict['wgs_raw_seq_set']:
+        which_upstream = 'wgs_raw_seq_set'
+    elif link in all_nodes_dict['wgs_raw_seq_set_private']:
+        which_upstream = 'wgs_raw_seq_set_private'
+    elif link in all_nodes_dict['host_wgs_raw_seq_set']:
+        which_upstream = 'host_wgs_raw_seq_set'
+
+    doc[which_upstream] = _find_upstream_node(all_nodes_dict[which_upstream],which_upstream,link)
+    link = _refine_link(doc[which_upstream]['linkage']['sequenced_from'])
+    if link in all_nodes_dict['wgs_dna_prep']:
+        which_prep = 'wgs_dna_prep'
+    elif link in all_nodes_dict['host_seq_prep']:
+        which_prep = 'host_seq_prep'
+    else:
+        print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
+
+    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
 
     doc = _collect_visit_through_project(all_nodes_dict,doc)
     return
 
 # This function takes in the dict of nodes from a particular node type, the name
-# of this type of node, the ID specified by the linkage to isolate the node,
-# and the doc that is being built. It returns the information of the particular
-# upstream node. 
+# of this type of node, the ID specified by the linkage to isolate the node. 
+# It returns the information of the particular upstream node. 
 def _find_upstream_node(node_dict,node_name,link_id):
     
     # some test nodes have incorrect linkage styles.
-    if type(link_id) is list:
-        link_id = link_id[0]
+    link_id = _refine_link(link_id)
+
     if link_id in node_dict:
         return node_dict[link_id]['doc']
 
@@ -152,6 +285,17 @@ def _collect_visit_through_project(all_nodes_dict,doc):
     doc['study'] = _find_upstream_node(all_nodes_dict['study'],'study',doc['subject']['linkage']['participates_in'])
     doc['project'] = _find_upstream_node(all_nodes_dict['project'],'project',doc['study']['linkage']['part_of'])
     return doc
+
+# This simply reformats a ID specified from a linkage to ensure it's a string 
+# and not a list. I haven't encountered any scenarios with multiple linkages 
+# from a single node and do not think it is a problem. Accepts a an entity
+# following a linkage like doc['linkage']['sequenced_from'|'derived_from']
+def _refine_link(linkage):
+
+    if type(linkage) is list:
+        return linkage[0]
+    else:
+        return linkage
 
 if __name__ == '__main__':
 
@@ -287,7 +431,7 @@ if __name__ == '__main__':
         # although if these were laid out in a graph DB there could be multiple
         # nodes going to another like when samples are pooled.
         if len(doc['doc']['linkage']) > 1:
-            print(doc['doc'])
+            print("A document has multiple linkages! See:\n".format(doc['doc']))
 
         key = counter
 
@@ -298,18 +442,38 @@ if __name__ == '__main__':
         sys.stderr.flush()
 
     for key in nodes:
+
         if key in files_only:
-            if key == '16s_raw_seq_set':
+
+            if key == "16s_raw_seq_set":
                 for id in nodes[key]:
                     _build_16s_raw_seq_set_doc(nodes,nodes[key][id])
 
-            elif key == '16s_trimmed_seq_set':
+            elif key == "16s_trimmed_seq_set":
                 for id in nodes[key]:
                     _build_16s_trimmed_seq_set_doc(nodes,nodes[key][id])
 
             elif key.endswith("ome") or key == "cytokine":
                 for id in nodes[key]:
                     _build_omes_doc(nodes,nodes[key][id])
+
+            elif key == "abundance_matrix":
+                for id in nodes[key]:
+                    _build_abundance_matrix_doc(nodes,nodes[key][id])
+
+            elif (
+                key == "wgs_raw_seq_set" or key == "wgs_raw_seq_set_private" 
+                or key == "host_wgs_raw_seq_set" or key == "host_transcriptomics_raw_seq_set"
+                or key == "microb_transcriptomics_raw_seq_set"
+                ):
+                for id in nodes[key]:
+                    _build_wgs_transcriptomics_doc(nodes,nodes[key][id])
+
+            elif key == "wgs_assembled_seq_set" or key == "viral_seq_set":
+                for id in nodes[key]:
+                    _build_wgs_assembled_or_viral_seq_set_doc(nodes,nodes[key][id])
+
+
 
     # A little final message
     sys.stderr.write("Done! {0} documents in {1} seconds!\n".format(
