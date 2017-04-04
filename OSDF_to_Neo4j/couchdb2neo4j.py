@@ -5,9 +5,9 @@
 # 
 # Subject houses project, study, subject_attribute, and subject
 #
-# Sample houses visit, visit_attribute, sample, sample_attribute and the prep node
+# Sample houses visit, visit_attribute, sample, and sample_attribute
 #
-# File is anything below prep
+# File is the prep node as well as the file
 #
 # into single documents based on the File as the base.
 #
@@ -19,6 +19,7 @@ a Couchbase instance.
 
 import time,sys,argparse,requests
 from py2neo import Graph
+from accs_for_couchdb2neo4j import fma_free_body_site_dict
 
 try:
     import simplejson as json
@@ -93,10 +94,9 @@ def _build_16s_raw_seq_set_doc(all_nodes_dict,node):
     doc = {}
     doc['main'] = node['doc']
 
-    doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
-    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
+    doc['prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
 
-    return _collect_visit_through_project(all_nodes_dict,doc)
+    return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
 
@@ -104,10 +104,9 @@ def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
     doc['main'] = node['doc']
 
     doc['16s_raw_seq_set'] = _find_upstream_node(all_nodes_dict['16s_raw_seq_set'],'16s_raw_seq_set',doc['main']['linkage']['computed_from'])
-    doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set']['linkage']['sequenced_from'])
-    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
+    doc['prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set']['linkage']['sequenced_from'])
 
-    return _collect_visit_through_project(all_nodes_dict,doc)
+    return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_abundance_matrix_doc(all_nodes_dict,node):
 
@@ -130,8 +129,7 @@ def _build_abundance_matrix_doc(all_nodes_dict,node):
     if link in all_nodes_dict['16s_trimmed_seq_set']:
         doc['16s_trimmed_seq_set'] = _find_upstream_node(all_nodes_dict['16s_trimmed_seq_set'],'16s_trimmed_seq_set',link)
         doc['16s_raw_seq_set'] = _find_upstream_node(all_nodes_dict['16s_raw_seq_set'],'16s_raw_seq_set',doc['16s_trimmed_seq_set']['linkage']['computed_from'])
-        doc['16s_dna_prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set']['linkage']['sequenced_from'])
-        doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['16s_dna_prep']['linkage']['prepared_from'])
+        doc['prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set']['linkage']['sequenced_from'])
 
     # process the left pathway
     elif (
@@ -159,8 +157,7 @@ def _build_abundance_matrix_doc(all_nodes_dict,node):
         else:
             print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
 
-        doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
-        doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+        doc['prep'] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
 
     # process the right pathway
     elif (
@@ -188,10 +185,9 @@ def _build_abundance_matrix_doc(all_nodes_dict,node):
         else:
             print("Made it here, so an ~ome node is missing an upstream ID of {0}.".format(link))
 
-        doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
-        doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+        doc['prep'] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
 
-    return _collect_visit_through_project(all_nodes_dict,doc)
+    return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_omes_doc(all_nodes_dict,node):
 
@@ -209,10 +205,9 @@ def _build_omes_doc(all_nodes_dict,node):
     else:
         print("Made it here, so an ~ome node is missing an upstream ID of {0}.".format(link))
 
-    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
-    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+    doc['prep'] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
 
-    return _collect_visit_through_project(all_nodes_dict,doc)
+    return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_wgs_transcriptomics_doc(all_nodes_dict,node):
 
@@ -230,10 +225,9 @@ def _build_wgs_transcriptomics_doc(all_nodes_dict,node):
     else:
         print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
 
-    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
-    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+    doc['prep'] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
 
-    return _collect_visit_through_project(all_nodes_dict,doc)
+    return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_wgs_assembled_or_viral_seq_set_doc(all_nodes_dict,node):
 
@@ -260,10 +254,9 @@ def _build_wgs_assembled_or_viral_seq_set_doc(all_nodes_dict,node):
     else:
         print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
 
-    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
-    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+    doc['prep'] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
 
-    return _collect_visit_through_project(all_nodes_dict,doc)
+    return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_annotation_doc(all_nodes_dict,node):
 
@@ -299,10 +292,9 @@ def _build_annotation_doc(all_nodes_dict,node):
     else:
         print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
 
-    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
-    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+    doc['prep'] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
 
-    return _collect_visit_through_project(all_nodes_dict,doc)
+    return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_clustered_seq_set_doc(all_nodes_dict,node):
 
@@ -339,10 +331,9 @@ def _build_clustered_seq_set_doc(all_nodes_dict,node):
     else:
         print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
 
-    doc[which_prep] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
-    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc[which_prep]['linkage']['prepared_from'])
+    doc['prep'] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
 
-    return _collect_visit_through_project(all_nodes_dict,doc)
+    return _collect_sample_through_project(all_nodes_dict,doc)
 
 # This function takes in the dict of nodes from a particular node type, the name
 # of this type of node, the ID specified by the linkage to isolate the node. 
@@ -357,10 +348,11 @@ def _find_upstream_node(node_dict,node_name,link_id):
 
     print("Made it here, so node type {0} with ID {1} is missing upstream.".format(node_name,link_id))
 
-# This function collects visit-project nodes as these can consistently be 
+# This function collects sample-project nodes as these can consistently be 
 # retrieved in a similar manner.
-def _collect_visit_through_project(all_nodes_dict,doc):
+def _collect_sample_through_project(all_nodes_dict,doc):
     
+    doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['prep']['linkage']['prepared_from'])
     doc['visit'] = _find_upstream_node(all_nodes_dict['visit'],'visit',doc['sample']['linkage']['collected_during'])
     doc['subject'] = _find_upstream_node(all_nodes_dict['subject'],'subject',doc['visit']['linkage']['by'])
     doc['study'] = _find_upstream_node(all_nodes_dict['study'],'study',doc['subject']['linkage']['participates_in'])
@@ -388,88 +380,84 @@ def _build_constraint_index(node,prop,cy):
     cstr = "CREATE CONSTRAINT ON (x:%s) ASSERT x.%s IS UNIQUE" % (node,prop)
     cy.run(cstr)
 
+# Escape quotes to keep Cypher happy
 def _mod_quotes(val):
 
     if isinstance(val, list):
         for x in val:
-            x = x.replace("'","\'")
-            x = x.replace('"','\"')
-
+            if x in fma_free_body_site_dict:
+                x = fma_free_body_site_dict[x]
+            x = x.replace("'","\\'")
+            x = x.replace('"','\\"')
+            
     else:
-        val = val.replace("'","\'")
-        val = val.replace('"','\"')
+        if val in fma_free_body_site_dict:
+            val = fma_free_body_site_dict[val]
+        val = val.replace("'","\\'")
+        val = val.replace('"','\\"')
 
     return val
+
+# Function to traverse the nested JSON documents from CouchDB and return
+# a flattened set of properties specific to the particular node. 
+def _traverse_document(doc,focal_node):
+
+    key_prefix = "" # for nodes embedded into other nodes, use this prefix to prepend their keys like project_name
+    props = "" # long string for all the properties that are going to be added
+    tags = [] # list of tags to be attached to the ID
+    doc_id = "" # keep track of the ID for this particular doc.  
+
+    if focal_node not in ['subject','sample','main']: # main is equivalent to file since a single doc represents a single file
+        key_prefix = "{0}_".format(focal_node)
+
+    # Currently the Doc contains ALL nodes, need to break this up into
+    # subject, sample, and file.
+    for key,val in doc[focal_node].items():
+        if key == 'linkage': # already attached everything previously
+            continue
+
+        if props != "" and key != 'tags': # make sure no double commas due to the tags key
+            props += ","
+
+        if isinstance(val, int) or isinstance(val, float):
+            props += '`{0}{1}`:{2}'.format(key_prefix,key,val)
+        else:
+            val = _mod_quotes(val)
+            if key == 'tags':
+                tags += val
+            else:
+                props += '`{0}{1}`:"{2}"'.format(key_prefix,key,val)
+
+        if key == "id":
+            doc_id = val
+
+    return {'id':doc_id,'tag_list':tags,'prop_str':props}
 
 # Function to insert into Neo4j. Takes in Neo4j connection and a document.
 def _insert_into_neo4j(cy,doc):
     if doc is not None:
 
-        f_id,su_id,sa_id = ("" for i in range(3))
-        props = ""
+        # Grab just the properties of the file and prep nodes
+        file_info = _traverse_document(doc,'main')
+        prep_info = _traverse_document(doc,'prep')
 
-        # Currently the Doc contains ALL nodes, need to break this up into
-        # subject, sample, and file.
-        for key,val in doc['main'].items():
-            if key == 'linkage': # already attached everything previously
-                continue
-
-            if props != "":
-                props += ","
-
-            if isinstance(val, int) or isinstance(val, float):
-                props += '`%s`:%s' % (key,val)
-            else:
-                val = _mod_quotes(val)
-                props += '`%s`:"%s"' % (key,val)
-
-            if key == "id":
-                f_id = val
-
+        props = "{0},{1}".format(file_info['prop_str'],prep_info['prop_str'])
         cy.run("CREATE (node:file {{ {0} }})".format(props))
 
-        props = ""
-        for key,val in doc['sample'].items():
-            if key == 'linkage': # already attached everything previously
-                continue
+        sample_info = _traverse_document(doc,'sample')
+        visit_info = _traverse_document(doc,'visit')
 
-            if props != "":
-                props += ","
-
-            if isinstance(val, int) or isinstance(val, float):
-                props += '`%s`:%s' % (key,val)
-            else:
-                val = _mod_quotes(val)
-                props += '`%s`:"%s"' % (key,val)
-
-            if key == "id":
-                sa_id = val
-
+        props = "{0},{1}".format(sample_info['prop_str'],visit_info['prop_str'])
         cy.run("MERGE (node:sample {{ {0} }})".format(props))
 
-        props = ""
-        for key,val in doc['subject'].items():
-            if key == 'linkage': # already attached everything previously
-                continue
-
-            if val == "" or not val:
-                continue
-
-            if props != "":
-                props += ","
-
-            if isinstance(val, int) or isinstance(val, float):
-                props += '`%s`:%s' % (key,val)
-            else:
-                val = _mod_quotes(val)
-                props += '`%s`:"%s"' % (key,val)
-
-            if key == "id":
-                su_id = val
-
+        subject_info = _traverse_document(doc,'subject')
+        study_info = _traverse_document(doc,'study')
+        project_info = _traverse_document(doc,'project')
+        props = "{0},{1},{2}".format(subject_info['prop_str'],study_info['prop_str'],project_info['prop_str'])
         cy.run("MERGE (node:subject {{ {0} }})".format(props))
 
-        cy.run("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}),(n3:file{{id:'{2}'}}) CREATE (n1)<-[:extracted_from]-(n2)<-[:derived_from]-(n3)".format(su_id,sa_id,f_id))
+        cy.run("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}) MERGE (n1)<-[:extracted_from]-(n2)".format(subject_info['id'],sample_info['id']))
+        cy.run("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[:derived_from]-(n3)".format(sample_info['id'],file_info['id']))
 
 
 if __name__ == '__main__':
@@ -497,6 +485,7 @@ if __name__ == '__main__':
     _build_constraint_index('subject','id',cy)
     _build_constraint_index('sample','id',cy)
     _build_constraint_index('file','id',cy)
+    _build_constraint_index('tag','term',cy)
 
     # Now just loop through and create documents. I like counters, so there's
     # one to tell me how much has been done. I also like timers, so there's one
@@ -587,27 +576,24 @@ if __name__ == '__main__':
         if 'meta' in doc['doc']:
 
             for key,val in doc['doc']['meta'].items():
-                node_key = "meta_{0}".format(key)
 
                 if isinstance(val,dict): # if a nested dict, extract
 
                     for ke,va in doc['doc']['meta'][key].items():
-                        node_key = "meta_{0}".format(ke)
 
                         if isinstance(va,dict):
                             
                             for k,v in doc['doc']['meta'][key][ke].items(): 
-                                node_key = "meta_{0}".format(k)
                                 if v != "" or v:
-                                    doc['doc'][node_key] = v
+                                    doc['doc'][k] = v
 
                         else:
                             if va != "" or va:
-                                doc['doc'][node_key] = va
+                                doc['doc'][ke] = va
 
                 else:
                     if val != "" or val:
-                        doc['doc'][node_key] = val
+                        doc['doc'][key] = val
 
             del doc['doc']['meta']
 
