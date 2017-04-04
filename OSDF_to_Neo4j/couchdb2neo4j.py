@@ -389,20 +389,25 @@ def _build_constraint_index(node,prop,cy):
     cy.run(cstr)
 
 def _mod_quotes(val):
-    val = val.encode('utf-8')
-    val = val.replace("'",r"\'")
-    val = val.replace('"',r'\"')
-    val = val.decode('utf-8')
-    # In order to search the DB as you would expect, convert number only strings to digits
-    if val.isdigit():
-        val = float(val) # float just in case
+
+    if isinstance(val, list):
+        for x in val:
+            x = x.replace("'","\'")
+            x = x.replace('"','\"')
+
+    else:
+        val = val.replace("'","\'")
+        val = val.replace('"','\"')
+
+        # In order to search the DB as you would expect, convert number only strings to digits
+        if val.isdigit():
+            val = float(val) # float just in case
 
     return val
 
 # Function to insert into Neo4j. Takes in Neo4j connection and a document.
 def _insert_into_neo4j(cy,doc):
     if doc is not None:
-        print(doc)
 
         props = ""
 
@@ -411,6 +416,10 @@ def _insert_into_neo4j(cy,doc):
         for key,val in doc['main'].items():
             if key == 'linkage': # already attached everything previously
                 continue
+
+            if props != "":
+                props += ","
+
             if isinstance(val, int) or isinstance(val, float):
                 props += '`%s`:%s' % (key,val)
             else:
@@ -555,7 +564,6 @@ if __name__ == '__main__':
                     doc['doc'][node_key] = val
 
             del doc['doc']['meta']
-            print(doc)
 
         doc['doc']['id'] = doc['id']
 
