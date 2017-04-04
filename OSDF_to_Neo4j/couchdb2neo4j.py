@@ -399,16 +399,13 @@ def _mod_quotes(val):
         val = val.replace("'","\'")
         val = val.replace('"','\"')
 
-        # In order to search the DB as you would expect, convert number only strings to digits
-        if val.isdigit():
-            val = float(val) # float just in case
-
     return val
 
 # Function to insert into Neo4j. Takes in Neo4j connection and a document.
 def _insert_into_neo4j(cy,doc):
     if doc is not None:
 
+        f_id,su_id,sa_id = ("" for i in range(3))
         props = ""
 
         # Currently the Doc contains ALL nodes, need to break this up into
@@ -426,7 +423,53 @@ def _insert_into_neo4j(cy,doc):
                 val = _mod_quotes(val)
                 props += '`%s`:"%s"' % (key,val)
 
+            if key == "id":
+                f_id = val
+
         cy.run("CREATE (node:file {{ {0} }})".format(props))
+
+        props = ""
+        for key,val in doc['sample'].items():
+            if key == 'linkage': # already attached everything previously
+                continue
+
+            if props != "":
+                props += ","
+
+            if isinstance(val, int) or isinstance(val, float):
+                props += '`%s`:%s' % (key,val)
+            else:
+                val = _mod_quotes(val)
+                props += '`%s`:"%s"' % (key,val)
+
+            if key == "id":
+                sa_id = val
+
+        cy.run("MERGE (node:sample {{ {0} }})".format(props))
+
+        props = ""
+        for key,val in doc['subject'].items():
+            if key == 'linkage': # already attached everything previously
+                continue
+
+            if val == "" or not val:
+                continue
+
+            if props != "":
+                props += ","
+
+            if isinstance(val, int) or isinstance(val, float):
+                props += '`%s`:%s' % (key,val)
+            else:
+                val = _mod_quotes(val)
+                props += '`%s`:"%s"' % (key,val)
+
+            if key == "id":
+                su_id = val
+
+        cy.run("MERGE (node:subject {{ {0} }})".format(props))
+
+        cy.run("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}),(n3:file{{id:'{2}'}}) CREATE (n1)<-[:extracted_from]-(n2)<-[:derived_from]-(n3)".format(su_id,sa_id,f_id))
 
 
 if __name__ == '__main__':
@@ -544,24 +587,27 @@ if __name__ == '__main__':
         if 'meta' in doc['doc']:
 
             for key,val in doc['doc']['meta'].items():
-                node_key = "meta_{1}".format(doc['doc']['node_type'],key)
+                node_key = "meta_{0}".format(key)
 
                 if isinstance(val,dict): # if a nested dict, extract
 
                     for ke,va in doc['doc']['meta'][key].items():
-                        node_key = "{0}_{1}".format(node_key,ke)
+                        node_key = "meta_{0}".format(ke)
 
                         if isinstance(va,dict):
                             
                             for k,v in doc['doc']['meta'][key][ke].items(): 
-                                node_key = "{0}_{1}".format(node_key,k)
-                                doc['doc'][node_key] = v
+                                node_key = "meta_{0}".format(k)
+                                if v != "" or v:
+                                    doc['doc'][node_key] = v
 
                         else:
-                            doc['doc'][node_key] = va
+                            if va != "" or va:
+                                doc['doc'][node_key] = va
 
                 else:
-                    doc['doc'][node_key] = val
+                    if val != "" or val:
+                        doc['doc'][node_key] = val
 
             del doc['doc']['meta']
 
