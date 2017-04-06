@@ -474,7 +474,7 @@ def _insert_into_neo4j(cy,doc):
                 tag = tag.split(':',1)[1] # don't trim URLs and the like (e.g. http:)
                 tag = tag.strip()
             if tag: # if there's something there, attach
-                cy.run("MATCH (n1:file{{id:'{0}'}}) MERGE (tag{{term:'{1}'}})<-[:HAS_TAG]-(n1)".format(file_info['id'],tag))
+                cy.run("MATCH (n1:file{{id:'{0}'}}) MERGE (tag{{term:'{1}'}})<-[:has_tag]-(n1)".format(file_info['id'],tag))
 
 
 if __name__ == '__main__':
