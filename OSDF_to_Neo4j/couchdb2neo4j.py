@@ -440,6 +440,7 @@ def _insert_into_neo4j(cy,doc):
         # Grab just the properties of the file and prep nodes
         file_info = _traverse_document(doc,'main')
         prep_info = _traverse_document(doc,'prep')
+        all_tags = []
 
         props = "{0},{1}".format(file_info['prop_str'],prep_info['prop_str'])
         cy.run("CREATE (node:file {{ {0} }})".format(props))
@@ -458,6 +459,22 @@ def _insert_into_neo4j(cy,doc):
 
         cy.run("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}) MERGE (n1)<-[:extracted_from]-(n2)".format(subject_info['id'],sample_info['id']))
         cy.run("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[:derived_from]-(n3)".format(sample_info['id'],file_info['id']))
+
+        all_tags += file_info['tag_list']
+        all_tags += prep_info['tag_list']
+        all_tags += sample_info['tag_list']
+        all_tags += visit_info['tag_list']
+        all_tags += subject_info['tag_list']
+        all_tags += study_info['tag_list']
+        all_tags += project_info['tag_list']
+        unique_tags = set(all_tags)
+
+        for tag in unique_tags:
+            if ":" in tag:
+                tag = tag.split(':',1)[1] # don't trim URLs and the like (e.g. http:)
+                tag = tag.strip()
+            if tag: # if there's something there, attach
+                cy.run("MATCH (n1:file{{id:'{0}'}}) MERGE (tag{{term:'{1}'}})<-[:HAS_TAG]-(n1)".format(file_info['id'],tag))
 
 
 if __name__ == '__main__':
