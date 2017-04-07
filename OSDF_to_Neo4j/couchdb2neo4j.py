@@ -9,13 +9,7 @@
 #
 # File is the prep node as well as the file
 #
-# into single documents based on the File as the base.
-#
 #-*-coding: utf-8-*-
-"""
-Simple script to dump documents out of a CouchDB database and straight into
-a Couchbase instance.
-"""
 
 import time,sys,argparse,requests
 from py2neo import Graph
@@ -350,6 +344,9 @@ def _find_upstream_node(node_dict,node_name,link_id):
 
 # This function collects sample-project nodes as these can consistently be 
 # retrieved in a similar manner.
+#
+# Note a lack of *_attribute nodes. When real data for these is uploaded they
+# will be tested and accounted for.
 def _collect_sample_through_project(all_nodes_dict,doc):
     
     doc['sample'] = _find_upstream_node(all_nodes_dict['sample'],'sample',doc['prep']['linkage']['prepared_from'])
