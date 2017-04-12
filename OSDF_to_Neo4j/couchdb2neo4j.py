@@ -13,7 +13,7 @@
 
 import time,sys,argparse,requests
 from py2neo import Graph
-from accs_for_couchdb2neo4j import fma_free_body_site_dict
+from accs_for_couchdb2neo4j import fma_free_body_site_dict, study_name_dict
 
 try:
     import simplejson as json
@@ -400,35 +400,51 @@ def _mod_quotes(val):
 def _traverse_document(doc,focal_node):
 
     key_prefix = "" # for nodes embedded into other nodes, use this prefix to prepend their keys like project_name
-    props = "" # long string for all the properties that are going to be added
+    props = [] # list of all the properties to be added
     tags = [] # list of tags to be attached to the ID
     doc_id = "" # keep track of the ID for this particular doc.  
 
     if focal_node not in ['subject','sample','main']: # main is equivalent to file since a single doc represents a single file
         key_prefix = "{0}_".format(focal_node)
 
-    # Currently the Doc contains ALL nodes, need to break this up into
-    # subject, sample, and file.
     for key,val in doc[focal_node].items():
-        if key == 'linkage': # already attached everything previously
+        if key == 'linkage' or not val: # document itself contains all linkage info already
             continue
 
-        if props != "" and key != 'tags': # make sure no double commas due to the tags key
-            props += ","
-
         if isinstance(val, int) or isinstance(val, float):
-            props += '`{0}{1}`:{2}'.format(key_prefix,key,val)
+            props.append('`{0}{1}`:{2}'.format(key_prefix,key,val))
+        elif isinstance(val, list): # lists should be urls, contacts, and tags
+            for j in range(0,len(val)): 
+                endpoint = val[j].split(':')[0]
+                
+                if key == 'tags':
+                    tags.append(val)
+
+                elif key == 'contact':
+                    email = ""
+                    for vals in val: # try find an email
+                        if '@' in vals:
+                            email = vals
+                            break
+                    if email:
+                        props.append('`{0}contact`:"{2}"'.format(key_prefix,email))
+                        break
+                    else:
+                        props.append('`{0}contact`:"{2}"'.format(key_prefix,val[j]))
+                        break
+
+                else:
+                    props.append('`{0}{1}`:"{2}"'.format(key_prefix,endpoint,val[j]))
         else:
             val = _mod_quotes(val)
-            if key == 'tags':
-                tags += val
-            else:
-                props += '`{0}{1}`:"{2}"'.format(key_prefix,key,val)
+            props.append('`{0}{1}`:"{2}"'.format(key_prefix,key,val))
 
         if key == "id":
             doc_id = val
 
-    return {'id':doc_id,'tag_list':tags,'prop_str':props}
+    props_str = (',').join(props)
+
+    return {'id':doc_id,'tag_list':tags,'prop_str':props_str}
 
 # Function to insert into Neo4j. Takes in Neo4j connection and a document.
 def _insert_into_neo4j(cy,doc):
@@ -457,6 +473,7 @@ def _insert_into_neo4j(cy,doc):
         cy.run("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}) MERGE (n1)<-[:extracted_from]-(n2)".format(subject_info['id'],sample_info['id']))
         cy.run("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[:derived_from]-(n3)".format(sample_info['id'],file_info['id']))
 
+'''
         all_tags += file_info['tag_list']
         all_tags += prep_info['tag_list']
         all_tags += sample_info['tag_list']
@@ -472,6 +489,25 @@ def _insert_into_neo4j(cy,doc):
                 tag = tag.strip()
             if tag: # if there's something there, attach
                 cy.run("MATCH (n1:file{{id:'{0}'}}) MERGE (tag{{term:'{1}'}})<-[:has_tag]-(n1)".format(file_info['id'],tag))
+'''
+
+# Takes a dictionary from the OSDF doc and builds a list of the keys that are
+# irrelevant.
+def _delete_keys_from_dict(doc_dict):
+    delete_us = []
+
+    for key,val in doc_dict.items():
+        if not val or not key:
+            delete_us.append(key)
+
+        # Unfortunately... have to check for keys comprised of blanks paces
+        if len(key.replace(' ','')) == 0:
+            delete_us.append(key)
+
+    for empty in delete_us:
+        del doc_dict[empty]
+
+    return doc_dict
 
 
 if __name__ == '__main__':
@@ -587,6 +623,28 @@ if __name__ == '__main__':
             del doc['doc']['ns']
         if 'subset_of' in doc['doc']['linkage']:
             del doc['doc']['linkage']['subset_of']
+
+        # Clean up all these empty values
+        doc['doc'] = _delete_keys_from_dict(doc['doc'])
+        if 'meta' in doc['doc']:
+
+            # Private nodes should have some mock data in them
+            if 'urls' in doc['doc']['meta']:
+                if len(doc['doc']['meta']['urls'])==1 and doc['doc']['meta']['urls'][0]== "":
+                    doc['doc']['meta']['urls'][0] = 'Private {0}'.format(doc['id'])
+
+            doc['doc']['meta'] = _delete_keys_from_dict(doc['doc']['meta'])
+
+            if 'mixs' in doc['doc']['meta']:
+                doc['doc']['meta']['mixs'] = _delete_keys_from_dict(doc['doc']['meta']['mixs'])
+
+            if 'mimarks' in doc['doc']['meta']:
+                doc['doc']['meta']['mimarks'] = _delete_keys_from_dict(doc['doc']['meta']['mimarks'])
+
+        # At this point we should have purged the document of all properties
+        # that have no value attached to them.
+
+        # Now move meta values a step outward and make them a base property instead of nested
         if 'meta' in doc['doc']:
 
             for key,val in doc['doc']['meta'].items():
@@ -598,15 +656,15 @@ if __name__ == '__main__':
                         if isinstance(va,dict):
                             
                             for k,v in doc['doc']['meta'][key][ke].items(): 
-                                if v != "" or v:
+                                if k and v:
                                     doc['doc'][k] = v
 
                         else:
-                            if va != "" or va:
+                            if ke and va:
                                 doc['doc'][ke] = va
 
                 else:
-                    if val != "" or val:
+                    if key and val:
                         doc['doc'][key] = val
 
             del doc['doc']['meta']
@@ -626,8 +684,9 @@ if __name__ == '__main__':
         # Catch any wonky edges at the document level, should only have one
         # although if these were laid out in a graph DB there could be multiple
         # nodes going to another like when samples are pooled.
-        if len(doc['doc']['linkage']) > 1:
-            print("A document has multiple linkages! See:\n".format(doc['doc']))
+        if 'linkage' in doc['doc']:
+            if len(doc['doc']['linkage']) > 1:
+                print("A document has multiple linkages! See:\n".format(doc['doc']))
 
         key = counter
 
@@ -674,6 +733,10 @@ if __name__ == '__main__':
             elif key == "clustered_seq_set":
                 for id in nodes[key]:
                     _insert_into_neo4j(cy,_build_clustered_seq_set_doc(nodes,nodes[key][id]))
+
+    cy.run('MATCH (n:subject) SET n.study_full_name=n.study_name')
+    for old,new in study_name_dict.items():
+        cy.run('MATCH (n:subject) WHERE n.study_name="{0}" SET n.study_name="{1}"'.format(old,new))
 
     # A little final message
     sys.stderr.write("Done! {0} documents in {1} seconds!\n".format(
