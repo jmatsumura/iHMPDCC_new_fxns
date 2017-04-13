@@ -427,10 +427,10 @@ def _traverse_document(doc,focal_node):
                             email = vals
                             break
                     if email:
-                        props.append('`{0}contact`:"{2}"'.format(key_prefix,email))
+                        props.append('`{0}contact`:"{1}"'.format(key_prefix,email))
                         break
                     else:
-                        props.append('`{0}contact`:"{2}"'.format(key_prefix,val[j]))
+                        props.append('`{0}contact`:"{1}"'.format(key_prefix,val[j]))
                         break
 
                 else:
