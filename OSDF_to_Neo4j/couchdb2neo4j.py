@@ -387,7 +387,7 @@ def _build_all_indexes(node,cy):
     for x in result:
         prop = x['allfields']
         if prop != 'id':
-            cy.run("CREATE INDEX ON :{0}('{1}')".format(node,prop))
+            cy.run("CREATE INDEX ON :{0}(`{1}`)".format(node,prop))
 
 # Escape quotes to keep Cypher happy
 def _mod_quotes(val):
