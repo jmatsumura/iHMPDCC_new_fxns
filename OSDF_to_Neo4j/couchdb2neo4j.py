@@ -368,14 +368,26 @@ def _collect_sample_through_project(all_nodes_dict,doc):
 def _refine_link(linkage):
 
     if type(linkage) is list:
-        return linkage[0]
+        if linkage[0] == '3a51534abc6e1a5ee6d9cc86c400a5a3': # don't consider the demo project a study, ignore this ID
+            return linkage[1]
+        else:
+            return linkage[0]
     else:
         return linkage
 
-# Build indexes for the three node types and their properties
+# Build indexes for the three node types and their IDs that guarantee UNIQUEness
 def _build_constraint_index(node,prop,cy):
-    cstr = "CREATE CONSTRAINT ON (x:%s) ASSERT x.%s IS UNIQUE" % (node,prop)
+    cstr = "CREATE CONSTRAINT ON (x:{0}) ASSERT x.{1} IS UNIQUE".format(node,prop)
     cy.run(cstr)
+
+# Build indexes for searching on all the props that aren't ID. Takes which node
+# to build all indexes on as well as the Neo4j connection.
+def _build_all_indexes(node,cy):
+    result = cy.run("MATCH (n:{0}) WITH DISTINCT keys(n) AS keys UNWIND keys AS keyslisting WITH DISTINCT keyslisting AS allfields RETURN allfields".format(node))
+    for x in result:
+        prop = x['allfields']
+        if prop != 'id':
+            cy.run("CREATE INDEX ON :{0}('{1}')".format(node,prop))
 
 # Escape quotes to keep Cypher happy
 def _mod_quotes(val):
@@ -415,7 +427,6 @@ def _traverse_document(doc,focal_node):
             props.append('`{0}{1}`:{2}'.format(key_prefix,key,val))
         elif isinstance(val, list): # lists should be urls, contacts, and tags
             for j in range(0,len(val)): 
-                endpoint = val[j].split(':')[0]
                 
                 if key == 'tags':
                     tags.append(val)
@@ -434,6 +445,7 @@ def _traverse_document(doc,focal_node):
                         break
 
                 else:
+                    endpoint = val[j].split(':')[0]
                     props.append('`{0}{1}`:"{2}"'.format(key_prefix,endpoint,val[j]))
         else:
             val = _mod_quotes(val)
@@ -628,10 +640,10 @@ if __name__ == '__main__':
         doc['doc'] = _delete_keys_from_dict(doc['doc'])
         if 'meta' in doc['doc']:
 
-            # Private nodes should have some mock data in them
+            # Private nodes should have some mock URL data in them
             if 'urls' in doc['doc']['meta']:
                 if len(doc['doc']['meta']['urls'])==1 and doc['doc']['meta']['urls'][0]== "":
-                    doc['doc']['meta']['urls'][0] = 'Private {0}'.format(doc['id'])
+                    doc['doc']['meta']['urls'][0] = 'Private:Private Data ({0})'.format(doc['id'])
 
             doc['doc']['meta'] = _delete_keys_from_dict(doc['doc']['meta'])
 
@@ -734,9 +746,16 @@ if __name__ == '__main__':
                 for id in nodes[key]:
                     _insert_into_neo4j(cy,_build_clustered_seq_set_doc(nodes,nodes[key][id]))
 
+    # Here set some better syntax for the portal and override the original OSDF values
     cy.run('MATCH (n:subject) SET n.study_full_name=n.study_name')
     for old,new in study_name_dict.items():
         cy.run('MATCH (n:subject) WHERE n.study_name="{0}" SET n.study_name="{1}"'.format(old,new))
+    cy.run("MATCH (PSS:subject) WHERE PSS.project_name = 'iHMP' SET PSS.project_name = 'Integrative Human Microbiome Project'")
+
+    # Now build indexes on each unique property found in this newest data set
+    _build_all_indexes('subject',cy)
+    _build_all_indexes('sample',cy)
+    _build_all_indexes('file',cy)
 
     # A little final message
     sys.stderr.write("Done! {0} documents in {1} seconds!\n".format(
