@@ -424,6 +424,7 @@ def _traverse_document(doc,focal_node):
             continue
 
         if isinstance(val, int) or isinstance(val, float):
+            key = key.encode('utf-8')
             props.append('`{0}{1}`:{2}'.format(key_prefix,key,val))
         elif isinstance(val, list): # lists should be urls, contacts, and tags
             for j in range(0,len(val)): 
@@ -449,6 +450,8 @@ def _traverse_document(doc,focal_node):
                     props.append('`{0}{1}`:"{2}"'.format(key_prefix,endpoint,val[j]))
         else:
             val = _mod_quotes(val)
+            key = key.encode('utf-8')
+            val = val.encode('utf-8')
             props.append('`{0}{1}`:"{2}"'.format(key_prefix,key,val))
 
         if key == "id":
