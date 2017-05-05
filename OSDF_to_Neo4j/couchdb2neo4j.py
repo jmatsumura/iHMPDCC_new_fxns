@@ -550,6 +550,7 @@ if __name__ == '__main__':
     _build_constraint_index('subject','id',cy)
     _build_constraint_index('sample','id',cy)
     _build_constraint_index('file','id',cy)
+    _build_constraint_index('token','id',cy)
     _build_constraint_index('tag','term',cy)
 
     # Now just loop through and create documents. I like counters, so there's
