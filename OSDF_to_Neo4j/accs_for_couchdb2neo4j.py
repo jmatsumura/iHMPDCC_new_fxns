@@ -125,6 +125,7 @@ study_name_dict = {
     'Human microbiome project WGS production phase I.':'WGS-PP1',
     'ibdmdb':'IBDMDB',
     'momspi':'MOMS-PI',
+    'Inflammatory Bowel Disease Multi-omics Database (IBDMDB)':'IBDMDB',
     'prediabetes':'T2D'
 }
 
