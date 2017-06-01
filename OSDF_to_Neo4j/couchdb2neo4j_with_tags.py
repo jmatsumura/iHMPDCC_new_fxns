@@ -472,27 +472,31 @@ def _insert_into_neo4j(cy,doc):
         file_info = _traverse_document(doc,'main')
         prep_info = _traverse_document(doc,'prep')
         all_tags = {}
+        # build a transaction to bunch statements into a single transaction
+        tx = cy.begin()
 
         props = "{0},{1}".format(file_info['prop_str'],prep_info['prop_str'])
-        cy.run("CREATE (node:file {{ {0} }})".format(props))
+        tx.append("CREATE (node:file {{ {0} }})".format(props))
 
         sample_info = _traverse_document(doc,'sample')
         visit_info = _traverse_document(doc,'visit')
         study_info = _traverse_document(doc,'study')
 
         props = "{0},{1},{2}".format(sample_info['prop_str'],visit_info['prop_str'],study_info['prop_str'])
-        cy.run("MERGE (node:sample {{ {0} }})".format(props))
+        tx.append("MERGE (node:sample {{ {0} }})".format(props))
 
         subject_info = _traverse_document(doc,'subject')
         project_info = _traverse_document(doc,'project')
         props = "{0},{1}".format(subject_info['prop_str'],project_info['prop_str'])
-        cy.run("MERGE (node:subject {{ {0} }})".format(props))
+        tx.append("MERGE (node:subject {{ {0} }})".format(props))
 
-        cy.run("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}) MERGE (n1)<-[:extracted_from]-(n2)".format(subject_info['id'],sample_info['id']))
-        cy.run("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[:derived_from]-(n3)".format(sample_info['id'],file_info['id']))
+        tx.append("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}) MERGE (n1)<-[:extracted_from]-(n2)".format(subject_info['id'],sample_info['id']))
+        tx.append("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[:derived_from]-(n3)".format(sample_info['id'],file_info['id']))
+        # Neo4j needs some separation as it does not support multiple transactions
+        tx.commit()
 
 	# flatten lists of lists, uniquifying as we go
-        _add_unique_tags(all_tags, file_info['tag_list'])
+	_add_unique_tags(all_tags, file_info['tag_list'])
 	_add_unique_tags(all_tags, prep_info['tag_list'])
 	_add_unique_tags(all_tags, sample_info['tag_list'])
 	_add_unique_tags(all_tags, visit_info['tag_list'])
@@ -509,8 +513,8 @@ def _insert_into_neo4j(cy,doc):
                 tag = tag.split(':',1)[1] # don't trim URLs and the like (e.g. http:)
                 tag = tag.strip()
             if tag: # if there's something there, attach
-                cy.run("MERGE (n:tag{{term:'{0}'}})".format(tag))
-                cy.run("MATCH (n1:file{{id:'{0}'}}),(n2:tag{{term:'{1}'}}) MERGE (n2)<-[:has_tag]-(n1)".format(file_info['id'],tag))
+                # the "WITH COUNT(*) AS dummy" simply acts like a semi-colon does in MySQL
+                cy.run("MERGE (n:tag{{term:'{1}'}}) WITH COUNT(*) AS dummy MATCH (n1:file{{id:'{0}'}}),(n2:tag{{term:'{1}'}}) MERGE (n2)<-[:has_tag]-(n1)".format(file_info['id'],tag))
 
 # Takes a dictionary from the OSDF doc and builds a list of the keys that are
 # irrelevant.
