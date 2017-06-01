@@ -465,35 +465,35 @@ def _add_unique_tags(th, tl):
 	    _add_unique_tags(th, t)
 
 # Function to insert into Neo4j. Takes in Neo4j connection and a document.
-def _insert_into_neo4j(cy,doc):
+def _insert_into_neo4j(doc):
+    
+    # build up a list of Cypher statements to commit in batches later
+    cypher = []
+    
     if doc is not None:
 
         # Grab just the properties of the file and prep nodes
         file_info = _traverse_document(doc,'main')
         prep_info = _traverse_document(doc,'prep')
         all_tags = {}
-        # build a transaction to bunch statements into a single transaction
-        tx = cy.begin()
 
         props = "{0},{1}".format(file_info['prop_str'],prep_info['prop_str'])
-        tx.append("CREATE (node:file {{ {0} }})".format(props))
+        cypher.append("CREATE (node:file {{ {0} }})".format(props))
 
         sample_info = _traverse_document(doc,'sample')
         visit_info = _traverse_document(doc,'visit')
         study_info = _traverse_document(doc,'study')
 
         props = "{0},{1},{2}".format(sample_info['prop_str'],visit_info['prop_str'],study_info['prop_str'])
-        tx.append("MERGE (node:sample {{ {0} }})".format(props))
+        cypher.append("MERGE (node:sample {{ {0} }})".format(props))
 
         subject_info = _traverse_document(doc,'subject')
         project_info = _traverse_document(doc,'project')
         props = "{0},{1}".format(subject_info['prop_str'],project_info['prop_str'])
-        tx.append("MERGE (node:subject {{ {0} }})".format(props))
+        cypher.append("MERGE (node:subject {{ {0} }})".format(props))
 
-        tx.append("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}) MERGE (n1)<-[:extracted_from]-(n2)".format(subject_info['id'],sample_info['id']))
-        tx.append("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[:derived_from]-(n3)".format(sample_info['id'],file_info['id']))
-        # Neo4j needs some separation as it does not support multiple transactions
-        tx.commit()
+        cypher.append("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}) MERGE (n1)<-[:extracted_from]-(n2)".format(subject_info['id'],sample_info['id']))
+        cypher.append("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[:derived_from]-(n3)".format(sample_info['id'],file_info['id']))
 
 	# flatten lists of lists, uniquifying as we go
 	_add_unique_tags(all_tags, file_info['tag_list'])
@@ -513,8 +513,10 @@ def _insert_into_neo4j(cy,doc):
                 tag = tag.split(':',1)[1] # don't trim URLs and the like (e.g. http:)
                 tag = tag.strip()
             if tag: # if there's something there, attach
-                # the "WITH COUNT(*) AS dummy" simply acts like a semi-colon does in MySQL
-                cy.run("MERGE (n:tag{{term:'{1}'}}) WITH COUNT(*) AS dummy MATCH (n1:file{{id:'{0}'}}),(n2:tag{{term:'{1}'}}) MERGE (n2)<-[:has_tag]-(n1)".format(file_info['id'],tag))
+                cypher.append("MERGE (n:tag{{term:'{0}'}})".format(tag))
+                cypher.append("MATCH (n1:file{{id:'{0}'}}),(n2:tag{{term:'{1}'}}) MERGE (n2)<-[:has_tag]-(n1)".format(file_info['id'],tag))
+
+    return cypher
 
 # Takes a dictionary from the OSDF doc and builds a list of the keys that are
 # irrelevant.
@@ -552,6 +554,10 @@ if __name__ == '__main__':
     parser.add_argument(
         "--neo4j_password", default="neo4j",
         help="The password for Neo4j")
+
+    parser.add_argument(
+        "--batch_size", type=int, default=500,
+        help="The batch size for Cypher statements to be committed")
 
     args = parser.parse_args()
 
@@ -722,25 +728,28 @@ if __name__ == '__main__':
             sys.stderr.write(str(counter) + '\r')
             sys.stderr.flush()
 
+    # build a list of all Cypher statements to build the entire DB
+    cypher_statements = [] 
+
     for key in nodes:
 
         if key in files_only:
 
             if key == "16s_raw_seq_set":
                 for id in nodes[key]:
-                    _insert_into_neo4j(cy,_build_16s_raw_seq_set_doc(nodes,nodes[key][id]))
+                    cypher_statements += _insert_into_neo4j(_build_16s_raw_seq_set_doc(nodes,nodes[key][id]))
 
             elif key == "16s_trimmed_seq_set":
                 for id in nodes[key]:
-                    _insert_into_neo4j(cy,_build_16s_trimmed_seq_set_doc(nodes,nodes[key][id]))
+                    cypher_statements += _insert_into_neo4j(_build_16s_trimmed_seq_set_doc(nodes,nodes[key][id]))
 
             elif key.endswith("ome") or key == "cytokine":
                 for id in nodes[key]:
-                    _insert_into_neo4j(cy,_build_omes_doc(nodes,nodes[key][id]))
+                    cypher_statements += _insert_into_neo4j(_build_omes_doc(nodes,nodes[key][id]))
 
             elif key == "abundance_matrix":
                 for id in nodes[key]:
-                    _insert_into_neo4j(cy,_build_abundance_matrix_doc(nodes,nodes[key][id]))
+                    cypher_statements += _insert_into_neo4j(_build_abundance_matrix_doc(nodes,nodes[key][id]))
 
             elif (
                 key == "wgs_raw_seq_set" or key == "wgs_raw_seq_set_private" 
@@ -748,19 +757,36 @@ if __name__ == '__main__':
                 or key == "microb_transcriptomics_raw_seq_set"
                 ):
                 for id in nodes[key]:
-                    _insert_into_neo4j(cy,_build_wgs_transcriptomics_doc(nodes,nodes[key][id]))
+                    cypher_statements += _insert_into_neo4j(_build_wgs_transcriptomics_doc(nodes,nodes[key][id]))
 
             elif key == "wgs_assembled_seq_set" or key == "viral_seq_set":
                 for id in nodes[key]:
-                    _insert_into_neo4j(cy,_build_wgs_assembled_or_viral_seq_set_doc(nodes,nodes[key][id]))
+                    cypher_statements += _insert_into_neo4j(_build_wgs_assembled_or_viral_seq_set_doc(nodes,nodes[key][id]))
 
             elif key == "annotation":
                 for id in nodes[key]:
-                    _insert_into_neo4j(cy,_build_annotation_doc(nodes,nodes[key][id]))
+                    cypher_statements += _insert_into_neo4j(_build_annotation_doc(nodes,nodes[key][id]))
 
             elif key == "clustered_seq_set":
                 for id in nodes[key]:
-                    _insert_into_neo4j(cy,_build_clustered_seq_set_doc(nodes,nodes[key][id]))
+                    cypher_statements += _insert_into_neo4j(_build_clustered_seq_set_doc(nodes,nodes[key][id]))
+
+    # Send Cypher in transactions with a number of statements sent at a time 
+    # equal to args.batch_size
+    for j in range(0,len(cypher_statements),args.batch_size):
+        
+        start = j
+        stop = j+args.batch_size
+        
+        if stop > len(cypher_statements):
+            stop = len(cypher_statements)
+
+        tx = cy.begin()
+
+        for pos in range(start,stop):
+            tx.append(cypher_statements[pos])
+
+        tx.commit()
 
     # Here set some better syntax for the portal and override the original OSDF values
     cy.run('MATCH (n:sample) SET n.study_full_name=n.study_name')
