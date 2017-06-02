@@ -1,13 +1,20 @@
 # CREDIT TO necaris for the base script ~ https://gist.github.com/necaris/5604018
 #
 # Script to migrate OSDF CouchDB into Neo4j. This will collapse nodes into 
-# Subject, Sample, and File nodes. 
+# subject, sample, file, and tag nodes. 
 # 
-# Subject houses project, study, subject_attribute, and subject
+# subject houses project, subject_attribute, and subject
 #
-# Sample houses visit, visit_attribute, sample, and sample_attribute
+# sample houses study, visit, visit_attribute, sample, and sample_attribute
 #
-# File is the prep node as well as the file
+# file is the prep node as well as the file
+#
+# tag is the tag term attached to any of the nodes associated with a given
+# file node. 
+#
+# The overall data structure looks like:
+#
+# (subject) <-[:extracted_from]- (sample) <-[:derived_from]- (file) -[:has_tag]-> (tag)
 #
 #-*-coding: utf-8-*-
 
