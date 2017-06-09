@@ -418,7 +418,7 @@ def _traverse_document(doc,focal_node):
     tags = [] # list of tags to be attached to the ID
     doc_id = "" # keep track of the ID for this particular doc.  
 
-    if focal_node not in ['subject','sample','main']: # main is equivalent to file since a single doc represents a single file
+    if focal_node not in ['subject','sample','main','prep']: # main is equivalent to file since a single doc represents a single file
         key_prefix = "{0}_".format(focal_node)
 
     for key,val in doc[focal_node].items():
@@ -484,7 +484,7 @@ def _insert_into_neo4j(doc):
         prep_info = _traverse_document(doc,'prep')
         all_tags = {}
 
-        props = "{0},{1}".format(file_info['prop_str'],prep_info['prop_str'])
+        props = "{0}".format(file_info['prop_str'])
         cypher.append("CREATE (node:file {{ {0} }})".format(props))
 
         sample_info = _traverse_document(doc,'sample')
@@ -500,20 +500,20 @@ def _insert_into_neo4j(doc):
         cypher.append("MERGE (node:subject {{ {0} }})".format(props))
 
         cypher.append("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}) MERGE (n1)<-[:extracted_from]-(n2)".format(subject_info['id'],sample_info['id']))
-        cypher.append("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[:derived_from]-(n3)".format(sample_info['id'],file_info['id']))
+        cypher.append("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[d:derived_from{{{2}}}]-(n3)".format(sample_info['id'],file_info['id'],prep_info['prop_str']))
 
 	# flatten lists of lists, uniquifying as we go
-	_add_unique_tags(all_tags, file_info['tag_list'])
-	_add_unique_tags(all_tags, prep_info['tag_list'])
-	_add_unique_tags(all_tags, sample_info['tag_list'])
-	_add_unique_tags(all_tags, visit_info['tag_list'])
-	_add_unique_tags(all_tags, subject_info['tag_list'])
-	_add_unique_tags(all_tags, study_info['tag_list'])
-	_add_unique_tags(all_tags, project_info['tag_list'])
+    _add_unique_tags(all_tags, file_info['tag_list'])
+    _add_unique_tags(all_tags, prep_info['tag_list'])
+    _add_unique_tags(all_tags, sample_info['tag_list'])
+    _add_unique_tags(all_tags, visit_info['tag_list'])
+    _add_unique_tags(all_tags, subject_info['tag_list'])
+    _add_unique_tags(all_tags, study_info['tag_list'])
+    _add_unique_tags(all_tags, project_info['tag_list'])
 
-	unique_tags = []
-	for k in all_tags:
-	    unique_tags.append(k)
+    unique_tags = []
+    for k in all_tags:
+        unique_tags.append(k)
 
         for tag in unique_tags:
             if ":" in tag:
