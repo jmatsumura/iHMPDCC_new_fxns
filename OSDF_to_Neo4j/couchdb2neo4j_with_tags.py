@@ -90,9 +90,14 @@ def _build_16s_raw_seq_set_doc(all_nodes_dict,node):
     doc = {}
     doc['main'] = node['doc']
 
-    doc['prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
+    # If this is a pooled sample, build a different object that represents that state
+    if type(doc['main']['linkage']['sequenced_from']) is list and len(set(doc['main']['linkage']['sequenced_from'])) > 1:
+        doc['prep'] = _multi_find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
+        return _multi_collect_sample_through_project(all_nodes_dict,doc)
 
-    return _collect_sample_through_project(all_nodes_dict,doc)
+    else:
+        doc['prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['main']['linkage']['sequenced_from'])
+        return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
 
@@ -363,9 +368,48 @@ def _collect_sample_through_project(all_nodes_dict,doc):
     else:
         return doc
 
+# Similar to _find_upstream_node() except this one finds multiple upstream nodes.
+# Returns a list at that dict for each upstream node. 
+def _multi_find_upstream_node(node_dict,node_name,link_ids):
+    
+    link_list = list(set(link_ids))
+    upstream_node_list = []
+
+    for link_id in link_list:
+        if link_id in node_dict:
+            upstream_node_list.append(node_dict[link_id]['doc'])
+
+    if len(upstream_node_list) > 1:
+        return upstream_node_list
+    else:
+        print("Made it here, so node type {0} doesn't have multiple upstream nodes as expected.".format(node_name))
+
+
+# Similar to _collect_sample_through_project() except this works with many 
+# upstream nodes
+def _multi_collect_sample_through_project(all_nodes_dict,doc):
+
+    # Establish each node type as a list to account for each different prep linkage
+    init_nodes = ['sample','visit','subject','study','project']
+    for nt in init_nodes:
+        if nt not in doc: # needs to be handled here in the case of multiple files downstream of a prep
+            doc[nt] = []
+
+    # Maintain positions via list indices for each prep -> project path
+    for x in range(0,len(doc['prep'])):
+
+        doc['sample'].append(_find_upstream_node(all_nodes_dict['sample'],'sample',doc['prep'][x]['linkage']['prepared_from']))
+        new_idx = (len(doc['sample'])-1) # occassionally this will be offset from prep if there's multiple downstream of prep
+        doc['visit'].append(_find_upstream_node(all_nodes_dict['visit'],'visit',doc['sample'][new_idx]['linkage']['collected_during']))
+        doc['subject'].append(_find_upstream_node(all_nodes_dict['subject'],'subject',doc['visit'][new_idx]['linkage']['by']))
+        doc['study'].append(_find_upstream_node(all_nodes_dict['study'],'study',doc['subject'][new_idx]['linkage']['participates_in']))
+        doc['project'].append(_find_upstream_node(all_nodes_dict['project'],'project',doc['study'][new_idx]['linkage']['part_of']))
+    
+    return doc
+
 # This simply reformats a ID specified from a linkage to ensure it's a string 
-# and not a list. I haven't encountered any scenarios with multiple linkages 
-# from a single node and do not think it is a problem. Accepts a an entity
+# and not a list. Sometimes this happens when multiple linkages are noted but 
+# it simply repeats pointing towards the same upstream node. Accepts a an entity
 # following a linkage like doc['linkage']['sequenced_from'|'derived_from']
 def _refine_link(linkage):
 
@@ -410,18 +454,25 @@ def _mod_quotes(val):
     return val
 
 # Function to traverse the nested JSON documents from CouchDB and return
-# a flattened set of properties specific to the particular node. 
-def _traverse_document(doc,focal_node):
+# a flattened set of properties specific to the particular node. The index
+# value indicates whether or not this node has multiple upstream nodes. 
+def _traverse_document(doc,focal_node,index):
 
     key_prefix = "" # for nodes embedded into other nodes, use this prefix to prepend their keys like project_name
     props = [] # list of all the properties to be added
     tags = [] # list of tags to be attached to the ID
-    doc_id = "" # keep track of the ID for this particular doc.  
+    doc_id = "" # keep track of the ID for this particular doc.
+    relevant_doc = "" # potentially reformat if being passed a doc with a list
 
     if focal_node not in ['subject','sample','main','prep']: # main is equivalent to file since a single doc represents a single file
         key_prefix = "{0}_".format(focal_node)
 
-    for key,val in doc[focal_node].items():
+    if index == '':
+        relevant_doc = doc[focal_node]
+    else:
+        relevant_doc = doc[focal_node][index]
+
+    for key,val in relevant_doc.items():
         if key == 'linkage' or not val: # document itself contains all linkage info already
             continue
 
@@ -465,44 +516,41 @@ def _traverse_document(doc,focal_node):
 
 def _add_unique_tags(th, tl):
     if isinstance(tl, basestring):
-	if tl not in th:
-	    th[tl] = True
+        if tl not in th:
+            th[tl] = True
     else:
-	for t in tl:
-	    _add_unique_tags(th, t)
+        for t in tl:
+            _add_unique_tags(th, t)
 
-# Function to insert into Neo4j. Takes in Neo4j connection and a document.
-def _insert_into_neo4j(doc):
-    
-    # build up a list of Cypher statements to commit in batches later
+# Takes in a list of Cypher statements and builds on it. The index value 
+# differentiates a node with multiple upstream compared to one with single upstream.
+def _generate_cypher(doc,index):
+
     cypher = []
-    
-    if doc is not None:
 
-        # Grab just the properties of the file and prep nodes
-        file_info = _traverse_document(doc,'main')
-        prep_info = _traverse_document(doc,'prep')
-        all_tags = {}
+    all_tags = {}
 
-        props = "{0}".format(file_info['prop_str'])
-        cypher.append("CREATE (node:file {{ {0} }})".format(props))
+    file_info = _traverse_document(doc,'main','') # file is never a list, so never has an index
+    props = "{0}".format(file_info['prop_str'])
+    cypher.append("MERGE (node:file {{ {0} }})".format(props))
 
-        sample_info = _traverse_document(doc,'sample')
-        visit_info = _traverse_document(doc,'visit')
-        study_info = _traverse_document(doc,'study')
+    sample_info = _traverse_document(doc,'sample',index)
+    visit_info = _traverse_document(doc,'visit',index)
+    study_info = _traverse_document(doc,'study',index)
+    props = "{0},{1},{2}".format(sample_info['prop_str'],visit_info['prop_str'],study_info['prop_str'])
+    cypher.append("MERGE (node:sample {{ {0} }})".format(props))
 
-        props = "{0},{1},{2}".format(sample_info['prop_str'],visit_info['prop_str'],study_info['prop_str'])
-        cypher.append("MERGE (node:sample {{ {0} }})".format(props))
+    subject_info = _traverse_document(doc,'subject',index)
+    project_info = _traverse_document(doc,'project',index)
+    props = "{0},{1}".format(subject_info['prop_str'],project_info['prop_str'])
+    cypher.append("MERGE (node:subject {{ {0} }})".format(props))
 
-        subject_info = _traverse_document(doc,'subject')
-        project_info = _traverse_document(doc,'project')
-        props = "{0},{1}".format(subject_info['prop_str'],project_info['prop_str'])
-        cypher.append("MERGE (node:subject {{ {0} }})".format(props))
+    prep_info = _traverse_document(doc,'prep',index)
 
-        cypher.append("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}) MERGE (n1)<-[:extracted_from]-(n2)".format(subject_info['id'],sample_info['id']))
-        cypher.append("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[d:derived_from{{{2}}}]-(n3)".format(sample_info['id'],file_info['id'],prep_info['prop_str']))
+    cypher.append("MATCH (n1:subject{{id:'{0}'}}),(n2:sample{{id:'{1}'}}) MERGE (n1)<-[:extracted_from]-(n2)".format(subject_info['id'],sample_info['id']))
+    cypher.append("MATCH (n2:sample{{id:'{0}'}}),(n3:file{{id:'{1}'}}) MERGE (n2)<-[d:derived_from{{{2}}}]-(n3)".format(sample_info['id'],file_info['id'],prep_info['prop_str']))
 
-	# flatten lists of lists, uniquifying as we go
+    # flatten lists of lists, uniquifying as we go
     _add_unique_tags(all_tags, file_info['tag_list'])
     _add_unique_tags(all_tags, prep_info['tag_list'])
     _add_unique_tags(all_tags, sample_info['tag_list'])
@@ -524,6 +572,22 @@ def _insert_into_neo4j(doc):
                 cypher.append("MATCH (n1:file{{id:'{0}'}}),(n2:tag{{term:'{1}'}}) MERGE (n2)<-[:has_tag]-(n1)".format(file_info['id'],tag))
 
     return cypher
+
+# Function to insert into Neo4j. Takes in Neo4j connection and a document.
+def _insert_into_neo4j(doc):
+    
+    if doc is not None:
+
+        if type(doc['prep']) is not list: # most common node with 1:1 file to prep
+            return _generate_cypher(doc,'')
+
+        else: # node with multiple upstream preps per file
+            cypher_list = []
+            
+            for x in range(0,len(doc['prep'])):
+                cypher_list += _generate_cypher(doc,x)
+
+            return cypher_list
 
 # Takes a dictionary from the OSDF doc and builds a list of the keys that are
 # irrelevant.
@@ -735,6 +799,25 @@ if __name__ == '__main__':
             sys.stderr.write(str(counter) + '\r')
             sys.stderr.flush()
 
+    # These erroneous test docs ought to be corrected at the OSDF level
+    ignore_us = ['88af6472fb03642dd5eaf8cddc37b0f3','88af6472fb03642dd5eaf8cddc2f50b1',
+        '88af6472fb03642dd5eaf8cddc2f07c1','88af6472fb03642dd5eaf8cddc712ed7',
+        '932d8fbc70ae8f856028b3f67cfab1ed','b9af32d3ab623bcfbdce2ea3a502c015',
+        '610a4911a5ca67de12cdc1e4b4014cd0','610a4911a5ca67de12cdc1e4b40135fe',
+        '610a4911a5ca67de12cdc1e4b4014133','610a4911a5ca67de12cdc1e4b40156e8',
+        '610a4911a5ca67de12cdc1e4b40164de','610a4911a5ca67de12cdc1e4b4017467',
+        '610a4911a5ca67de12cdc1e4b4017ab9','9bb18fe313e7fe94bf243da07e000de0',
+        '9bb18fe313e7fe94bf243da07e00107e','b9af32d3ab623bcfbdce2ea3a5016b61',
+        '9bb18fe313e7fe94bf243da07e003ac0','419d64483ec86c1fb9a94025f3b94551',
+        '88af6472fb03642dd5eaf8cddc70c8ec','88af6472fb03642dd5eaf8cddc70d1de',
+        '858ed4564f11795ec13dda4c109b345f','67ff3a7b9227c8c6f1db4bbf2226fc4b',
+        '67ff3a7b9227c8c6f1db4bbf2227079e','88af6472fb03642dd5eaf8cddc2f4cb4',
+        '88af6472fb03642dd5eaf8cddc2f4340','194149ed5273e3f94fc60a9ba5001573',
+        '194149ed5273e3f94fc60a9ba59d2c9f','88af6472fb03642dd5eaf8cddc2f5abe',
+        '9bb18fe313e7fe94bf243da07e0032e4','88af6472fb03642dd5eaf8cddc2f3405',
+        '194149ed5273e3f94fc60a9ba50069b0','88af6472fb03642dd5eaf8cddc714325']
+    ignore = set(ignore_us)
+
     # build a list of all Cypher statements to build the entire DB
     cypher_statements = [] 
 
@@ -744,19 +827,23 @@ if __name__ == '__main__':
 
             if key == "16s_raw_seq_set":
                 for id in nodes[key]:
-                    cypher_statements += _insert_into_neo4j(_build_16s_raw_seq_set_doc(nodes,nodes[key][id]))
+                    if id not in ignore:
+                        cypher_statements += _insert_into_neo4j(_build_16s_raw_seq_set_doc(nodes,nodes[key][id]))
 
             elif key == "16s_trimmed_seq_set":
                 for id in nodes[key]:
-                    cypher_statements += _insert_into_neo4j(_build_16s_trimmed_seq_set_doc(nodes,nodes[key][id]))
+                    if id not in ignore:
+                        cypher_statements += _insert_into_neo4j(_build_16s_trimmed_seq_set_doc(nodes,nodes[key][id]))
 
             elif key.endswith("ome") or key == "cytokine":
                 for id in nodes[key]:
-                    cypher_statements += _insert_into_neo4j(_build_omes_doc(nodes,nodes[key][id]))
+                    if id not in ignore:
+                        cypher_statements += _insert_into_neo4j(_build_omes_doc(nodes,nodes[key][id]))
 
             elif key == "abundance_matrix":
                 for id in nodes[key]:
-                    cypher_statements += _insert_into_neo4j(_build_abundance_matrix_doc(nodes,nodes[key][id]))
+                    if id not in ignore:
+                        cypher_statements += _insert_into_neo4j(_build_abundance_matrix_doc(nodes,nodes[key][id]))
 
             elif (
                 key == "wgs_raw_seq_set" or key == "wgs_raw_seq_set_private" 
@@ -764,19 +851,23 @@ if __name__ == '__main__':
                 or key == "microb_transcriptomics_raw_seq_set"
                 ):
                 for id in nodes[key]:
-                    cypher_statements += _insert_into_neo4j(_build_wgs_transcriptomics_doc(nodes,nodes[key][id]))
+                    if id not in ignore:
+                        cypher_statements += _insert_into_neo4j(_build_wgs_transcriptomics_doc(nodes,nodes[key][id]))
 
             elif key == "wgs_assembled_seq_set" or key == "viral_seq_set":
                 for id in nodes[key]:
-                    cypher_statements += _insert_into_neo4j(_build_wgs_assembled_or_viral_seq_set_doc(nodes,nodes[key][id]))
+                    if id not in ignore:
+                        cypher_statements += _insert_into_neo4j(_build_wgs_assembled_or_viral_seq_set_doc(nodes,nodes[key][id]))
 
             elif key == "annotation":
                 for id in nodes[key]:
-                    cypher_statements += _insert_into_neo4j(_build_annotation_doc(nodes,nodes[key][id]))
+                    if id not in ignore:
+                        cypher_statements += _insert_into_neo4j(_build_annotation_doc(nodes,nodes[key][id]))
 
             elif key == "clustered_seq_set":
                 for id in nodes[key]:
-                    cypher_statements += _insert_into_neo4j(_build_clustered_seq_set_doc(nodes,nodes[key][id]))
+                    if id not in ignore:
+                        cypher_statements += _insert_into_neo4j(_build_clustered_seq_set_doc(nodes,nodes[key][id]))
 
     # Send Cypher in transactions with a number of statements sent at a time 
     # equal to args.batch_size
