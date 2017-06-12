@@ -7,10 +7,12 @@
 #
 # sample houses study, visit, visit_attribute, sample, and sample_attribute
 #
-# file is the prep node as well as the file
+# file is the file
 #
 # tag is the tag term attached to any of the nodes associated with a given
 # file node. 
+#
+# derived_from edge houses the prep info
 #
 # The overall data structure looks like:
 #
@@ -104,10 +106,18 @@ def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
     doc = {}
     doc['main'] = node['doc']
 
-    doc['16s_raw_seq_set'] = _find_upstream_node(all_nodes_dict['16s_raw_seq_set'],'16s_raw_seq_set',doc['main']['linkage']['computed_from'])
-    doc['prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set']['linkage']['sequenced_from'])
+    if type(doc['main']['linkage']['computed_from']) is list and len(set(doc['main']['linkage']['computed_from'])) > 1:
+        doc['16s_raw_seq_set'] = _multi_find_upstream_node(all_nodes_dict['16s_raw_seq_set'],'16s_raw_seq_set',doc['main']['linkage']['computed_from'])
+        doc['prep'] = []
+        for x in range(0,len(doc['16s_raw_seq_set'])):
+            doc['prep'] += _multi_find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set'][x]['linkage']['sequenced_from'])
+        doc['prep'] = {v['id']:v for v in doc['prep']}.values() # uniquifying
+        return _multi_collect_sample_through_project(all_nodes_dict,doc)
 
-    return _collect_sample_through_project(all_nodes_dict,doc)
+    else:
+        doc['16s_raw_seq_set'] = _find_upstream_node(all_nodes_dict['16s_raw_seq_set'],'16s_raw_seq_set',doc['main']['linkage']['computed_from'])
+        doc['prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set']['linkage']['sequenced_from'])
+        return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_abundance_matrix_doc(all_nodes_dict,node):
 
@@ -237,6 +247,8 @@ def _build_wgs_assembled_or_viral_seq_set_doc(all_nodes_dict,node):
 
     doc['main'] = node['doc'] 
 
+    # Assuming that WGS/HOST upstream nodes are never mixed, can identify using 
+    # the first link which types the upstream and prep nodes are. 
     link = _refine_link(doc['main']['linkage']['computed_from'])
 
     if link in all_nodes_dict['wgs_raw_seq_set']:
@@ -255,9 +267,17 @@ def _build_wgs_assembled_or_viral_seq_set_doc(all_nodes_dict,node):
     else:
         print("Made it here, so an WGS/HOST node is missing an upstream ID of {0}.".format(link))
 
-    doc['prep'] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
+    if type(doc['main']['linkage']['computed_from']) is list and len(set(doc['main']['linkage']['computed_from'])) > 1:
+        doc[which_upstream] = _multi_find_upstream_node(all_nodes_dict[which_upstream],which_upstream,doc['main']['linkage']['computed_from'])
+        doc['prep'] = []
+        for x in range(0,len(doc[which_upstream])):
+            doc['prep'] += _multi_find_upstream_node(all_nodes_dict[which_prep],which_prep,doc[which_upstream][x]['linkage']['sequenced_from'])
+        doc['prep'] = {v['id']:v for v in doc['prep']}.values() # uniquifying
+        return _multi_collect_sample_through_project(all_nodes_dict,doc)
 
-    return _collect_sample_through_project(all_nodes_dict,doc)
+    else:
+        doc['prep'] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
+        return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_annotation_doc(all_nodes_dict,node):
 
@@ -379,7 +399,7 @@ def _multi_find_upstream_node(node_dict,node_name,link_ids):
         if link_id in node_dict:
             upstream_node_list.append(node_dict[link_id]['doc'])
 
-    if len(upstream_node_list) > 1:
+    if len(upstream_node_list) == len(link_list):
         return upstream_node_list
     else:
         print("Made it here, so node type {0} doesn't have multiple upstream nodes as expected.".format(node_name))
@@ -511,6 +531,9 @@ def _traverse_document(doc,focal_node,index):
             doc_id = val
 
     props_str = (',').join(props)
+    # Some formatting to get rid of empty key:value pairs
+    props_str = props_str.replace('``:""','')
+    props_str = props_str.replace(',,',',')
 
     return {'id':doc_id,'tag_list':tags,'prop_str':props_str}
 
@@ -568,6 +591,8 @@ def _generate_cypher(doc,index):
                 tag = tag.split(':',1)[1] # don't trim URLs and the like (e.g. http:)
                 tag = tag.strip()
             if tag: # if there's something there, attach
+                if tag.isspace():
+                    continue
                 cypher.append("MERGE (n:tag{{term:'{0}'}})".format(tag))
                 cypher.append("MATCH (n1:file{{id:'{0}'}}),(n2:tag{{term:'{1}'}}) MERGE (n2)<-[:has_tag]-(n1)".format(file_info['id'],tag))
 
@@ -583,7 +608,7 @@ def _insert_into_neo4j(doc):
 
         else: # node with multiple upstream preps per file
             cypher_list = []
-            
+
             for x in range(0,len(doc['prep'])):
                 cypher_list += _generate_cypher(doc,x)
 
@@ -784,13 +809,6 @@ if __name__ == '__main__':
         else:
             print("Warning, skipping node with type: {0}".format(doc['doc']['node_type']))
 
-        # Catch any wonky edges at the document level, should only have one
-        # although if these were laid out in a graph DB there could be multiple
-        # nodes going to another like when samples are pooled.
-        if 'linkage' in doc['doc']:
-            if len(doc['doc']['linkage']) > 1:
-                print("A document has multiple linkages! See:\n".format(doc['doc']))
-
         # no-op ?
         key = counter
 
@@ -868,6 +886,18 @@ if __name__ == '__main__':
                 for id in nodes[key]:
                     if id not in ignore:
                         cypher_statements += _insert_into_neo4j(_build_clustered_seq_set_doc(nodes,nodes[key][id]))
+
+    # Build a list of unique elements so that the number of calls to Neo4j are 
+    # reduced. This should help greatly with how many tags are present per node 
+    # especially. Can't use set because we must maintain order. 
+    unique_cypher = set()
+    final_statements = []
+    for cypher in cypher_statements:
+        if cypher not in unique_cypher and cypher != '':
+            final_statements.append(cypher)
+            unique_cypher.add(cypher)
+
+    cypher_statements = final_statements
 
     # Send Cypher in transactions with a number of statements sent at a time 
     # equal to args.batch_size
