@@ -112,12 +112,16 @@ def _build_16s_trimmed_seq_set_doc(all_nodes_dict,node):
         for x in range(0,len(doc['16s_raw_seq_set'])):
             doc['prep'] += _multi_find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set'][x]['linkage']['sequenced_from'])
         doc['prep'] = {v['id']:v for v in doc['prep']}.values() # uniquifying
-        return _multi_collect_sample_through_project(all_nodes_dict,doc)
+        doc['prep'] = _isolate_relevant_prep_edge(doc)
+
+        if type(doc['prep']) is list:
+            return _multi_collect_sample_through_project(all_nodes_dict,doc)
 
     else:
         doc['16s_raw_seq_set'] = _find_upstream_node(all_nodes_dict['16s_raw_seq_set'],'16s_raw_seq_set',doc['main']['linkage']['computed_from'])
         doc['prep'] = _find_upstream_node(all_nodes_dict['16s_dna_prep'],'16s_dna_prep',doc['16s_raw_seq_set']['linkage']['sequenced_from'])
-        return _collect_sample_through_project(all_nodes_dict,doc)
+
+    return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_abundance_matrix_doc(all_nodes_dict,node):
 
@@ -227,6 +231,9 @@ def _build_wgs_transcriptomics_doc(all_nodes_dict,node):
 
     doc['main'] = node['doc']
 
+    if len(set(doc['main']['linkage']['sequenced_from'])) > 1:
+        print(doc['main']['id'])
+
     link = _refine_link(doc['main']['linkage']['sequenced_from'])
 
     if link in all_nodes_dict['wgs_dna_prep']:
@@ -273,11 +280,14 @@ def _build_wgs_assembled_or_viral_seq_set_doc(all_nodes_dict,node):
         for x in range(0,len(doc[which_upstream])):
             doc['prep'] += _multi_find_upstream_node(all_nodes_dict[which_prep],which_prep,doc[which_upstream][x]['linkage']['sequenced_from'])
         doc['prep'] = {v['id']:v for v in doc['prep']}.values() # uniquifying
-        return _multi_collect_sample_through_project(all_nodes_dict,doc)
+        doc['prep'] = _isolate_relevant_prep_edge(doc)
+        if type(doc['prep']) is list:
+            return _multi_collect_sample_through_project(all_nodes_dict,doc)
 
     else:
         doc['prep'] = _find_upstream_node(all_nodes_dict[which_prep],which_prep,link)
-        return _collect_sample_through_project(all_nodes_dict,doc)
+        
+    return _collect_sample_through_project(all_nodes_dict,doc)
 
 def _build_annotation_doc(all_nodes_dict,node):
 
@@ -356,6 +366,49 @@ def _build_clustered_seq_set_doc(all_nodes_dict,node):
 
     return _collect_sample_through_project(all_nodes_dict,doc)
 
+# Function to traverse up from a trimmed seq set or WGS set through the raw
+# edge links and find the singular relevant prep edge. This matches the 
+# SRS tag attached to the 'main' node and matches it to the srs_id prop 
+# in the prep node. 
+def _isolate_relevant_prep_edge(doc):
+    srs_tag = ""
+
+    # grab the SRS ID from the tags attached to the file
+    if 'tags' in doc['main']:
+        for tag in doc['main']['tags']:
+            if tag.startswith('SRS'):
+                srs_tag = tag
+
+    if srs_tag == "": # if found nothing in tags, check elsewhere
+        if 'meta' in doc['main']:
+            if 'assembly_name' in doc['main']['meta']:
+                srs_tag = doc['main']['meta']['assembly_name']
+
+    if srs_tag == "": # if found nothing in tags, check elsewhere
+        if 'assembly_name' in doc['main']:
+            srs_tag = doc['main']['assembly_name']
+
+    # iterate over all the prep edges til you find the one
+    for prep_edge in doc['prep']: # HMP I has 'srs_id'
+        if 'srs_id' in prep_edge:
+            if prep_edge['srs_id'] == srs_tag:
+                return prep_edge
+        elif 'tags' in prep_edge: # HMP II cases where SRS ID is in a tag
+            for tag in prep_edge['tags']:
+                if tag == srs_tag:
+                    return prep_edge
+        elif 'meta' in prep_edge:
+            if 'srs_id' in prep_edge['meta']:
+                if prep_edge['meta']['srs_id'] == srs_tag:
+                    return prep_edge
+            elif 'tags' in prep_edge['meta']:
+                for tag in prep_edge['meta']['tags']:
+                    if tag == srs_tag:
+                        return prep_edge
+
+    print("SRS# cannot be found upstream for ID: {0}".format(doc['main']['id']))
+    return doc['prep'] # if we made it here, could not isolate upstream SRS
+
 # This function takes in the dict of nodes from a particular node type, the name
 # of this type of node, the ID specified by the linkage to isolate the node. 
 # It returns the information of the particular upstream node. 
@@ -404,9 +457,8 @@ def _multi_find_upstream_node(node_dict,node_name,link_ids):
     else:
         print("Made it here, so node type {0} doesn't have multiple upstream nodes as expected.".format(node_name))
 
-
 # Similar to _collect_sample_through_project() except this works with many 
-# upstream nodes
+# upstream nodes. 
 def _multi_collect_sample_through_project(all_nodes_dict,doc):
 
     # Establish each node type as a list to account for each different prep linkage
@@ -593,8 +645,8 @@ def _generate_cypher(doc,index):
             if tag: # if there's something there, attach
                 if tag.isspace():
                     continue
-                cypher.append("MERGE (n:tag{{term:'{0}'}})".format(tag))
-                cypher.append("MATCH (n1:file{{id:'{0}'}}),(n2:tag{{term:'{1}'}}) MERGE (n2)<-[:has_tag]-(n1)".format(file_info['id'],tag))
+                cypher.append('MERGE (n:tag{{term:"{0}"}})'.format(tag))
+                cypher.append('MATCH (n1:file{{id:"{0}"}}),(n2:tag{{term:"{1}"}}) MERGE (n2)<-[:has_tag]-(n1)'.format(file_info['id'],tag))
 
     return cypher
 
