@@ -129,6 +129,12 @@ study_name_dict = {
     'prediabetes':'T2D'
 }
 
+# Some basic syntax corrections
+syntax_dict = {
+    '16s':'16S',
+    'wgs':'WGS'
+}
+
 # Remap data format values 
 file_format_dict = {
     'sff':'Standard Flowgram File',
@@ -139,6 +145,7 @@ file_format_dict = {
     'fastq':'FASTQ',
     'biom':'Biological Observation Matrix',
     'fasta':'FASTA',
+    'csv':'CSV',
     'mzXML':'Mass Spectroscopy Proteomics'
 }
 

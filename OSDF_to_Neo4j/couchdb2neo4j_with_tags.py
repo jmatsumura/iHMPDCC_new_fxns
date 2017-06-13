@@ -22,7 +22,7 @@
 
 import time,sys,argparse,requests
 from py2neo import Graph
-from accs_for_couchdb2neo4j import fma_free_body_site_dict, study_name_dict
+from accs_for_couchdb2neo4j import fma_free_body_site_dict, study_name_dict, file_format_dict, syntax_dict
 
 try:
     import simplejson as json
@@ -582,10 +582,24 @@ def _traverse_document(doc,focal_node,index):
         if key == "id":
             doc_id = val
 
+    if focal_node == 'main': # missing file formats will default to text files (only true so far for lipidome)
+        format_present = False
+        for prop in props:
+            if '`format`:' in prop:
+                format_present = True
+                break
+        
+        if not format_present:
+            props.append('`format`:"Text"')
+
     props_str = (',').join(props)
     # Some formatting to get rid of empty key:value pairs
     props_str = props_str.replace('``:""','')
     props_str = props_str.replace(',,',',')
+
+    if focal_node == 'main': # change syntax for file format and node_type
+        for k,v in file_format_dict.items():
+            props_str = props_str.replace('`format`:"{0}"'.format(k),'`format`:"{0}"'.format(v))
 
     return {'id':doc_id,'tag_list':tags,'prop_str':props_str}
 
@@ -963,8 +977,13 @@ if __name__ == '__main__':
 
         tx = cy.begin()
 
-        for pos in range(start,stop):
-            tx.append(cypher_statements[pos])
+        # know everything has to pass through here, so take advantage and do 
+        # blanket syntax corrections
+        for pos in range(start,stop): 
+            statement = cypher_statements[pos]
+            for k,v in syntax_dict.items():
+                statement = statement.replace(k,v)
+            tx.append(statement)
 
         tx.commit()
 
