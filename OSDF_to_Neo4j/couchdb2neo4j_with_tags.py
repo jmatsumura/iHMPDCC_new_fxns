@@ -899,7 +899,8 @@ if __name__ == '__main__':
         '88af6472fb03642dd5eaf8cddc2f4340','194149ed5273e3f94fc60a9ba5001573',
         '194149ed5273e3f94fc60a9ba59d2c9f','88af6472fb03642dd5eaf8cddc2f5abe',
         '9bb18fe313e7fe94bf243da07e0032e4','88af6472fb03642dd5eaf8cddc2f3405',
-        '194149ed5273e3f94fc60a9ba50069b0','88af6472fb03642dd5eaf8cddc714325']
+        '194149ed5273e3f94fc60a9ba50069b0','88af6472fb03642dd5eaf8cddc714325',
+        '5a950f27980b5d93e4c16da1243b7c05','5a950f27980b5d93e4c16da1243b821c']
     ignore = set(ignore_us)
 
     # build a list of all Cypher statements to build the entire DB
