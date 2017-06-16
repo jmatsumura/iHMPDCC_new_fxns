@@ -22,7 +22,7 @@
 
 import time,sys,argparse,requests
 from py2neo import Graph
-from accs_for_couchdb2neo4j import fma_free_body_site_dict, study_name_dict, file_format_dict, syntax_dict
+from accs_for_couchdb2neo4j import fma_free_body_site_dict, study_name_dict, file_format_dict
 
 try:
     import simplejson as json
@@ -981,10 +981,10 @@ if __name__ == '__main__':
         # know everything has to pass through here, so take advantage and do 
         # blanket syntax corrections
         for pos in range(start,stop): 
-            statement = cypher_statements[pos]
-            for k,v in syntax_dict.items():
-                statement = statement.replace(k,v)
-            tx.append(statement)
+            #statement = cypher_statements[pos]
+            #for k,v in syntax_dict.items():
+                #statement = statement.replace(k,v)
+            tx.append(cypher_statements[pos])
 
         tx.commit()
 

@@ -130,10 +130,10 @@ study_name_dict = {
 }
 
 # Some basic syntax corrections
-syntax_dict = {
-    '16s':'16S',
-    'wgs':'WGS'
-}
+#syntax_dict = {
+#    '16s':'16S',
+#    'wgs':'WGS'
+#}
 
 # Remap data format values 
 file_format_dict = {
